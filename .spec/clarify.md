@@ -5,4 +5,4 @@
 - ¿Qué niveles de acceso y auditoría tendrá cada rol (UAI, Rectorado, Ejecutores)?
 
 ## 2. Normativa CGE Consultada
-- Reglamentos de auditoría interna y seguimiento de recomendaciones institucionales[cite: 2].
+- Reglamentos de auditoría interna y seguimiento de recomendaciones institucionales.

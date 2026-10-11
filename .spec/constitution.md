@@ -6,5 +6,5 @@
 - Revisión de código obligatoria antes de integrar a `develop`.
 
 ## 2. Principios de Calidad y UNL
-- Principios aplicados: Solidaridad, transparencia, responsabilidad y honestidad académica[cite: 2, 3].
-- Uso ético de herramientas de Inteligencia Artificial para la asistencia en estructuración y documentación[cite: 1, 6].
+- Principios aplicados: Solidaridad, transparencia, responsabilidad y honestidad académica.
+- Uso ético de herramientas de Inteligencia Artificial para la asistencia en estructuración y documentación.
