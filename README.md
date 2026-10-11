@@ -1,18 +1,22 @@
-# Seguimiento de Recomendaciones CGE - UNL
+# : Seguimiento de Recomendaciones CGE - UNL :
 
-Sistema para la gestión, seguimiento y trazabilidad de recomendaciones emitidas por la Contraloría General del Estado para la Universidad Nacional de Loja.
+Sistema para la gestión, seguimiento y trazabilidad de recomendaciones emitidas por la Contraloría General del Estado (CGE) para la Universidad Nacional de Loja (UNL).
 
-## Requisitos Previos
-- Git
-- VS Code
-- GitKraken
+## 🛠️ Requisitos Previos
 
-## Estructura del Proyecto
-- `.spec/`: Documentación de especificaciones bajo metodología SDD.
-- `docs/`: Decisiones técnicas y respuestas de control.
+Antes de comenzar, asegúrate de tener instalado el siguiente software en tu equipo:
 
-## Instrucciones para Clonar y Ejecutar el Entorno
-1. Clonar el repositorio:
-   `git clone https://github.com/tu-usuario/seguimiento_de_recomendaciones_CGE.git`
-2. Cambiarse a la rama de desarrollo:
-   `git checkout develop`
+* [Git](https://git-scm.com/) (Controlador de versiones)
+* [GitKraken](https://www.gitkraken.com/) (Cliente gráfico para Git)
+* [Visual Studio Code](https://code.visualstudio.com/) (Editor de código/texto)
+
+---
+
+## 🚀 Instrucciones de Clonación y Configuración del Entorno
+
+Sigue estos pasos para obtener una copia local del repositorio y empezar a trabajar:
+
+### 1. Clonar el Repositorio
+Abre tu terminal o tu cliente **GitKraken** y clona el repositorio ejecuntando :
+```bash
+git clone [https://github.com/RCL05/seguimiento_de_recomendaciones_CGE.git](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE.git)
