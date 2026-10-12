@@ -1,4 +1,5 @@
-# Seguimiento de Recomendaciones CGE - UNL
+# : Seguimiento de Recomendaciones CGE - UNL :
+
 
 Sistema para la gestión, seguimiento y trazabilidad de recomendaciones emitidas por la Contraloría General del Estado (CGE) para la Universidad Nacional de Loja (UNL).
 
