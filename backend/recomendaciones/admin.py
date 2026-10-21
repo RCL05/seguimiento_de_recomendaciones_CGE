@@ -4,6 +4,7 @@ from django.utils import timezone
 from .models import (
     Asignacion,
     EstadoRecomendacion,
+    Evidencia,
     Recomendacion,
     Responsable,
     Unidad,
@@ -31,6 +32,14 @@ class AsignacionInline(admin.TabularInline):
     autocomplete_fields = ("responsable",)
 
 
+class EvidenciaInline(admin.TabularInline):
+    model = Evidencia
+    extra = 0
+    fields = ("archivo", "tipo", "estado", "descripcion", "creado_en")
+    readonly_fields = ("creado_en",)
+    show_change_link = True
+
+
 @admin.register(Recomendacion)
 class RecomendacionAdmin(admin.ModelAdmin):
     list_display = (
@@ -46,7 +55,7 @@ class RecomendacionAdmin(admin.ModelAdmin):
     search_fields = ("codigo", "descripcion", "origen")
     date_hierarchy = "fecha_limite"
     readonly_fields = ("creado_en", "actualizado_en")
-    inlines = (AsignacionInline,)
+    inlines = (AsignacionInline, EvidenciaInline)
     filter_horizontal = ()
     actions = ("marcar_vencidas",)
 
@@ -75,5 +84,52 @@ class RecomendacionAdmin(admin.ModelAdmin):
         self.message_user(
             request,
             f"{actualizadas} recomendación(es) marcada(s) como Vencida.",
+            messages.SUCCESS,
+        )
+
+
+@admin.register(Evidencia)
+class EvidenciaAdmin(admin.ModelAdmin):
+    list_display = (
+        "recomendacion",
+        "tipo",
+        "estado",
+        "tamano_legible",
+        "cargado_por",
+        "creado_en",
+    )
+    list_filter = ("estado", "tipo", "recomendacion__estado")
+    search_fields = ("recomendacion__codigo", "descripcion", "hash_archivo")
+    readonly_fields = ("mime", "tamano", "hash_archivo", "anulada_en", "creado_en")
+    autocomplete_fields = ("recomendacion",)
+    date_hierarchy = "creado_en"
+    actions = ("anular_evidencias",)
+
+    fieldsets = (
+        ("Vinculación", {"fields": ("recomendacion", "descripcion")}),
+        ("Archivo", {"fields": ("archivo", "tipo", "mime", "tamano", "hash_archivo")}),
+        ("Estado", {"fields": ("estado", "motivo_anulacion", "anulada_en")}),
+        ("Auditoría", {"fields": ("cargado_por", "creado_en")}),
+    )
+
+    def save_model(self, request, obj, form, change):
+        if not change and obj.cargado_por_id is None:
+            obj.cargado_por = request.user
+        super().save_model(request, obj, form, change)
+
+    @admin.display(description="Tamaño")
+    def tamano_legible(self, obj):
+        kb = obj.tamano / 1024
+        return f"{kb:.1f} KB" if kb < 1024 else f"{kb / 1024:.1f} MB"
+
+    @admin.action(description="Anular evidencias seleccionadas (conserva el registro)")
+    def anular_evidencias(self, request, queryset):
+        anuladas = 0
+        for evidencia in queryset.filter(estado="VIGENTE"):
+            evidencia.anular(motivo="Anulación desde el panel de administración.")
+            anuladas += 1
+        self.message_user(
+            request,
+            f"{anuladas} evidencia(s) anulada(s). El registro se conserva para trazabilidad.",
             messages.SUCCESS,
         )

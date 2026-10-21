@@ -1,6 +1,10 @@
+import hashlib
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+
+from .validators import RutaEvidenciaPDF, validar_archivo_pdf
 
 
 class EstadoRecomendacion(models.TextChoices):
@@ -130,3 +134,99 @@ class Asignacion(models.Model):
 
     def __str__(self):
         return f"{self.recomendacion.codigo} → {self.responsable.nombre}"
+
+
+class TipoEvidencia(models.TextChoices):
+    BORRADOR = "BORRADOR", "Borrador de avance"
+    FINAL = "FINAL", "Entrega final"
+
+
+class EstadoEvidencia(models.TextChoices):
+    VIGENTE = "VIGENTE", "Vigente"
+    ANULADA = "ANULADA", "Anulada"
+
+
+class Evidencia(models.Model):
+    recomendacion = models.ForeignKey(
+        Recomendacion,
+        on_delete=models.PROTECT,
+        related_name="evidencias",
+        verbose_name="Recomendación",
+    )
+    archivo = models.FileField(
+        "Archivo PDF",
+        upload_to=RutaEvidenciaPDF(),
+        validators=[validar_archivo_pdf],
+    )
+    tipo = models.CharField(
+        "Tipo",
+        max_length=10,
+        choices=TipoEvidencia.choices,
+        default=TipoEvidencia.BORRADOR,
+    )
+    estado = models.CharField(
+        "Estado",
+        max_length=10,
+        choices=EstadoEvidencia.choices,
+        default=EstadoEvidencia.VIGENTE,
+    )
+    descripcion = models.CharField("Descripción", max_length=250, blank=True)
+    mime = models.CharField("MIME", max_length=100, blank=True)
+    tamano = models.PositiveIntegerField("Tamaño (bytes)", default=0)
+    hash_archivo = models.CharField("Hash SHA-256", max_length=64, blank=True, editable=False)
+
+    cargado_por = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="evidencias_cargadas",
+        verbose_name="Cargado por",
+    )
+    motivo_anulacion = models.TextField("Motivo de anulación", blank=True)
+    anulada_en = models.DateTimeField("Anulada en", null=True, blank=True)
+    creado_en = models.DateTimeField("Creado en", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Evidencia"
+        verbose_name_plural = "Evidencias"
+        ordering = ["-creado_en"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(tamano__gte=0),
+                name="evidencia_tamano_no_negativo",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.recomendacion.codigo} - {self.get_tipo_display()} ({self.get_estado_display()})"
+
+    def save(self, *args, **kwargs):
+        if self.archivo and not self.tamano:
+            self.tamano = self.archivo.size
+        if self.archivo and not self.hash_archivo:
+            self.hash_archivo = self.calcular_hash()
+        if not self.mime:
+            self.mime = "application/pdf"
+        super().save(*args, **kwargs)
+
+    def calcular_hash(self):
+        digest = hashlib.sha256()
+        self.archivo.seek(0)
+        for bloque in self.archivo.chunks():
+            digest.update(bloque)
+        self.archivo.seek(0)
+        return digest.hexdigest()
+
+    @property
+    def esta_anulada(self):
+        return self.estado == EstadoEvidencia.ANULADA
+
+    def anular(self, motivo=""):
+        if self.esta_anulada:
+            raise ValidationError("La evidencia ya está anulada.")
+        self.estado = EstadoEvidencia.ANULADA
+        self.motivo_anulacion = motivo
+        self.anulada_en = timezone.now()
+        self.save(update_fields=["estado", "motivo_anulacion", "anulada_en"])
+
