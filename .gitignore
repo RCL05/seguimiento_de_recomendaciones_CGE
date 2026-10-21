@@ -1,11 +1,1 @@
-# Dependencias y entorno
-node_modules/
-venv/
-.env
 
-# Sistema operativo
-.DS_Store
-Thumbs.db
-
-# Editor
-.vscode/
