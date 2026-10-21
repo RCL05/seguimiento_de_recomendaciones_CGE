@@ -1,0 +1,47 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es-ec">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titulo %}Seguimiento de Recomendaciones CGE{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+</head>
+<body>
+    <header class="cabecera">
+        <div class="contenedor cabecera-fila">
+            <a class="marca" href="{% url 'recomendaciones:recomendacion_lista' %}">
+                Seguimiento de Recomendaciones <span>CGE - UNL</span>
+            </a>
+            <nav class="navegacion">
+                <a href="{% url 'recomendaciones:recomendacion_lista' %}">Recomendaciones</a>
+                <a href="{% url 'recomendaciones:recomendacion_crear' %}">Nueva</a>
+                {% if user.is_authenticated %}
+                    <a href="/admin/">Admin</a>
+                    <span class="usuario">{{ user.get_username }}</span>
+                    <form method="post" action="{% url 'logout' %}" class="salir">
+                        {% csrf_token %}
+                        <button type="submit" class="enlace-boton">Salir</button>
+                    </form>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="contenedor">
+        {% if messages %}
+            <ul class="mensajes">
+                {% for mensaje in messages %}
+                    <li class="mensaje {{ mensaje.tags }}">{{ mensaje }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% block contenido %}{% endblock %}
+    </main>
+
+    <footer class="pie">
+        <div class="contenedor">Universidad Nacional de Loja — Sistema de Seguimiento de Recomendaciones CGE</div>
+    </footer>
+</body>
+</html>
