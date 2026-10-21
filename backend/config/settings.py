@@ -55,7 +55,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -116,6 +116,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# Autenticación
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'recomendaciones:recomendacion_lista'
+LOGOUT_REDIRECT_URL = 'login'
 
 # Archivos de evidencia (almacenamiento controlado fuera de rutas estáticas)
 MEDIA_URL = 'media/'

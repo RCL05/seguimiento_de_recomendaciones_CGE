@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block titulo %}Recomendaciones — CGE{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-seccion">
+    <h1>Recomendaciones</h1>
+    <a class="boton primario" href="{% url 'recomendaciones:recomendacion_crear' %}">Nueva recomendación</a>
+</div>
+
+<form method="get" class="filtros">
+    <input type="text" name="q" value="{{ filtro_q }}" placeholder="Buscar por código o descripción" class="campo">
+    <select name="estado" class="campo">
+        <option value="">Todos los estados</option>
+        {% for valor, etiqueta in estados %}
+            <option value="{{ valor }}" {% if filtro_estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+        {% endfor %}
+    </select>
+    <select name="prioridad" class="campo">
+        <option value="">Todas las prioridades</option>
+        {% for valor, etiqueta in prioridades %}
+            <option value="{{ valor }}" {% if filtro_prioridad == valor %}selected{% endif %}>{{ etiqueta }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="boton">Filtrar</button>
+    <a class="boton secundario" href="{% url 'recomendaciones:recomendacion_lista' %}">Limpiar</a>
+</form>
+
+<p class="contador">{{ total }} recomendación(es) encontrada(s).</p>
+
+{% if recomendaciones %}
+<table class="tabla">
+    <thead>
+        <tr>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th>Prioridad</th>
+            <th>Estado</th>
+            <th>Fecha límite</th>
+            <th>Responsables</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for recomendacion in recomendaciones %}
+        <tr class="{% if recomendacion.esta_vencida %}fila-vencida{% endif %}">
+            <td><strong>{{ recomendacion.codigo }}</strong></td>
+            <td>{{ recomendacion.descripcion|truncatechars:70 }}</td>
+            <td>{{ recomendacion.get_prioridad_display }}</td>
+            <td><span class="etiqueta estado-{{ recomendacion.estado|lower }}">{{ recomendacion.get_estado_display }}</span></td>
+            <td>{{ recomendacion.fecha_limite|date:"d/m/Y" }}{% if recomendacion.esta_vencida %} <span class="aviso">vencida</span>{% endif %}</td>
+            <td>
+                {% for asignacion in recomendacion.asignaciones.all %}
+                    {{ asignacion.responsable.nombre }}{% if not forloop.last %}, {% endif %}
+                {% empty %}—
+                {% endfor %}
+            </td>
+            <td><a class="boton pequeño" href="{% url 'recomendaciones:recomendacion_detalle' recomendacion.pk %}">Ver</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="vacio">No hay recomendaciones que coincidan con los filtros.</p>
+{% endif %}
+{% endblock %}
