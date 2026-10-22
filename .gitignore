@@ -1,7 +1,16 @@
 # Dependencias y entorno
 node_modules/
 venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.pytest_cache/
+*.sqlite3
 .env
+.env.*
+!.env.example
 
 # Sistema operativo
 .DS_Store
