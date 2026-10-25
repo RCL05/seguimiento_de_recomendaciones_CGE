@@ -45,3 +45,4 @@ else:
             "NAME": BASE_DIR / "development.sqlite3",
         }
     }
+#prueba de conexion de comits en discord :)S
