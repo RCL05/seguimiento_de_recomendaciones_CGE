@@ -1,9 +1,9 @@
 import json
 import uuid
+from datetime import date
 from uuid import UUID
-from uuid import uuid4
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -12,23 +12,20 @@ from backend.core.api.request_context import request_id_from
 from backend.core.api.response_envelope import build_envelope
 from backend.core.audit.repository import record_audit
 from backend.core.shared.domain_types import (
-    ConflictError,
     DomainError,
     NotFoundError,
-    RecommendationState,
     Role,
     User,
     to_dict,
 )
-from backend.modules.recomendaciones.application.service import RecommendationService
-from backend.modules.recomendaciones.infrastructure.storage import EvidenceStorage
-from backend.modules.recomendaciones.models import DictamenUAI, Evidencia, InformeCGE, PlanAccion, Recomendacion
+from backend.modules.informes_cge.application.register_informe import RegisterInforme  # noqa: F401
+from backend.modules.recomendaciones.application.create_recomendacion import CreateRecomendacion
+from backend.modules.recomendaciones.application.create_plan_accion import CreatePlanAccion
+from backend.modules.recomendaciones.application.upload_evidencia import UploadEvidencia
+from backend.modules.recomendaciones.application.issue_dictamen import IssueDictamen
+from backend.modules.recomendaciones.models import InformeCGE, Recomendacion
 from backend.modules.usuarios.models import UnidadOrganica, Usuario
 from backend.modules.usuarios.infrastructure.sso_adapter import SsoAdapter
-from backend.modules.recomendaciones.domain.state_machine import transition
-
-service = RecommendationService()
-reports: dict[str, dict] = {}
 
 
 def _json(request):
@@ -182,35 +179,23 @@ def recommendation_create(request):
         payload = _json(request)
         user, actor = _persistent_user(request)
         if user.role is not Role.UAI:
-            raise DomainError("El rol no puede crear recomendaciones.")
-        unit = UnidadOrganica.objects.get(codigo=payload["unit_id"])
-        with transaction.atomic():
-            recommendation = Recomendacion.objects.create(
-                informe=_report_for(payload, actor),
-                numero_recomendacion=payload["number"],
-                descripcion=payload["description"],
-                unidad_responsable=unit,
-                plazo_legal_dias=int(payload["legal_days"]),
-                fecha_vencimiento_legal=payload["due_date"],
-            )
-            record_audit(
-                request_id=request_id_from(request),
-                user=actor,
-                action="CREATE",
-                entity="recommendation",
-                entity_id=recommendation.id,
-                new_state=recommendation.estado,
-            )
+            raise DomainError("Solo el rol UAI puede crear recomendaciones.")
+
+        use_case = CreateRecomendacion()
+        recommendation = use_case.execute(
+            actor=actor,
+            request_id=request_id_from(request),
+            report_id=payload.get("report_id"),
+            number=payload.get("number", ""),
+            description=payload.get("description", ""),
+            unit_id=payload.get("unit_id", ""),
+            legal_days=int(payload.get("legal_days", 0)),
+            due_date=date.fromisoformat(payload["due_date"]) if payload.get("due_date") else None,
+            priority=payload.get("priority", "MEDIA"),
+            ip_address=request.META.get("REMOTE_ADDR"),
+        )
         return _response(request, _recommendation_data(recommendation), "Recomendación creada", 201)
-    except (
-        DomainError,
-        KeyError,
-        TypeError,
-        ValueError,
-        UnidadOrganica.DoesNotExist,
-        InformeCGE.DoesNotExist,
-        IntegrityError,
-    ) as error:
+    except (DomainError, KeyError, TypeError, ValueError, IntegrityError) as error:
         return _error(request, error if isinstance(error, DomainError) else DomainError("Datos de recomendación inválidos."))
 
 
@@ -249,40 +234,19 @@ def recommendation_plan(request, recommendation_id: UUID):
         return JsonResponse({"detail": "Método no permitido."}, status=405)
     try:
         payload = _json(request)
-        user, actor = _persistent_user(request, Role.EJECUTOR)
-        with transaction.atomic():
-            recommendation = Recomendacion.objects.select_for_update().select_related(
-                "unidad_responsable"
-            ).get(pk=recommendation_id)
-            if user.unit_id != recommendation.unidad_responsable.codigo:
-                _audit_denied(request, actor, recommendation.id, "different_unit")
-                raise NotFoundError("La recomendación no existe.")
-            description = payload.get("descripcion_hito")
-            commitment_date = payload.get("fecha_compromiso")
-            if not description or not commitment_date:
-                raise DomainError("El hito requiere descripción y fecha de compromiso.")
-            if recommendation.estado == Recomendacion.Estado.PENDIENTE:
-                recommendation.estado = Recomendacion.Estado.EN_PLANIFICACION
-            if recommendation.estado != Recomendacion.Estado.EN_PLANIFICACION:
-                raise ConflictError("La recomendación no acepta planes en su estado actual.")
-            previous_state = recommendation.estado
-            recommendation.estado = Recomendacion.Estado.EN_EJECUCION
-            plan_model = PlanAccion.objects.create(
-                recomendacion=recommendation,
-                descripcion_hito=description,
-                fecha_compromiso=commitment_date,
-                creado_por=actor,
-            )
-            recommendation.save(update_fields=["estado"])
-            record_audit(
-                request_id=request_id_from(request),
-                user=actor,
-                action="CREATE_PLAN",
-                entity="recommendation",
-                entity_id=recommendation.id,
-                previous_state=previous_state,
-                new_state=recommendation.estado,
-            )
+        _, actor = _persistent_user(request, Role.EJECUTOR)
+        use_case = CreatePlanAccion()
+        plan_model = use_case.execute(
+            actor=actor,
+            request_id=request_id_from(request),
+            recommendation_id=recommendation_id,
+            description=payload.get("descripcion_hito", ""),
+            commitment_date=(
+                date.fromisoformat(payload["fecha_compromiso"])
+                if payload.get("fecha_compromiso") else None
+            ),
+            ip_address=request.META.get("REMOTE_ADDR"),
+        )
         return _response(request, {
             "id": str(plan_model.id),
             "recommendation_id": str(recommendation_id),
@@ -291,8 +255,6 @@ def recommendation_plan(request, recommendation_id: UUID):
             "completado": plan_model.completado,
             "created_by": str(actor.id),
         }, "Plan de acción creado", 201)
-    except Recomendacion.DoesNotExist:
-        raise NotFoundError("La recomendación no existe.")
     except (DomainError, KeyError, TypeError, ValueError) as error:
         return _error(request, error if isinstance(error, DomainError) else DomainError("Datos de plan inválidos."))
 
@@ -330,47 +292,18 @@ def recommendation_evidence(request, recommendation_id: UUID):
     if request.method != "POST":
         return JsonResponse({"detail": "Método no permitido."}, status=405)
     try:
-        user, actor = _persistent_user(request, Role.EJECUTOR)
+        _, actor = _persistent_user(request, Role.EJECUTOR)
         filename = request.headers.get("X-Filename", "evidence.pdf")
         content = request.body
-        digest = validate_pdf(filename, content)
-        with transaction.atomic():
-            recommendation = Recomendacion.objects.select_for_update().select_related(
-                "unidad_responsable"
-            ).get(pk=recommendation_id)
-            if user.unit_id != recommendation.unidad_responsable.codigo:
-                _audit_denied(request, actor, recommendation.id, "different_unit")
-                raise NotFoundError("La recomendación no existe.")
-            if recommendation.estado not in {
-                Recomendacion.Estado.EN_EJECUCION,
-                Recomendacion.Estado.RECHAZADA_CORRECCION,
-            }:
-                raise ConflictError("La recomendación no acepta evidencias en su estado actual.")
-            evidence_id = uuid4()
-            storage_url, _ = EvidenceStorage().save(evidence_id, filename, content)
-            evidence = Evidencia.objects.create(
-                id=evidence_id,
-                recomendacion=recommendation,
-                nombre_archivo=filename,
-                mime_type="application/pdf",
-                tamano_bytes=len(content),
-                url_almacenamiento=storage_url,
-                hash_sha256=digest,
-                subido_por=actor,
-            )
-            previous_state = recommendation.estado
-            recommendation.estado = Recomendacion.Estado.EN_REVISION_INTERNA
-            recommendation.save(update_fields=["estado"])
-            record_audit(
-                request_id=request_id_from(request),
-                user=actor,
-                action="UPLOAD_EVIDENCE",
-                entity="recommendation",
-                entity_id=recommendation.id,
-                previous_state=previous_state,
-                new_state=recommendation.estado,
-                details={"evidence_id": str(evidence.id), "sha256": digest},
-            )
+        use_case = UploadEvidencia()
+        evidence = use_case.execute(
+            actor=actor,
+            request_id=request_id_from(request),
+            recommendation_id=recommendation_id,
+            filename=filename,
+            content=content,
+            ip_address=request.META.get("REMOTE_ADDR"),
+        )
         return _response(
             request,
             {
@@ -394,45 +327,20 @@ def recommendation_review(request, recommendation_id: UUID):
         return JsonResponse({"detail": "Método no permitido."}, status=405)
     try:
         payload = _json(request)
-        _, actor = _persistent_user(request)
-        with transaction.atomic():
-            recommendation = Recomendacion.objects.select_for_update().get(pk=recommendation_id)
-            evidence = Evidencia.objects.filter(
-                pk=payload["evidence_id"], recomendacion=recommendation
-            ).first()
-            if evidence is None:
-                raise ValidationError("La evidencia no pertenece a la recomendación.")
-            if recommendation.estado != Recomendacion.Estado.EN_REVISION_INTERNA:
-                raise ConflictError("La recomendación no está lista para dictamen.")
-            approved = bool(payload["approved"])
-            previous_state = recommendation.estado
-            if approved:
-                evidence.validada = True
-                evidence.save(update_fields=["validada"])
-                recommendation.estado = Recomendacion.Estado.CUMPLIDA
-            else:
-                recommendation.estado = Recomendacion.Estado.RECHAZADA_CORRECCION
-            dictamen = DictamenUAI.objects.create(
-                recomendacion=recommendation,
-                evidencia=evidence,
-                evaluador=actor,
-                resultado=(
-                    DictamenUAI.Resultado.APROBADO
-                    if approved else DictamenUAI.Resultado.RECHAZADO
-                ),
-                observaciones_oficiales=payload.get("observaciones", ""),
-            )
-            recommendation.save(update_fields=["estado"])
-            record_audit(
-                request_id=request_id_from(request),
-                user=actor,
-                action="ISSUE_DICTAMEN",
-                entity="recommendation",
-                entity_id=recommendation.id,
-                previous_state=previous_state,
-                new_state=recommendation.estado,
-                details={"dictamen_id": str(dictamen.id), "approved": approved},
-            )
+        user, actor = _persistent_user(request)
+        if user.role is not Role.UAI:
+            raise DomainError("Solo el rol UAI puede emitir dictámenes.")
+        use_case = IssueDictamen()
+        dictamen = use_case.execute(
+            actor=actor,
+            request_id=request_id_from(request),
+            recommendation_id=recommendation_id,
+            evidence_id=UUID(payload["evidence_id"]),
+            approved=bool(payload["approved"]),
+            observations=payload.get("observaciones", ""),
+            ip_address=request.META.get("REMOTE_ADDR"),
+        )
+        recommendation = dictamen.recomendacion
         return _response(request, _recommendation_data(recommendation), "Dictamen registrado")
-    except (DomainError, KeyError, Recomendacion.DoesNotExist) as error:
+    except (DomainError, KeyError, ValueError, Recomendacion.DoesNotExist) as error:
         return _error(request, error if isinstance(error, DomainError) else DomainError("El dictamen requiere evidence_id y approved."))
