@@ -1,3 +1,4 @@
+
 """Caso de uso: marcar recomendaciones vencidas como EN_MORA.
 
 Reglas de negocio (RF-012):
