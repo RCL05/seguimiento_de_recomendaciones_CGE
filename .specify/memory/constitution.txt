@@ -1,0 +1,235 @@
+<!--
+Informe de impacto de sincronización
+- Cambio de versión: 1.0.0 -> 1.0.1
+- Principios modificados: todos los títulos y contenidos fueron traducidos al español;
+  no se modificaron las obligaciones de gobierno.
+- Secciones agregadas: ninguna.
+- Secciones eliminadas: ninguna.
+- Pendientes: confirmar la fecha original de ratificación; verificar la vigencia del
+  artículo 92 de la LOCGE y del Acuerdo No. 010-CG-2022; confirmar la tecnología y la
+  plataforma de despliegue antes de convertir opciones técnicas en obligaciones.
+-->
+
+# Constitución de SITRA-CGE UNL
+
+## Principios Fundamentales
+
+### I. Entrega Dirigida por Especificaciones y Auditable
+Toda capacidad DEBE especificarse antes de implementarse. La especificación DEBE
+indicar contexto, requisitos funcionales y no funcionales, escenarios de aceptación,
+restricciones y criterios de verificación. El trabajo DEBE avanzar por las etapas de
+aclaración, diseño técnico, planificación, implementación y validación. Toda
+implementación y prueba DEBE relacionarse con un requisito o criterio de aceptación.
+DEBE inspeccionarse la versión instalada de Spec Kit y sus comandos disponibles antes
+de utilizarlos; NO DEBEN inventarse ni asumirse comandos.
+
+Este principio garantiza que los controles institucionales sean revisables y que los
+cambios en el seguimiento de recomendaciones sean explicables para auditores y
+personas encargadas del mantenimiento.
+
+### II. Arquitectura Modular e Inversión de Dependencias
+El sistema DEBE organizarse como un monolito modular, salvo que una decisión
+arquitectónica aprobada registre un enfoque diferente. Las responsabilidades DEBEN
+separarse en cuatro capas:
+
+- **Presentación/API:** recibe solicitudes HTTP, valida entradas, transforma DTOs o
+  serializadores, aplica autenticación y autorización y produce el contrato universal
+  de respuestas. NO DEBE contener reglas de negocio ni consultas SQL directas.
+- **Aplicación:** coordina casos de uso, transacciones, flujos de autorización y
+  puertos. DEBE depender de abstracciones, no de detalles de HTTP, frameworks, ORM o
+  bases de datos.
+- **Dominio:** contiene entidades, objetos de valor, invariantes, políticas, máquinas
+  de estados y reglas de negocio. DEBE permanecer independiente de frameworks, ORM,
+  bases de datos y servicios externos.
+- **Infraestructura:** implementa persistencia, almacenamiento de archivos, envío SMTP,
+  hashing, tareas programadas y demás adaptadores externos.
+
+SOLID es obligatorio: los tipos DEBEN tener una responsabilidad clara, la lógica
+estable DEBE extenderse en lugar de modificarse innecesariamente, las implementaciones
+DEBEN respetar sus contratos, las interfaces DEBEN ser específicas y las políticas de
+dominio y aplicación NO DEBEN depender de infraestructura concreta.
+
+### III. Integridad del Estado, las Evidencias y la Trazabilidad
+Las reglas del ciclo de vida DEBEN representarse mediante una máquina de estados
+explícita. Los estados iniciales son **Pendiente**, **En Planificación**, **En
+Ejecución**, **En Revisión Interna**, **Cumplida**, **Rechazada/Corrección** y **En
+Mora**. Cada transición DEBE definir precondiciones, roles autorizados, eventos
+resultantes y comportamiento ante fallos.
+
+Una recomendación NO DEBE pasar a **Cumplida** sin haber pasado por **En Revisión
+Interna** y sin contar con al menos una evidencia documental PDF validada por la
+Unidad de Auditoría Interna (UAI). Una evidencia rechazada DEBE iniciar el flujo de
+corrección y conservar cada decisión de revisión. Las transiciones inválidas DEBEN
+rechazarse con HTTP 409 y NO DEBEN modificar parcialmente la recomendación.
+
+Cada PDF cargado DEBE validarse en formato y contenido. El sistema DEBE calcular y
+persistir un hash SHA-256 y los metadatos necesarios para verificar posteriormente la
+integridad. DEBE existir un mecanismo para detectar discrepancias entre el archivo y
+el hash registrado. El hash por sí solo NO DEBE considerarse prueba de autenticidad ni
+protección contra cambios en la base de datos; también son obligatorios los controles
+de acceso, almacenamiento protegido, auditoría y detección de cambios.
+
+Toda operación mutativa DEBE generar un registro de auditoría: creación,
+actualización, eliminación lógica cuando corresponda, asignaciones, cambios de estado,
+carga y validación de evidencias y cambios de plazos. Como mínimo, cada registro DEBE
+incluir `usuario_id`, `fecha_hora`, `ip_origen` cuando esté disponible, `request_id`,
+entidad e identificador afectados, operación, estado anterior, estado nuevo y
+resultado. Los cambios de negocio y su auditoría DEBEN ser transaccionales cuando sea
+necesario para evitar inconsistencias. Los registros DEBEN protegerse contra
+modificaciones y eliminaciones no autorizadas.
+
+### IV. Seguridad, Mínimo Privilegio y Protección de Datos
+La autenticación DEBE utilizar el mecanismo seguro aprobado por la institución. La
+autorización DEBE combinar RBAC con controles a nivel de objeto y DEBE ejecutarse en
+el servidor para cada operación y recurso; la interfaz no es una frontera de
+seguridad. Como mínimo, el modelo DEBE contemplar administración del sistema,
+ejecución por dependencia, revisión de evidencias y supervisión o auditoría
+institucional, ajustados a los roles reales.
+
+Un ejecutor DEBE consultar, modificar y cargar evidencias únicamente de
+recomendaciones asignadas expresamente a su dependencia. Cada endpoint DEBE validar
+entradas, proteger sesiones o tokens, manejar archivos de forma segura, limitar la
+exposición de datos sensibles y registrar eventos de seguridad. Las respuestas de
+error NO DEBEN exponer trazas, credenciales, SQL, tokens ni detalles sensibles.
+
+NO DEBEN incluirse secretos en Git. Los archivos de entorno con secretos DEBEN
+excluirse mediante `.gitignore`, y los despliegues DEBEN usar variables de entorno o
+un mecanismo aprobado de gestión de secretos. Toda excepción DEBE documentarse y
+aprobarse antes de integrarse.
+
+### V. Calidad Verificable y Confiabilidad Operativa
+Cada regla de dominio, caso de uso y transición relevante DEBE contar con pruebas
+automatizadas. La estrategia DEBE incluir pruebas unitarias de dominio, integración
+con persistencia y servicios externos cuando corresponda, API, autorización por rol y
+dependencia, integridad de archivos, concurrencia y tareas programadas. DEBEN cubrirse
+casos positivos y negativos: datos inválidos, permisos insuficientes, recursos
+inexistentes, conflictos HTTP 409, fallos de correo, reintentos, evidencias
+rechazadas o alteradas, notificaciones duplicadas y operaciones concurrentes.
+
+Las operaciones críticas DEBEN usar transacciones ACID, restricciones de integridad y
+bloqueos transaccionales o controles de concurrencia optimista compatibles con el ORM
+y la base de datos seleccionados. La implementación DEBE prevenir condiciones de
+carrera, actualizaciones perdidas y transiciones contradictorias.
+
+Las tareas programadas DEBEN evaluar los plazos y enviar alertas SMTP a las personas
+responsables cuando falten 15 días o menos y no exista evidencia que cumpla las
+condiciones establecidas. “Presentada” DEBE definirse separadamente de “validada”.
+El cambio a **En Mora** DEBE ocurrir solo cuando se cumplan las condiciones temporales
+y de negocio configuradas. Las tareas DEBEN ser idempotentes, observables, tolerantes
+a reintentos y resistentes a notificaciones duplicadas; además, DEBEN definir zona
+horaria, frecuencia y escalamiento, y registrar ejecuciones y errores.
+
+## Restricciones Técnicas y de Dominio
+
+La API DEBE utilizar el siguiente esquema de respuesta tanto para éxitos como para
+fallos:
+
+```json
+{
+  "success": true,
+  "message": "Mensaje claro y descriptivo para el cliente",
+  "data": {},
+  "errors": null,
+  "meta": {
+    "timestamp": "ISO-8601",
+    "request_id": "UUID-v4",
+    "pagination": null
+  }
+}
+```
+
+`success` DEBE reflejar el resultado; `message` DEBE ser comprensible; `data` DEBE
+contener el recurso, la colección o `null`; `errors` DEBE contener errores
+estructurados o `null`; y `meta` DEBE incluir una marca temporal ISO-8601, un
+`request_id` UUID versión 4 y paginación cuando corresponda. Los valores DEBEN
+adaptarse a cada operación sin cambiar el esquema general.
+
+La API DEBE emplear estos códigos:
+
+| Código | Significado |
+| --- | --- |
+| 200 | Operación exitosa |
+| 201 | Recurso creado |
+| 400 | Solicitud mal formada o validación fallida |
+| 401 | Usuario no autenticado |
+| 403 | Usuario autenticado sin permisos suficientes |
+| 404 | Recurso inexistente o inaccesible según la política de seguridad |
+| 409 | Conflicto de negocio o transición inválida |
+| 500 | Error interno no controlado |
+
+El código DEBE ser legible, modular, mantenible y con manejo explícito de errores.
+DEBE estar tipado cuando la tecnología lo permita. Los nombres DEBEN usar `snake_case`
+para funciones, variables y módulos cuando sea idiomático, `PascalCase` para clases y
+tipos, y `UPPER_SNAKE_CASE` para constantes. DEBEN preferirse términos del dominio y
+NO DEBEN duplicarse reglas de negocio entre capas.
+
+El alcance incluye registrar recomendaciones y responsables, cargar evidencias PDF,
+gestionar aprobación y trazabilidad y exportar matrices de cumplimiento. Quedan fuera
+la integración en tiempo real o sincronización automática con la base de datos de la
+CGE y la gestión de responsabilidades penales o judiciales. NO DEBEN codificarse
+interpretaciones jurídicas hasta verificar la vigencia y aplicabilidad del artículo 92
+de la LOCGE y del Acuerdo No. 010-CG-2022.
+
+El lenguaje, framework, base de datos, almacenamiento, plataforma de despliegue y
+proveedor SMTP son decisiones pendientes. DEBEN registrarse en una decisión
+arquitectónica aprobada antes de añadir requisitos específicos. PostgreSQL, SMTP y
+cualquier ORM son opciones permitidas, no obligaciones, hasta que el repositorio y el
+equipo los confirmen.
+
+## Flujo de Desarrollo y Puertas de Calidad
+
+El repositorio DEBE usar GitFlow: `main` protegida para producción, `develop` para
+integración, `feature/*` para funcionalidades, `bugfix/*` para correcciones y
+`hotfix/*` para incidentes críticos de producción. Los cambios en `main` y `develop`
+DEBEN realizarse mediante Pull Requests con revisión y verificaciones automáticas
+exitosas.
+
+Los commits DEBEN seguir Conventional Commits, incluyendo `feat:`, `fix:`, `docs:`,
+`refactor:`, `test:` y `chore:` cuando corresponda. La integración continua DEBE
+ejecutar lint, análisis estático disponible, pruebas automatizadas, controles de
+seguridad y detección de secretos. NO DEBE integrarse un cambio con verificaciones
+obligatorias fallidas.
+
+El proyecto sigue Docs as Code. Los cambios de arquitectura, flujos, autorización o
+contratos DEBEN actualizar la documentación técnica, diagramas C4, contrato OpenAPI o
+sitio Quarto cuando dichos artefactos existan. La documentación DEBE mantenerse
+coherente con la implementación y las decisiones arquitectónicas vigentes.
+
+Cada Pull Request DEBE aportar evidencia de trazabilidad con requisitos y criterios de
+aceptación, pruebas relevantes, cobertura de estados y evidencias cuando corresponda,
+controles de seguridad y secretos, actualización documental o justificación de
+excepción y notas de migración para cambios aprobados de esquema o contrato.
+
+## Gobernanza
+
+Esta constitución es el documento de gobierno de mayor jerarquía. Si otra práctica
+entra en conflicto con ella, DEBE resolverse a favor de esta constitución o registrarse
+una excepción aprobada antes de continuar.
+
+Toda modificación DEBE:
+
+1. identificar la sección afectada y el motivo;
+2. registrar el impacto en requisitos, implementación, pruebas, documentación y
+   controles operativos;
+3. incluir el plan de migración o adopción necesario;
+4. ser revisada y aprobada por las personas técnicas e institucionales responsables; y
+5. actualizar versión, fecha de modificación y comunicación al equipo.
+
+La versión sigue semver para gobierno:
+
+- **MAJOR**: elimina o redefine un principio de forma incompatible;
+- **MINOR**: agrega un principio o amplía materialmente el gobierno;
+- **PATCH**: aclara, corrige redacción o realiza cambios no semánticos.
+
+El cumplimiento DEBE revisarse durante especificación, diseño, Pull Request y
+validación de lanzamiento. Las revisiones DEBEN comprobar invariantes de dominio,
+autorización, auditoría, integridad de evidencias, concurrencia, pruebas,
+documentación y secretos. Las excepciones DEBEN ser explícitas, documentadas con
+controles compensatorios y aprobadas por responsables técnicos; NO DEBEN debilitar
+silenciosamente un control obligatorio.
+
+La constitución DEBE revisarse cuando cambien la arquitectura, base legal, seguridad,
+reglas del ciclo de vida o contratos de integración.
+
+**Versión**: 1.0.1 | **Ratificada**: TODO(RATIFICATION_DATE): confirmar fecha original
+de adopción | **Última modificación**: 2026-10-15
