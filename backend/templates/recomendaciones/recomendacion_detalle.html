@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ recomendacion.codigo }} — CGE{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-seccion">
+    <div>
+        <h1>{{ recomendacion.codigo }}</h1>
+        <span class="etiqueta estado-{{ recomendacion.estado|lower }}">{{ recomendacion.get_estado_display }}</span>
+        {% if recomendacion.esta_vencida %}<span class="etiqueta vencida">Vencida</span>{% endif %}
+    </div>
+    <a class="boton" href="{% url 'recomendaciones:recomendacion_editar' recomendacion.pk %}">Editar</a>
+</div>
+
+<section class="tarjeta">
+    <h2>Detalle</h2>
+    <dl class="datos">
+        <dt>Descripción</dt><dd>{{ recomendacion.descripcion }}</dd>
+        <dt>Origen</dt><dd>{{ recomendacion.origen }}</dd>
+        <dt>Prioridad</dt><dd>{{ recomendacion.get_prioridad_display }}</dd>
+        <dt>Fecha de emisión</dt><dd>{{ recomendacion.fecha_emision|date:"d/m/Y" }}</dd>
+        <dt>Fecha límite</dt><dd>{{ recomendacion.fecha_limite|date:"d/m/Y" }}</dd>
+    </dl>
+</section>
+
+<section class="tarjeta">
+    <h2>Responsables asignados</h2>
+    {% if recomendacion.asignaciones.all %}
+    <table class="tabla">
+        <thead><tr><th>Nombre</th><th>Cargo</th><th>Unidad</th><th>Correo</th></tr></thead>
+        <tbody>
+            {% for asignacion in recomendacion.asignaciones.all %}
+            <tr>
+                <td>{{ asignacion.responsable.nombre }}</td>
+                <td>{{ asignacion.responsable.cargo|default:"—" }}</td>
+                <td>{{ asignacion.responsable.unidad }}</td>
+                <td>{{ asignacion.responsable.email|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="vacio">Sin responsables asignados.</p>
+    {% endif %}
+</section>
+
+<section class="tarjeta">
+    <h2>Evidencias</h2>
+
+    {% if recomendacion.evidencias.all %}
+    <table class="tabla">
+        <thead>
+            <tr><th>Tipo</th><th>Estado</th><th>Archivo</th><th>Tamaño</th><th>Cargada</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for evidencia in recomendacion.evidencias.all %}
+            <tr class="{% if evidencia.esta_anulada %}fila-anulada{% endif %}">
+                <td>{{ evidencia.get_tipo_display }}</td>
+                <td><span class="etiqueta {% if evidencia.esta_anulada %}vencida{% endif %}">{{ evidencia.get_estado_display }}</span></td>
+                <td>
+                    {% if evidencia.archivo %}
+                        <a href="{{ evidencia.archivo.url }}" target="_blank" rel="noopener">Ver PDF</a>
+                    {% else %}—{% endif %}
+                </td>
+                <td>{{ evidencia.tamano|filesizeformat }}</td>
+                <td>{{ evidencia.creado_en|date:"d/m/Y H:i" }}</td>
+                <td>
+                    {% if not evidencia.esta_anulada %}
+                    <form method="post" action="{% url 'recomendaciones:evidencia_anular' evidencia.pk %}" class="en-linea">
+                        {% csrf_token %}
+                        <input type="text" name="motivo" class="campo minimo" placeholder="Motivo (opcional)">
+                        <button type="submit" class="boton pequeño peligro">Anular</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="vacio">Aún no hay evidencias cargadas.</p>
+    {% endif %}
+
+    <h3>Cargar nueva evidencia (PDF, máx. 10 MB)</h3>
+    <form method="post" action="{% url 'recomendaciones:evidencia_cargar' recomendacion.pk %}" enctype="multipart/form-data" class="formulario">
+        {% csrf_token %}
+        {% for campo in form_evidencia %}
+        <div class="grupo">
+            <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+            {{ campo }}
+            {% if campo.errors %}<span class="mensaje error">{{ campo.errors|join:", " }}</span>{% endif %}
+            {% if campo.help_text %}<span class="ayuda">{{ campo.help_text }}</span>{% endif %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="boton primario">Cargar evidencia</button>
+    </form>
+</section>
+{% endblock %}

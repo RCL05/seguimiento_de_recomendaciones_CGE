@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ titulo }} — CGE{% endblock %}
+
+{% block contenido %}
+<div class="cabecera-seccion">
+    <h1>{{ titulo }}</h1>
+    <a class="boton secundario" href="{% url 'recomendaciones:recomendacion_lista' %}">Volver</a>
+</div>
+
+<section class="tarjeta">
+    <form method="post" class="formulario">
+        {% csrf_token %}
+        {% for campo in form %}
+        <div class="grupo {% if campo.name == 'responsables' %}grupo-checkbox{% endif %}">
+            <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+            {{ campo }}
+            {% if campo.errors %}<span class="mensaje error">{{ campo.errors|join:", " }}</span>{% endif %}
+            {% if campo.help_text %}<span class="ayuda">{{ campo.help_text }}</span>{% endif %}
+        </div>
+        {% endfor %}
+        <div class="acciones">
+            <button type="submit" class="boton primario">Guardar</button>
+            <a class="boton secundario" href="{% url 'recomendaciones:recomendacion_lista' %}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
