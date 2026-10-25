@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from backend.core.api.exception_handler import ErrorCodes, handle_exception
 from backend.core.api.response_envelope import error_response, success_response
 from backend.core.shared.domain_types import PermissionDenied, Role, User
+from backend.modules.reportes.application.export_matriz import export_matriz_cge_csv
 from backend.modules.reportes.application.get_dashboard import get_dashboard
 
 
@@ -26,7 +28,7 @@ def _get_actor(request):
 def tablero_view(request):
     try:
         actor = _get_actor(request)
-        if actor.role not in (Role.RECTORADO, Role.DTI, Role.UAI):
+        if actor.role not in (Role.RECTORADO, Role.DTI, Role.UAI, Role.CGE_AUDITOR):
             return error_response(
                 code=ErrorCodes.FORBIDDEN,
                 message="Acceso exclusivo a RECTORADO y roles autorizados.",
@@ -34,5 +36,24 @@ def tablero_view(request):
             )
         data = get_dashboard()
         return success_response(data=data, message="Tablero consultado")
+    except Exception as exc:
+        return handle_exception(exc)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def matriz_cge_view(request):
+    try:
+        actor = _get_actor(request)
+        if actor.role not in (Role.UAI, Role.CGE_AUDITOR, Role.RECTORADO):
+            return error_response(
+                code=ErrorCodes.FORBIDDEN,
+                message="No tiene permisos para exportar la matriz CGE.",
+                status=403,
+            )
+        csv_bytes = export_matriz_cge_csv()
+        response = HttpResponse(csv_bytes, content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="matriz_cge.csv"'
+        return response
     except Exception as exc:
         return handle_exception(exc)
