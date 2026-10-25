@@ -1,0 +1,288 @@
+openapi: 3.1.0
+info:
+  title: API SITRA-CGE UNL
+  version: 1.0.0
+  description: Contrato inicial para seguimiento y auditoría de recomendaciones CGE.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+paths:
+  /auth/login-sso:
+    post:
+      operationId: loginSso
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Sesión autenticada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /informes:
+    post:
+      operationId: createInforme
+      summary: Registrar informe CGE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InformeInput'
+      responses:
+        '201':
+          $ref: '#/components/responses/Created'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /recomendaciones:
+    get:
+      operationId: listRecomendaciones
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - in: query
+          name: estado
+          schema:
+            $ref: '#/components/schemas/Estado'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: createRecomendacion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecomendacionInput'
+      responses:
+        '201':
+          $ref: '#/components/responses/Created'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /recomendaciones/{id}:
+    get:
+      operationId: getRecomendacion
+      summary: Consultar una recomendación
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /recomendaciones/{id}/plan-accion:
+    post:
+      operationId: createPlanAccion
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HitoInput'
+      responses:
+        '201':
+          $ref: '#/components/responses/Created'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /recomendaciones/{id}/evidencias:
+    post:
+      operationId: uploadEvidence
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [archivo]
+              properties:
+                archivo:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          $ref: '#/components/responses/Created'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /recomendaciones/{id}/dictamen:
+    patch:
+      operationId: issueDictamen
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DictamenInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /reportes/matriz-cge:
+    post:
+      operationId: exportMatrizCge
+      summary: Exportar matriz institucional
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                formato:
+                  type: string
+                  enum: [csv]
+                  default: csv
+      responses:
+        '200':
+          description: Archivo de matriz generado
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: attachment; filename="matriz-cge.csv"
+          content:
+            text/csv:
+              schema:
+                type: string
+                example: "numero_informe,numero_recomendacion,estado\nINF-001,1,CUMPLIDA\n"
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    Id:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Page:
+      in: query
+      name: page
+      schema: {type: integer, minimum: 1, default: 1}
+    PageSize:
+      in: query
+      name: page_size
+      schema: {type: integer, minimum: 1, maximum: 100, default: 10}
+  schemas:
+    Meta:
+      type: object
+      required: [request_id, timestamp, version, pagination]
+      properties:
+        request_id: {type: string, format: uuid}
+        timestamp: {type: string, format: date-time}
+        version: {type: string, example: v1}
+        pagination: {type: object, nullable: true}
+    Envelope:
+      type: object
+      required: [success, message, data, errors, meta]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+        data: {nullable: true}
+        errors: {nullable: true}
+        meta: {$ref: '#/components/schemas/Meta'}
+    SuccessEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+    LoginRequest:
+      type: object
+      required: [credential]
+      properties:
+        credential: {type: string}
+    InformeInput:
+      type: object
+      required: [numero_informe, periodo_auditado, fecha_notificacion, pdf_informe_url]
+      properties:
+        numero_informe: {type: string}
+        periodo_auditado: {type: string}
+        fecha_notificacion: {type: string, format: date}
+        pdf_informe_url: {type: string, format: uri}
+    RecomendacionInput:
+      type: object
+      required: [informe_id, numero_recomendacion, descripcion, unidad_responsable_id, plazo_legal_dias, prioridad]
+      properties:
+        informe_id: {type: string, format: uuid}
+        numero_recomendacion: {type: string}
+        descripcion: {type: string}
+        unidad_responsable_id: {type: string, format: uuid}
+        plazo_legal_dias: {type: integer, minimum: 1}
+        prioridad: {type: string}
+    HitoInput:
+      type: object
+      required: [descripcion_hito, fecha_compromiso]
+      properties:
+        descripcion_hito: {type: string}
+        fecha_compromiso: {type: string, format: date}
+    DictamenInput:
+      type: object
+      required: [resultado]
+      properties:
+        resultado: {type: string, enum: [APROBADO, RECHAZADO]}
+        evidencia_id: {type: string, format: uuid}
+        observaciones_oficiales: {type: string}
+    Estado:
+      type: string
+      enum: [PENDIENTE, EN_PLANIFICACION, EN_EJECUCION, EN_REVISION_INTERNA, CUMPLIDA, RECHAZADA_CORRECCION, EN_MORA]
+  responses:
+    Success:
+      description: Operación exitosa
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+    Created:
+      description: Recurso creado
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+    ValidationError:
+      description: Error de validación
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+    Unauthorized:
+      description: Autenticación requerida
+    Forbidden:
+      description: Permiso insuficiente
+    NotFound:
+      description: Recurso inexistente o no visible para el usuario
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+    Conflict:
+      description: Conflicto de dominio o transición inválida
