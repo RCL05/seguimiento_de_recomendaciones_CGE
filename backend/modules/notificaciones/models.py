@@ -21,6 +21,9 @@ class Notificacion(models.Model):
     enviada_en = models.DateTimeField(null=True, blank=True)
     intentos = models.PositiveIntegerField(default=0)
     estado = models.CharField(max_length=30, choices=Estado.choices, default=Estado.PENDIENTE)
+    canal_interno = models.BooleanField(default=True)
+    canal_email = models.BooleanField(default=True)
+    leida = models.BooleanField(default=False)
 
     class Meta:
         db_table = "notificaciones"

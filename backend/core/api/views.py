@@ -83,6 +83,7 @@ def _audit_denied(request, actor, entity_id, reason):
         entity="recommendation",
         entity_id=entity_id,
         details={"reason": reason, "result": "not_found"},
+        resultado="DENIED",
         ip_address=request.META.get("REMOTE_ADDR"),
     )
 
@@ -116,6 +117,19 @@ def _recommendation_data(recommendation):
     }
 
 
+def _evidence_data(evidence):
+    return {
+        "id": str(evidence.id),
+        "recommendation_id": str(evidence.recomendacion_id),
+        "filename": evidence.nombre_archivo,
+        "mime_type": evidence.mime_type,
+        "size_bytes": evidence.tamano_bytes,
+        "sha256": evidence.hash_sha256,
+        "uploaded_at": evidence.fecha_carga.isoformat(),
+        "validated": evidence.validada,
+    }
+
+
 def _response(request, data, message, status=200):
     return JsonResponse(
         build_envelope(
@@ -143,10 +157,18 @@ def login_sso(request):
         return JsonResponse({"detail": "Método no permitido."}, status=405)
     try:
         payload = _json(request)
-        identity = SsoAdapter().authenticate(payload.get("credential"))
+        identity = SsoAdapter().authenticate(token=payload.get("credential", ""))
+        if not identity:
+            raise DomainError("La credencial SSO no es válida.")
         return _response(
             request,
-            {"user_id": identity.subject, "email": identity.email, "display_name": identity.display_name},
+            {
+                "user_id": identity["correo"],
+                "email": identity["correo"],
+                "display_name": identity["nombres"],
+                "role": identity["rol"],
+                "unit_id": identity["unidad_codigo"],
+            },
             "Identidad institucional validada",
         )
     except (DomainError, ValueError) as error:
@@ -284,7 +306,12 @@ def recommendation_detail(request, recommendation_id: UUID):
             ),
             status=404,
         )
-    return _response(request, _recommendation_data(recommendation), "Recomendación consultada")
+    data = _recommendation_data(recommendation)
+    data["evidencias"] = [
+        _evidence_data(evidence)
+        for evidence in recommendation.evidencias.order_by("-fecha_carga")
+    ]
+    return _response(request, data, "Recomendación consultada")
 
 
 @csrf_exempt

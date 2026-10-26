@@ -1,101 +1,67 @@
 import pytest
 
-from backend.core.api import views
-from backend.core.api.exception_handler import ErrorCodes
-from backend.core.auth.authorization import PermissionDenied, require_same_unit
-from backend.core.shared.domain_types import Role, User
+from backend.core.api.error_catalog import ErrorCodes, error_response
+from backend.core.api.response_envelope import build_envelope
+from backend.core.auth.authorization import require_role, require_same_unit
+from backend.core.shared.domain_types import (
+    ConflictError,
+    DomainError,
+    NotFoundError,
+    PermissionDenied,
+    Role,
+    User,
+    ValidationError,
+)
+
+pytestmark = pytest.mark.django_db
 
 
-@pytest.fixture(autouse=True)
-def reset_state():
-    views.service.recommendations.clear()
-    views.service.plans.clear()
-    views.service.evidences.clear()
-    yield
-    views.service.recommendations.clear()
-    views.service.plans.clear()
-    views.service.evidences.clear()
+def test_envelope_exitoso_y_de_error_comparten_estructura():
+    success = build_envelope(success=True, message="ok", data={"id": "1"})
+    assert set(success) == {"success", "message", "data", "errors", "meta"}
+    assert success["success"] is True
+    assert success["errors"] is None
+    assert success["meta"]["version"] == "v1"
+    assert success["meta"]["request_id"]
+
+    payload, status = error_response(ValidationError("Dato inválido"))
+    assert status == 400
+    assert payload["success"] is False
+    assert payload["data"] is None
+    assert payload["errors"]["code"] == ErrorCodes.VALIDATION_ERROR
+    assert payload["errors"]["detail"] == "Dato inválido"
+    assert "request_id" in payload["meta"]
 
 
-def test_transactional_flow_uses_atomic_state_updates(monkeypatch):
-    from backend.core.api import views as api_views
-
-    calls = []
-
-    class DummyAtomic:
-        def __enter__(self):
-            calls.append("enter")
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
-            calls.append("exit")
-            return False
-
-    def fake_atomic():
-        return DummyAtomic()
-
-    import django
-
-    monkeypatch.setattr(django.db.transaction, "atomic", fake_atomic)
-
-    api_views.register_informe(
-        {
-            "numero_informe": "INF-TRX-001",
-            "periodo_auditado": "2026",
-            "fecha_notificacion": "2026-01-10",
-            "pdf_informe_url": "https://example.test/inf-trx.pdf",
-        }
-    )
-    api_views.create_recommendation(
-        {
-            "number": "R-TRX-01",
-            "description": "Probar transaccionalidad",
-            "unit_id": "unit-trx",
-            "legal_days": 30,
-            "due_date": "2026-03-01",
-        }
-    )
-
-    assert "enter" in calls
-    assert "exit" in calls
+@pytest.mark.parametrize(
+    ("error", "status", "code"),
+    [
+        (ValidationError("x"), 400, ErrorCodes.VALIDATION_ERROR),
+        (PermissionDenied("x"), 403, ErrorCodes.PERMISSION_DENIED),
+        (NotFoundError("x"), 404, ErrorCodes.RESOURCE_NOT_FOUND),
+        (ConflictError("x"), 409, ErrorCodes.CONFLICT),
+        (DomainError("x"), 409, ErrorCodes.BUSINESS_RULE_VIOLATION),
+    ],
+)
+def test_catalogo_de_errores_mapea_estado_y_codigo(error, status, code):
+    payload, payload_status = error_response(error)
+    assert payload_status == status
+    assert payload["errors"]["code"] == code
 
 
-def test_audit_minimum_records_action_request_id_and_actor():
-    from backend.core.api import views as api_views
-    from backend.core.api import service
+def test_autorizacion_por_rol_y_unidad():
+    executor_a = User(id="exec-a", role=Role.EJECUTOR, unit_id="unit-a")
+    executor_b = User(id="exec-b", role=Role.EJECUTOR, unit_id="unit-b")
+    uai = User(id="uai", role=Role.UAI, unit_id="unit-a")
 
-    report = api_views.register_informe(
-        {
-            "numero_informe": "INF-AUD-001",
-            "periodo_auditado": "2026",
-            "fecha_notificacion": "2026-01-12",
-            "pdf_informe_url": "https://example.test/inf-aud.pdf",
-        }
-    )
-    rec = api_views.create_recommendation(
-        {
-            "number": "R-AUD-01",
-            "description": "Verificar auditoría",
-            "unit_id": "unit-aud",
-            "legal_days": 15,
-            "due_date": "2026-02-10",
-        }
-    )
-    assert service.audit_log, "Debe existir al menos un registro de auditoría"
-    audit_entry = service.audit_log[-1]
-    assert "request_id" in audit_entry
-    assert "action" in audit_entry
-    assert "entity" in audit_entry
-    assert audit_entry.get("entity_id") == rec["id"] or audit_entry.get("entity_id") == report["id"]
+    require_role(uai, Role.UAI)
+    require_same_unit(executor_a, "unit-a")
 
+    with pytest.raises(PermissionDenied):
+        require_role(executor_a, Role.UAI)
 
-def test_object_level_authorization_prevents_cross_unit_access():
-    executor_unit_a = User(id="exec-a", role=Role.EJECUTOR, unit_id="unit-a")
-    executor_unit_b = User(id="exec-b", role=Role.EJECUTOR, unit_id="unit-b")
+    with pytest.raises(PermissionDenied):
+        require_same_unit(executor_b, "unit-a")
 
-    require_same_unit(executor_unit_a, "unit-a")
-
-    with pytest.raises(PermissionDenied) as exc:
-        require_same_unit(executor_unit_b, "unit-a")
-
-    assert exc.value.code == ErrorCodes.PERMISSION_DENIED or "unidad" in str(exc.value).lower()
+    with pytest.raises(PermissionDenied):
+        require_same_unit(uai, "unit-a")

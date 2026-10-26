@@ -11,12 +11,14 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 
-from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from backend.modules.notificaciones.application.service import (
     deliver_pending_notifications,
     schedule_notification,
+)
+from backend.modules.notificaciones.infrastructure.preferences_models import (
+    ConfiguracionNotificacion,
 )
 from backend.modules.recomendaciones.models import Recomendacion
 from backend.modules.usuarios.models import Usuario
@@ -31,8 +33,13 @@ def send_deadline_alerts() -> dict[str, int]:
 
     Retorna un diccionario con contadores de ejecución.
     """
+    config = ConfiguracionNotificacion.load()
+    if not config.notificaciones_activas:
+        return {"scheduled": 0, "skipped": 0, "delivered": 0}
+
+    threshold_days = config.umbral_dias or ALERT_DAYS_THRESHOLD
     now = timezone.localtime()  # America/Guayaquil para lógica de negocio
-    threshold_date = now.date() + timedelta(days=ALERT_DAYS_THRESHOLD)
+    threshold_date = now.date() + timedelta(days=threshold_days)
 
     # Recomendaciones activas próximas a vencer sin evidencia aprobada
     candidates = (
@@ -61,24 +68,33 @@ def send_deadline_alerts() -> dict[str, int]:
             rol=Usuario.Rol.EJECUTOR,
             activo=True,
         )
-        # Notificar también a UAI
-        uai_users = Usuario.objects.filter(rol=Usuario.Rol.UAI, activo=True)
+        configured_roles = [
+            role
+            for role in (config.destinatarios_vencimiento or [])
+            if role != Usuario.Rol.EJECUTOR
+        ]
+        configured_recipients = Usuario.objects.filter(
+            rol__in=configured_roles,
+            activo=True,
+        )
 
-        for recipient in list(recipients) + list(uai_users):
+        seen = set()
+        for recipient in list(recipients) + list(configured_recipients):
+            if recipient.id in seen:
+                continue
+            seen.add(recipient.id)
             key = f"DEADLINE_ALERT:{rec.id}:{recipient.id}:{threshold_date}"
-            try:
-                with transaction.atomic():
-                    schedule_notification(
-                        recommendation=rec,
-                        recipient=recipient,
-                        notification_type="ALERTA_VENCIMIENTO",
-                        idempotency_key=key,
-                    )
-                scheduled += 1
-                logger.info("Alerta programada: %s → %s", rec.id, recipient.correo_institucional)
-            except IntegrityError:
+            notification = schedule_notification(
+                recommendation=rec,
+                recipient=recipient,
+                notification_type="ALERTA_VENCIMIENTO",
+                idempotency_key=key,
+            )
+            if notification is None:
                 skipped += 1
-                logger.debug("Alerta ya existente (idempotente): %s", key)
+                continue
+            scheduled += 1
+            logger.info("Alerta programada: %s → %s", rec.id, recipient.correo_institucional)
 
     delivered = deliver_pending_notifications(limit=200)
     logger.info(

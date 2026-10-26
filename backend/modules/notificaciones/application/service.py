@@ -15,7 +15,27 @@ def schedule_notification(
     recipient: Usuario,
     notification_type: str,
     idempotency_key: str,
-) -> Notificacion:
+    canal_interno: bool | None = None,
+    canal_email: bool | None = None,
+) -> Notificacion | None:
+    """Programa una notificación idempotente respetando los canales configurados."""
+    if canal_interno is None or canal_email is None:
+        from backend.modules.notificaciones.application.manage_notification_settings import (
+            resolve_channels,
+        )
+
+        resolved_internal, resolved_email = resolve_channels(
+            recipient=recipient,
+            notification_type=notification_type,
+        )
+        canal_interno = resolved_internal if canal_interno is None else canal_interno
+        canal_email = resolved_email if canal_email is None else canal_email
+
+    if not canal_interno and not canal_email:
+        return None
+
+    # Una notificación solo interna queda visible de inmediato en la bandeja.
+    internal_only = canal_interno and not canal_email
     try:
         with transaction.atomic():
             return Notificacion.objects.create(
@@ -24,6 +44,14 @@ def schedule_notification(
                 tipo=notification_type,
                 clave_idempotencia=idempotency_key,
                 programada_en=timezone.now(),
+                canal_interno=canal_interno,
+                canal_email=canal_email,
+                estado=(
+                    Notificacion.Estado.ENVIADA
+                    if internal_only
+                    else Notificacion.Estado.PENDIENTE
+                ),
+                enviada_en=timezone.now() if internal_only else None,
             )
     except IntegrityError:
         return Notificacion.objects.get(clave_idempotencia=idempotency_key)
@@ -32,7 +60,8 @@ def schedule_notification(
 def deliver_pending_notifications(*, limit: int = 50) -> int:
     delivered = 0
     for notification in Notificacion.objects.filter(
-        estado=Notificacion.Estado.PENDIENTE
+        estado=Notificacion.Estado.PENDIENTE,
+        canal_email=True,
     ).order_by("programada_en")[:limit]:
         try:
             sent = send_mail(

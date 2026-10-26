@@ -21,6 +21,9 @@ from backend.modules.notificaciones.application.service import (
     deliver_pending_notifications,
     schedule_notification,
 )
+from backend.modules.notificaciones.infrastructure.preferences_models import (
+    ConfiguracionNotificacion,
+)
 from backend.modules.recomendaciones.models import Recomendacion
 from backend.modules.usuarios.models import Usuario
 
@@ -40,6 +43,8 @@ def mark_overdue_recommendations() -> dict[str, int]:
     Retorna contadores de ejecución.
     """
     today = timezone.localdate()  # America/Guayaquil para lógica de negocio
+
+    config = ConfiguracionNotificacion.load()
 
     candidates = (
         Recomendacion.objects.filter(
@@ -90,7 +95,7 @@ def mark_overdue_recommendations() -> dict[str, int]:
                 )
 
                 # Notificar a Rectorado, UAI y ejecutores de la unidad
-                _notify_overdue(rec, today)
+                _notify_overdue(rec, today, config)
                 marked += 1
                 logger.info("Recomendación marcada EN_MORA: %s", rec.id)
         except Exception as exc:  # noqa: BLE001
@@ -106,10 +111,19 @@ def mark_overdue_recommendations() -> dict[str, int]:
     return {"marked": marked, "skipped": skipped, "delivered": delivered}
 
 
-def _notify_overdue(rec: Recomendacion, today) -> None:
+def _notify_overdue(rec: Recomendacion, today, config=None) -> None:
     """Programa notificaciones de mora para todos los roles afectados."""
+    config = config or ConfiguracionNotificacion.load()
+    if not config.notificaciones_activas:
+        return
+
+    configured_roles = [
+        role
+        for role in (config.destinatarios_mora or [])
+        if role != Usuario.Rol.EJECUTOR
+    ]
     recipients_qs = Usuario.objects.filter(
-        rol__in=[Usuario.Rol.RECTORADO, Usuario.Rol.UAI],
+        rol__in=configured_roles,
         activo=True,
     )
     unit_recipients = Usuario.objects.filter(
@@ -118,7 +132,11 @@ def _notify_overdue(rec: Recomendacion, today) -> None:
         activo=True,
     )
 
+    seen = set()
     for recipient in list(recipients_qs) + list(unit_recipients):
+        if recipient.id in seen:
+            continue
+        seen.add(recipient.id)
         key = f"MORA:{rec.id}:{recipient.id}:{today}"
         try:
             schedule_notification(

@@ -1,7 +1,11 @@
 from datetime import date, timedelta
 
+import pytest
+
 from backend.modules.recomendaciones.models import InformeCGE, Recomendacion
 from backend.modules.usuarios.models import UnidadOrganica, Usuario
+
+pytestmark = pytest.mark.django_db
 
 
 def calcular_vencimiento(fecha_notificacion: date, plazo_legal_dias: int) -> date:

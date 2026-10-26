@@ -12,6 +12,10 @@ from backend.core.api.views import (
 )
 from backend.core.web.views import dashboard
 from backend.modules.reportes.views import dashboard_summary, export_matriz_cge, audit_log_list
+from backend.modules.notificaciones.presentation.preferences_views import (
+    notification_preferences,
+    notification_settings,
+)
 from backend.modules.notificaciones.views import notification_inbox, run_jobs
 
 urlpatterns = [
@@ -40,6 +44,16 @@ urlpatterns = [
 
     # Notificaciones
     path("api/v1/notificaciones", notification_inbox, name="notification-inbox"),
+    path(
+        "api/v1/notificaciones/preferencias",
+        notification_preferences,
+        name="notification-preferences",
+    ),
+    path(
+        "api/v1/notificaciones/configuracion",
+        notification_settings,
+        name="notification-settings",
+    ),
 
     # Jobs internos (solo uso interno / DTI)
     path("api/v1/jobs/evaluar-plazos", run_jobs, name="run-jobs"),
