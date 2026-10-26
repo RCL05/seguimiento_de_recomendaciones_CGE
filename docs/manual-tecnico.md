@@ -77,3 +77,36 @@ Antes de modificar una regla:
 4. implementar;
 5. actualizar esta documentación;
 6. registrar la decisión si cambia la arquitectura.
+
+## 7. Configuración institucional de SSO, SMTP y almacenamiento
+
+La configuración se toma de variables de entorno y nunca se almacena en la base
+de datos ni en el repositorio:
+
+| Variable | Uso | Valor local sugerido |
+| --- | --- | --- |
+| `SSO_ISSUER` / `SSO_CLIENT_ID` | Proveedor institucional de identidad | valores entregados por DTI |
+| `EMAIL_HOST` / `EMAIL_PORT` | Servidor de correo institucional | vacío / `587` |
+| `EVIDENCE_STORAGE_BACKEND` | Adaptador de almacenamiento de evidencias | `local` |
+| `DJANGO_MEDIA_ROOT` | Volumen o ruta de almacenamiento de evidencias | `./media` |
+| `POSTGRES_*` | Conexión PostgreSQL de producción | definidas por operación |
+
+Procedimiento:
+
+1. Copiar `backend/.env.example` a un archivo local excluido por Git.
+2. Completar únicamente las variables del entorno; no escribir contraseñas en
+   `settings.py`, migraciones ni documentación.
+3. Para SSO, registrar la URL de retorno institucional y validar el token con el
+   adaptador de `backend/modules/usuarios/infrastructure/sso_adapter.py`.
+4. Para SMTP, verificar el remitente institucional y ejecutar una prueba de envío
+   con una cuenta de servicio.
+5. Para almacenamiento, montar el volumen con permisos de escritura para el proceso
+   Django y respaldarlo junto con la base de datos.
+
+### Configuración de notificaciones
+
+El rol `DTI` administra los umbrales, destinatarios y canales desde
+`PUT /api/v1/notificaciones/configuracion`. Cada usuario puede ajustar sus
+preferencias por tipo de alerta desde `PUT /api/v1/notificaciones/preferencias`;
+solo el propio usuario o `DTI` pueden consultarlas. Los cambios quedan en
+`AuditLog` y las credenciales SMTP permanecen exclusivamente en el entorno.

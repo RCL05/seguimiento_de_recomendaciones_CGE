@@ -2,15 +2,25 @@ openapi: 3.1.0
 info:
   title: API SITRA-CGE UNL
   version: 1.0.0
-  description: Contrato inicial para seguimiento y auditoría de recomendaciones CGE.
+  description: |
+    Contrato vigente para el seguimiento y auditoría de recomendaciones CGE de la
+    Universidad Nacional de Loja.
+
+    La identidad se propaga mediante cabeceras institucionales emitidas por el
+    adaptador SSO: `X-User-ID` (obligatoria), `X-Role` (obligatoria) y
+    `X-Unit-ID` (unidad activa, usada para el aislamiento de ejecutores).
+    Todas las respuestas usan el sobre `Envelope`; los errores incluyen
+    `errors.code` del catálogo `ErrorCodes`.
 servers:
   - url: /api/v1
 security:
-  - bearerAuth: []
+  - userIdHeader: []
+    roleHeader: []
 paths:
   /auth/login-sso:
     post:
       operationId: loginSso
+      summary: Validar credencial SSO institucional
       security: []
       requestBody:
         required: true
@@ -20,17 +30,22 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: Sesión autenticada
+          description: Identidad validada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
   /informes:
     post:
       operationId: createInforme
-      summary: Registrar informe CGE
+      summary: Registrar informe CGE (rol UAI)
       requestBody:
         required: true
         content:
@@ -39,26 +54,41 @@ paths:
               $ref: '#/components/schemas/InformeInput'
       responses:
         '201':
-          $ref: '#/components/responses/Created'
+          description: Informe creado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Informe'
         '400':
           $ref: '#/components/responses/ValidationError'
   /recomendaciones:
     get:
       operationId: listRecomendaciones
-      parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/PageSize'
-        - in: query
-          name: estado
-          schema:
-            $ref: '#/components/schemas/Estado'
+      summary: Bandeja de recomendaciones visibles para el usuario
       responses:
         '200':
-          $ref: '#/components/responses/Success'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Recomendaciones consultadas
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Recomendacion'
+        '400':
+          $ref: '#/components/responses/ValidationError'
     post:
       operationId: createRecomendacion
+      summary: Crear recomendación y asignarla a una unidad (rol UAI)
       requestBody:
         required: true
         content:
@@ -67,25 +97,44 @@ paths:
               $ref: '#/components/schemas/RecomendacionInput'
       responses:
         '201':
-          $ref: '#/components/responses/Created'
+          description: Recomendación creada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Recomendacion'
         '400':
           $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /recomendaciones/{id}:
     get:
       operationId: getRecomendacion
-      summary: Consultar una recomendación
+      summary: Consultar recomendación con sus evidencias
       parameters:
         - $ref: '#/components/parameters/Id'
       responses:
         '200':
-          $ref: '#/components/responses/Success'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Recomendación consultada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RecomendacionDetalle'
         '404':
           $ref: '#/components/responses/NotFound'
   /recomendaciones/{id}/plan-accion:
     post:
       operationId: createPlanAccion
+      summary: Registrar hito del plan de acción (rol EJECUTOR)
       parameters:
         - $ref: '#/components/parameters/Id'
       requestBody:
@@ -96,7 +145,18 @@ paths:
               $ref: '#/components/schemas/HitoInput'
       responses:
         '201':
-          $ref: '#/components/responses/Created'
+          description: Hito creado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Hito'
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -106,22 +166,38 @@ paths:
   /recomendaciones/{id}/evidencias:
     post:
       operationId: uploadEvidence
+      summary: Cargar evidencia PDF (rol EJECUTOR, cuerpo binario)
+      description: |
+        El archivo viaja como cuerpo `application/pdf`; el nombre se envía en la
+        cabecera `X-Filename`. Se valida tipo PDF, tamaño máximo de 30 MB,
+        firma `%PDF`, hash SHA-256 y ausencia de malware.
       parameters:
         - $ref: '#/components/parameters/Id'
+        - in: header
+          name: X-Filename
+          required: true
+          schema:
+            type: string
+            example: acta-comite.pdf
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/pdf:
             schema:
-              type: object
-              required: [archivo]
-              properties:
-                archivo:
-                  type: string
-                  format: binary
+              type: string
+              format: binary
       responses:
         '201':
-          $ref: '#/components/responses/Created'
+          description: Evidencia cargada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Evidencia'
         '400':
           $ref: '#/components/responses/ValidationError'
         '403':
@@ -131,6 +207,7 @@ paths:
   /recomendaciones/{id}/dictamen:
     patch:
       operationId: issueDictamen
+      summary: Aprobar o rechazar evidencia (rol UAI)
       parameters:
         - $ref: '#/components/parameters/Id'
       requestBody:
@@ -141,7 +218,18 @@ paths:
               $ref: '#/components/schemas/DictamenInput'
       responses:
         '200':
-          $ref: '#/components/responses/Success'
+          description: Dictamen registrado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Recomendacion'
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
@@ -151,21 +239,10 @@ paths:
   /reportes/matriz-cge:
     post:
       operationId: exportMatrizCge
-      summary: Exportar matriz institucional
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                formato:
-                  type: string
-                  enum: [csv]
-                  default: csv
+      summary: Exportar matriz institucional CSV UTF-8 (UAI, RECTORADO, CGE_AUDITOR)
       responses:
         '200':
-          description: Archivo de matriz generado
+          description: Archivo CSV generado
           headers:
             Content-Disposition:
               schema:
@@ -175,14 +252,211 @@ paths:
             text/csv:
               schema:
                 type: string
-                example: "numero_informe,numero_recomendacion,estado\nINF-001,1,CUMPLIDA\n"
+                example: "id,informe,numero,unidad,estado,fecha_vencimiento\n"
         '403':
           $ref: '#/components/responses/Forbidden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+  /reportes/tablero:
+    get:
+      operationId: getDashboard
+      summary: Tablero ejecutivo con semáforo (RECTORADO, UAI, CGE_AUDITOR)
+      responses:
+        '200':
+          description: Resumen ejecutivo consultado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Tablero'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /auditoria:
+    get:
+      operationId: listAuditLog
+      summary: Consultar historial de auditoría (UAI, CGE_AUDITOR)
+      parameters:
+        - in: query
+          name: entity
+          schema:
+            type: string
+        - in: query
+          name: entity_id
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: Historial consultado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AuditLogEntry'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /notificaciones:
+    get:
+      operationId: listNotifications
+      summary: Bandeja de notificaciones del usuario autenticado
+      responses:
+        '200':
+          description: Bandeja consultada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Notificacion'
+  /notificaciones/preferencias:
+    get:
+      operationId: getNotificationPreferences
+      summary: Consultar preferencias propias o de otro usuario (solo DTI)
+      parameters:
+        - in: query
+          name: usuario_id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Preferencias consultadas
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PreferenciasNotificacion'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateNotificationPreferences
+      summary: Actualizar preferencias propias o de otro usuario (solo DTI)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreferenciasUpdate'
+      responses:
+        '200':
+          description: Preferencias actualizadas
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PreferenciasNotificacion'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /notificaciones/configuracion:
+    get:
+      operationId: getNotificationSettings
+      summary: Consultar configuración institucional de alertas (DTI)
+      responses:
+        '200':
+          description: Configuración consultada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ConfiguracionNotificacion'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      operationId: updateNotificationSettings
+      summary: Actualizar configuración institucional de alertas (DTI)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfiguracionUpdate'
+      responses:
+        '200':
+          description: Configuración actualizada y auditada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ConfiguracionNotificacion'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /jobs/evaluar-plazos:
+    post:
+      operationId: runDeadlineJobs
+      summary: Ejecutar evaluación de plazos y entrega de alertas (DTI)
+      responses:
+        '200':
+          description: Jobs ejecutados
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/JobResult'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
+    userIdHeader:
+      type: apiKey
+      in: header
+      name: X-User-ID
+      description: Identificador institucional del usuario.
+    roleHeader:
+      type: apiKey
+      in: header
+      name: X-Role
+      description: Uno de DTI, UAI, EJECUTOR, RECTORADO o CGE_AUDITOR.
   parameters:
     Id:
       in: path
@@ -191,98 +465,286 @@ components:
       schema:
         type: string
         format: uuid
-    Page:
-      in: query
-      name: page
-      schema: {type: integer, minimum: 1, default: 1}
-    PageSize:
-      in: query
-      name: page_size
-      schema: {type: integer, minimum: 1, maximum: 100, default: 10}
   schemas:
     Meta:
       type: object
       required: [request_id, timestamp, version, pagination]
       properties:
-        request_id: {type: string, format: uuid}
-        timestamp: {type: string, format: date-time}
-        version: {type: string, example: v1}
-        pagination: {type: object, nullable: true}
+        request_id: { type: string, format: uuid }
+        timestamp: { type: string, format: date-time }
+        version: { type: string, example: v1 }
+        pagination:
+          type: object
+          nullable: true
+          additionalProperties: true
     Envelope:
       type: object
       required: [success, message, data, errors, meta]
       properties:
-        success: {type: boolean}
-        message: {type: string}
-        data: {nullable: true}
-        errors: {nullable: true}
-        meta: {$ref: '#/components/schemas/Meta'}
-    SuccessEnvelope:
-      allOf:
-        - $ref: '#/components/schemas/Envelope'
+        success: { type: boolean }
+        message: { type: string }
+        data: { nullable: true }
+        errors:
+          nullable: true
+          type: object
+          properties:
+            code: { type: string, example: VALIDATION_ERROR }
+            detail: { type: string }
+            details: { nullable: true }
+        meta: { $ref: '#/components/schemas/Meta' }
     LoginRequest:
       type: object
       required: [credential]
       properties:
-        credential: {type: string}
+        credential: { type: string }
+    LoginResponse:
+      type: object
+      required: [user_id, email, display_name]
+      properties:
+        user_id: { type: string }
+        email: { type: string, format: email }
+        display_name: { type: string }
     InformeInput:
       type: object
       required: [numero_informe, periodo_auditado, fecha_notificacion, pdf_informe_url]
       properties:
-        numero_informe: {type: string}
-        periodo_auditado: {type: string}
-        fecha_notificacion: {type: string, format: date}
-        pdf_informe_url: {type: string, format: uri}
+        numero_informe: { type: string, maxLength: 100 }
+        periodo_auditado: { type: string, maxLength: 100 }
+        fecha_notificacion: { type: string, format: date }
+        pdf_informe_url: { type: string, format: uri }
+    Informe:
+      allOf:
+        - $ref: '#/components/schemas/InformeInput'
+        - type: object
+          required: [id]
+          properties:
+            id: { type: string, format: uuid }
     RecomendacionInput:
       type: object
-      required: [informe_id, numero_recomendacion, descripcion, unidad_responsable_id, plazo_legal_dias, prioridad]
+      required: [report_id, number, description, unit_id, legal_days, due_date]
       properties:
-        informe_id: {type: string, format: uuid}
-        numero_recomendacion: {type: string}
-        descripcion: {type: string}
-        unidad_responsable_id: {type: string, format: uuid}
-        plazo_legal_dias: {type: integer, minimum: 1}
-        prioridad: {type: string}
+        report_id: { type: string, format: uuid }
+        number: { type: string, maxLength: 50 }
+        description: { type: string }
+        unit_id: { type: string, example: UAI }
+        legal_days: { type: integer, minimum: 1 }
+        due_date: { type: string, format: date }
+        priority:
+          type: string
+          enum: [ALTA, MEDIA, BAJA]
+          default: MEDIA
+    Recomendacion:
+      type: object
+      required: [id, report_id, number, description, unit_id, legal_days, due_date, state]
+      properties:
+        id: { type: string, format: uuid }
+        report_id: { type: string, format: uuid }
+        number: { type: string }
+        description: { type: string }
+        unit_id: { type: string }
+        legal_days: { type: integer }
+        due_date: { type: string, format: date }
+        state: { $ref: '#/components/schemas/Estado' }
+    RecomendacionDetalle:
+      allOf:
+        - $ref: '#/components/schemas/Recomendacion'
+        - type: object
+          required: [evidencias]
+          properties:
+            evidencias:
+              type: array
+              items:
+                $ref: '#/components/schemas/Evidencia'
+    Evidencia:
+      type: object
+      required: [id, recommendation_id, filename, sha256, validated]
+      properties:
+        id: { type: string, format: uuid }
+        recommendation_id: { type: string, format: uuid }
+        filename: { type: string }
+        mime_type: { type: string, example: application/pdf }
+        size_bytes: { type: integer }
+        sha256:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+        uploaded_at: { type: string, format: date-time }
+        uploaded_by: { type: string, format: uuid }
+        validated: { type: boolean }
     HitoInput:
       type: object
       required: [descripcion_hito, fecha_compromiso]
       properties:
-        descripcion_hito: {type: string}
-        fecha_compromiso: {type: string, format: date}
+        descripcion_hito: { type: string }
+        fecha_compromiso: { type: string, format: date }
+    Hito:
+      allOf:
+        - $ref: '#/components/schemas/HitoInput'
+        - type: object
+          required: [id, recommendation_id, completado, created_by]
+          properties:
+            id: { type: string, format: uuid }
+            recommendation_id: { type: string, format: uuid }
+            completado: { type: boolean }
+            created_by: { type: string, format: uuid }
     DictamenInput:
       type: object
-      required: [resultado]
+      required: [evidence_id, approved]
       properties:
-        resultado: {type: string, enum: [APROBADO, RECHAZADO]}
-        evidencia_id: {type: string, format: uuid}
-        observaciones_oficiales: {type: string}
+        evidence_id: { type: string, format: uuid }
+        approved: { type: boolean }
+        observaciones:
+          type: string
+          description: Obligatorias cuando approved es false.
+    Tablero:
+      type: object
+      required:
+        - total
+        - cumplimiento_porcentaje
+        - semaforo_riesgo
+        - en_mora
+        - en_revision_interna
+        - por_estado
+      properties:
+        total: { type: integer }
+        cumplimiento_porcentaje: { type: number, minimum: 0, maximum: 100 }
+        semaforo_riesgo:
+          type: string
+          enum: [VERDE, AMARILLO, ROJO]
+        en_mora: { type: integer }
+        en_revision_interna: { type: integer }
+        por_estado:
+          type: object
+          additionalProperties: { type: integer }
+    AuditLogEntry:
+      type: object
+      required: [id, request_id, timestamp_utc, modulo, accion, entidad, resultado]
+      properties:
+        id: { type: integer }
+        request_id: { type: string, format: uuid }
+        timestamp_utc: { type: string, format: date-time }
+        usuario: { type: string, nullable: true }
+        modulo: { type: string }
+        accion: { type: string }
+        entidad: { type: string }
+        entidad_id: { type: string, nullable: true }
+        estado_anterior: { type: string, nullable: true }
+        estado_nuevo: { type: string, nullable: true }
+        resultado: { type: string }
+        ip_origen: { type: string, nullable: true }
+    Notificacion:
+      type: object
+      required: [id, type, status, scheduled_at, attempts]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string }
+        status: { type: string }
+        scheduled_at: { type: string, format: date-time }
+        attempts: { type: integer }
+        recommendation_id: { type: string, nullable: true }
+    PreferenciaNotificacion:
+      type: object
+      required: [usuario_id, tipo_alerta, notificar_interno, notificar_email, activo]
+      properties:
+        id: { type: string, nullable: true }
+        usuario_id: { type: string, format: uuid }
+        tipo_alerta:
+          type: string
+          enum: [ALERTA_VENCIMIENTO, EN_MORA]
+        notificar_interno: { type: boolean }
+        notificar_email: { type: boolean }
+        activo: { type: boolean }
+        actualizado_en: { type: string, format: date-time, nullable: true }
+    PreferenciasNotificacion:
+      type: object
+      required: [usuario_id, preferencias]
+      properties:
+        usuario_id: { type: string, format: uuid }
+        preferencias:
+          type: array
+          items:
+            $ref: '#/components/schemas/PreferenciaNotificacion'
+    PreferenciasUpdate:
+      type: object
+      required: [preferencias]
+      properties:
+        usuario_id: { type: string, format: uuid }
+        preferencias:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PreferenciaNotificacion'
+    ConfiguracionNotificacion:
+      type: object
+      required:
+        - umbral_dias
+        - notificaciones_activas
+        - canal_interno_activo
+        - canal_email_activo
+        - destinatarios_vencimiento
+        - destinatarios_mora
+      properties:
+        umbral_dias: { type: integer, minimum: 1, maximum: 90 }
+        notificaciones_activas: { type: boolean }
+        canal_interno_activo: { type: boolean }
+        canal_email_activo: { type: boolean }
+        destinatarios_vencimiento:
+          type: array
+          items: { type: string }
+        destinatarios_mora:
+          type: array
+          items: { type: string }
+        actualizado_en: { type: string, format: date-time }
+    ConfiguracionUpdate:
+      type: object
+      properties:
+        umbral_dias: { type: integer, minimum: 1, maximum: 90 }
+        notificaciones_activas: { type: boolean }
+        canal_interno_activo: { type: boolean }
+        canal_email_activo: { type: boolean }
+        destinatarios_vencimiento:
+          type: array
+          items: { type: string }
+        destinatarios_mora:
+          type: array
+          items: { type: string }
+    JobResult:
+      type: object
+      properties:
+        alertas_vencimiento: { type: object, additionalProperties: true }
+        mora: { type: object, additionalProperties: true }
     Estado:
       type: string
-      enum: [PENDIENTE, EN_PLANIFICACION, EN_EJECUCION, EN_REVISION_INTERNA, CUMPLIDA, RECHAZADA_CORRECCION, EN_MORA]
+      enum:
+        - PENDIENTE
+        - EN_PLANIFICACION
+        - EN_EJECUCION
+        - EN_REVISION_INTERNA
+        - CUMPLIDA
+        - RECHAZADA_CORRECCION
+        - EN_MORA
   responses:
-    Success:
-      description: Operación exitosa
-      content:
-        application/json:
-          schema: {$ref: '#/components/schemas/Envelope'}
-    Created:
-      description: Recurso creado
-      content:
-        application/json:
-          schema: {$ref: '#/components/schemas/Envelope'}
     ValidationError:
       description: Error de validación
       content:
         application/json:
-          schema: {$ref: '#/components/schemas/Envelope'}
-    Unauthorized:
-      description: Autenticación requerida
+          schema: { $ref: '#/components/schemas/Envelope' }
     Forbidden:
       description: Permiso insuficiente
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Envelope' }
     NotFound:
       description: Recurso inexistente o no visible para el usuario
       content:
         application/json:
-          schema: {$ref: '#/components/schemas/Envelope'}
+          schema: { $ref: '#/components/schemas/Envelope' }
     Conflict:
       description: Conflicto de dominio o transición inválida
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Envelope' }
+    MethodNotAllowed:
+      description: Método HTTP no permitido
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Envelope' }
