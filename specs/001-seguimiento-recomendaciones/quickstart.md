@@ -76,3 +76,42 @@
 - Ningún escenario expone secretos, SQL, trazas internas o datos de otra dependencia.
 - Las pruebas de rendimiento usan 1.000 recomendaciones, 200 usuarios y 20
   consultas concurrentes como carga de referencia.
+
+## Verificación de criterios SC (2026-10-26)
+
+Comandos ejecutados:
+
+```powershell
+# Backend
+cd backend
+..\.venv\Scripts\python.exe manage.py check
+..\.venv\Scripts\pytest -q
+
+# Frontend
+cd frontend
+npm run lint
+npm test
+npm run build
+npm run format:check
+npx playwright test
+```
+
+Resultados obtenidos: `manage.py check` sin incidencias; 59 pruebas backend
+aprobadas; 6 pruebas frontend aprobadas; 1 prueba E2E aprobada; build, lint y
+formato sin errores.
+
+| Criterio | Resultado | Evidencia / brecha |
+| --- | --- | --- |
+| SC-001 | CUMPLE | `tests/integration/recomendaciones/test_registration.py` y flujo principal de `test_quickstart.py` conservan responsable, plazo, estado inicial e informe. |
+| SC-002 | CUMPLE | `tests/integration/evidencias/test_dictamen_flow.py` exige revisión interna y evidencia validada antes de `Cumplida`. |
+| SC-003 | PARCIAL | La cadena de auditoría del flujo principal está cubierta; falta una prueba exhaustiva por cada operación mutativa publicada. |
+| SC-004 | CUMPLE | `test_quickstart.py` y `test_evidence_object_authorization.py` verifican 404, ausencia de filtración y evento `ACCESS_DENIED`. |
+| SC-005 | NO VERIFICADO | Solo existen umbrales declarados; falta benchmark p95 con 1.000 recomendaciones y 20 consultas concurrentes (T139). |
+| SC-006 | NO VERIFICADO | La exportación CSV tiene prueba funcional, pero no medición p95 de 5 segundos con volumen institucional (T139). |
+| SC-007 | CUMPLE | `tests/integration/evidencias/test_integrity_flow.py` detecta contenido alterado comparando SHA-256 almacenado y recalculado. |
+| SC-008 | PARCIAL | La transición a `En Mora` e idempotencia básica están cubiertas; falta una prueba integral de notificación a todos los roles sin duplicados por reintento. |
+| SC-009 | NO VERIFICADO | No existe evaluación de aceptación con usuarios representativos. |
+| SC-010 | PARCIAL | La matriz RF/RNF de `plan.md` enlaza componentes, contratos y pruebas; no hay verificador automático de trazabilidad en CI. |
+
+Las brechas SC-003, SC-005, SC-006, SC-008, SC-009 y SC-010 quedan asociadas a
+las tareas de convergencia T139 y posteriores; no se declaran como cumplidas.

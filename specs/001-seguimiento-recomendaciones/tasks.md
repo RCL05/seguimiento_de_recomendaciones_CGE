@@ -162,51 +162,51 @@ reporte con un usuario UAI o CGE.
 dependencias y configuración de notificaciones. **Prueba independiente**: autenticar
 un usuario, cambiar su rol o unidad y comprobar permisos y auditoría.
 
-- [ ] T073 [P] [US6] Implementar adaptador SSO institucional detrás del puerto de autenticación y mapeo de identidad en `backend/modules/usuarios/infrastructure/sso_adapter.py`.
-- [ ] T074 [US6] Implementar caso de uso de inicio de sesión seguro con expiración y roles vigentes en `backend/modules/usuarios/application/login_sso.py`.
-- [ ] T075 [US6] Implementar casos de uso DTI para asignar y revocar roles con segregación de funciones en `backend/modules/usuarios/application/manage_roles.py`.
-- [ ] T076 [US6] Implementar casos de uso para crear, actualizar y reasignar dependencias sin perder historial en `backend/modules/usuarios/application/manage_units.py`.
-- [ ] T077 [US6] Implementar endpoint `POST /api/v1/auth/login-sso` y endpoints administrativos protegidos en `backend/modules/usuarios/presentation/views.py`.
-- [ ] T078 [US6] Registrar auditoría de autenticación, cambios de roles y reasignaciones administrativas en `backend/modules/usuarios/application/audit_events.py`.
-- [ ] T079 [US6] Crear pruebas unitarias de roles, segregación, expiración y reasignación en `backend/tests/unit/usuarios/test_identity_rules.py`.
-- [ ] T080 [US6] Crear pruebas de integración del adaptador SSO simulado y administración DTI en `backend/tests/integration/usuarios/test_admin_flow.py`.
-- [ ] T081 [P] [US6] Crear modelo y migración de preferencias de notificación por usuario y tipo de alerta en `backend/modules/notificaciones/infrastructure/preferences_models.py`.
-- [ ] T082 [US6] Implementar caso de uso DTI para configurar umbrales, destinatarios y canales de notificación sin guardar secretos SMTP en `backend/modules/notificaciones/application/manage_notification_settings.py`.
-- [ ] T083 [US6] Implementar consulta y actualización de preferencias de notificación con autorización exclusiva del usuario o DTI en `backend/modules/notificaciones/presentation/preferences_views.py`.
-- [ ] T084 [US6] Registrar auditoría de cambios de umbrales, destinatarios, canales y preferencias de notificación en `backend/modules/notificaciones/application/settings_audit_events.py`.
-- [ ] T085 [US6] Crear pruebas unitarias de validación de configuración, segregación de funciones y ausencia de secretos en `backend/tests/unit/notificaciones/test_settings_rules.py`.
-- [ ] T086 [US6] Crear pruebas de integración de configuración de alertas, preferencias e idempotencia de notificaciones en `backend/tests/integration/notificaciones/test_settings_flow.py`.
-- [ ] T087 [US6] Documentar variables de entorno y procedimiento de configuración institucional de SSO, SMTP y almacenamiento en `docs/manual-tecnico.md`.
-- [ ] T088 [US6] Validar el flujo administrativo completo de identidad y configuración en `backend/tests/integration/usuarios/test_identity_configuration_flow.py`.
+- [X] T073 [P] [US6] Implementar adaptador SSO institucional detrás del puerto de autenticación y mapeo de identidad en `backend/modules/usuarios/infrastructure/sso_adapter.py`.
+- [X] T074 [US6] Implementar caso de uso de inicio de sesión seguro con expiración y roles vigentes en `backend/modules/usuarios/application/login_sso.py`.
+- [X] T075 [US6] Implementar casos de uso DTI para asignar y revocar roles con segregación de funciones en `backend/modules/usuarios/application/manage_roles.py`.
+- [X] T076 [US6] Implementar casos de uso para crear, actualizar y reasignar dependencias sin perder historial en `backend/modules/usuarios/application/manage_units.py`.
+- [X] T077 [US6] Implementar endpoint `POST /api/v1/auth/login-sso` y endpoints administrativos protegidos en `backend/modules/usuarios/presentation/views.py`.
+- [X] T078 [US6] Registrar auditoría de autenticación, cambios de roles y reasignaciones administrativas en `backend/modules/usuarios/application/audit_events.py`.
+- [X] T079 [US6] Crear pruebas unitarias de roles, segregación, expiración y reasignación en `backend/tests/unit/usuarios/test_identity_rules.py`.
+- [X] T080 [US6] Crear pruebas de integración del adaptador SSO simulado y administración DTI en `backend/tests/integration/usuarios/test_admin_flow.py`.
+- [X] T081 [P] [US6] Crear modelo y migración de preferencias de notificación por usuario y tipo de alerta en `backend/modules/notificaciones/infrastructure/preferences_models.py`.
+- [X] T082 [US6] Implementar caso de uso DTI para configurar umbrales, destinatarios y canales de notificación sin guardar secretos SMTP en `backend/modules/notificaciones/application/manage_notification_settings.py`.
+- [X] T083 [US6] Implementar consulta y actualización de preferencias de notificación con autorización exclusiva del usuario o DTI en `backend/modules/notificaciones/presentation/preferences_views.py`.
+- [X] T084 [US6] Registrar auditoría de cambios de umbrales, destinatarios, canales y preferencias de notificación en `backend/modules/notificaciones/application/settings_audit_events.py`.
+- [X] T085 [US6] Crear pruebas unitarias de validación de configuración, segregación de funciones y ausencia de secretos en `backend/tests/unit/notificaciones/test_settings_rules.py`.
+- [X] T086 [US6] Crear pruebas de integración de configuración de alertas, preferencias e idempotencia de notificaciones en `backend/tests/integration/notificaciones/test_settings_flow.py`.
+- [X] T087 [US6] Documentar variables de entorno y procedimiento de configuración institucional de SSO, SMTP y almacenamiento en `docs/manual-tecnico.md`.
+- [X] T088 [US6] Validar el flujo administrativo completo de identidad y configuración en `backend/tests/integration/usuarios/test_identity_configuration_flow.py`.
 
 ## Fase 9: Frontend y experiencia de usuario
 
 **Objetivo**: Construir una interfaz comprensible para los cinco actores sin duplicar
 reglas de negocio del backend.
 
-- [ ] T089 [P] [US1] Inicializar la aplicación React/TypeScript/Vite en `frontend/` y configurar Vitest, ESLint y Prettier.
-- [ ] T090 [P] [US1] Crear cliente HTTP tipado a partir de `specs/001-seguimiento-recomendaciones/contracts/openapi.yaml` en `frontend/src/api/client.ts`.
-- [ ] T091 [US1] Crear pantalla de registro y asignación de recomendaciones para UAI en `frontend/src/features/recomendaciones/pages/RegistroRecomendacionPage.tsx`.
-- [ ] T092 [US2] Crear bandeja del ejecutor y formulario de plan de acción en `frontend/src/features/planes/pages/PlanAccionPage.tsx`.
-- [ ] T093 [US2] Crear componente de carga PDF con mensajes de validación y progreso en `frontend/src/features/evidencias/components/EvidenceUpload.tsx`.
-- [ ] T094 [US3] Crear pantalla de revisión UAI con aprobación, rechazo y observaciones en `frontend/src/features/evidencias/pages/ReviewEvidencePage.tsx`.
-- [ ] T095 [US4] Crear dashboard de Rectorado con semáforo, cumplimiento y mora en `frontend/src/features/dashboard/pages/ExecutiveDashboardPage.tsx`.
-- [ ] T096 [P] [US1] Crear pruebas de componentes y flujos de permisos en `frontend/src/features/**/*.test.tsx`.
-- [ ] T097 [P] [US4] Crear pruebas Playwright del flujo principal en `frontend/tests/e2e/recommendation-flow.spec.ts`.
+- [X] T089 [P] [US1] Inicializar la aplicación React/TypeScript/Vite en `frontend/` y configurar Vitest, ESLint y Prettier.
+- [X] T090 [P] [US1] Crear cliente HTTP tipado a partir de `specs/001-seguimiento-recomendaciones/contracts/openapi.yaml` en `frontend/src/api/client.ts`.
+- [X] T091 [US1] Crear pantalla de registro y asignación de recomendaciones para UAI en `frontend/src/features/recomendaciones/pages/RegistroRecomendacionPage.tsx`.
+- [X] T092 [US2] Crear bandeja del ejecutor y formulario de plan de acción en `frontend/src/features/planes/pages/PlanAccionPage.tsx`.
+- [X] T093 [US2] Crear componente de carga PDF con mensajes de validación y progreso en `frontend/src/features/evidencias/components/EvidenceUpload.tsx`.
+- [X] T094 [US3] Crear pantalla de revisión UAI con aprobación, rechazo y observaciones en `frontend/src/features/evidencias/pages/ReviewEvidencePage.tsx`.
+- [X] T095 [US4] Crear dashboard de Rectorado con semáforo, cumplimiento y mora en `frontend/src/features/dashboard/pages/ExecutiveDashboardPage.tsx`.
+- [X] T096 [P] [US1] Crear pruebas de componentes y flujos de permisos en `frontend/src/features/**/*.test.tsx`.
+- [X] T097 [P] [US4] Crear pruebas Playwright del flujo principal en `frontend/tests/e2e/recommendation-flow.spec.ts`.
 
 ## Fase 10: Pulido y controles transversales
 
 **Objetivo**: Asegurar cumplimiento constitucional, calidad, documentación y
 operación antes de integrar.
 
-- [ ] T098 [P] Actualizar `specs/001-seguimiento-recomendaciones/contracts/openapi.yaml` con los esquemas y respuestas finales implementadas.
-- [ ] T099 [P] Añadir documentación de arquitectura C4 y límites modulares en `docs/architecture/sitra-cge.md`.
-- [ ] T100 [P] Añadir documentación de configuración segura, SSO, SMTP, almacenamiento y variables de entorno en `docs/operations/configuration.md`.
-- [ ] T101 [P] Crear comprobación automática de secretos y datos sensibles en logs en `backend/tests/security/test_secret_and_log_safety.py`.
-- [ ] T102 [P] Crear prueba de humo de los escenarios de `specs/001-seguimiento-recomendaciones/quickstart.md` en `backend/tests/integration/test_quickstart.py`.
-- [ ] T103 Ejecutar lint, tipado, pruebas unitarias, integración, contrato, seguridad y concurrencia desde `backend/pyproject.toml` y `frontend/package.json`.
-- [ ] T104 Revisar trazabilidad RF/RNF -> componente -> entidad -> endpoint -> prueba y actualizar `specs/001-seguimiento-recomendaciones/plan.md`.
-- [ ] T105 Verificar los criterios SC-001 a SC-010 y documentar resultados en `specs/001-seguimiento-recomendaciones/quickstart.md`.
+- [X] T098 [P] Actualizar `specs/001-seguimiento-recomendaciones/contracts/openapi.yaml` con los esquemas y respuestas finales implementadas.
+- [X] T099 [P] Añadir documentación de arquitectura C4 y límites modulares en `docs/architecture/sitra-cge.md`.
+- [X] T100 [P] Añadir documentación de configuración segura, SSO, SMTP, almacenamiento y variables de entorno en `docs/operations/configuration.md`.
+- [X] T101 [P] Crear comprobación automática de secretos y datos sensibles en logs en `backend/tests/security/test_secret_and_log_safety.py`.
+- [X] T102 [P] Crear prueba de humo de los escenarios de `specs/001-seguimiento-recomendaciones/quickstart.md` en `backend/tests/integration/test_quickstart.py`.
+- [X] T103 Ejecutar lint, tipado, pruebas unitarias, integración, contrato, seguridad y concurrencia desde `backend/pyproject.toml` y `frontend/package.json`.
+- [X] T104 Revisar trazabilidad RF/RNF -> componente -> entidad -> endpoint -> prueba y actualizar `specs/001-seguimiento-recomendaciones/plan.md`.
+- [X] T105 Verificar los criterios SC-001 a SC-010 y documentar resultados en `specs/001-seguimiento-recomendaciones/quickstart.md`.
 
 ## Grafo de dependencias y oportunidades paralelas
 

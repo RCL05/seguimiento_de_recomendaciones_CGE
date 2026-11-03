@@ -18,6 +18,8 @@ test = ["pytest>=8.0", "pytest-django>=4.9"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = [".", ".."]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py"]
 
 [tool.setuptools.packages.find]
 include = ["backend*", "config*", "core*", "modules*"]

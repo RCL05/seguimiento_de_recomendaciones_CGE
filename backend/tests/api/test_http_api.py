@@ -1,27 +1,35 @@
 import json
-import os
-import sys
-from pathlib import Path
 
 import pytest
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
-sys.path.insert(0, str(Path(__file__).parents[2]))
-
-django = pytest.importorskip("django")
-django.setup()
-
 from django.test import Client
 
-from backend.core.api.views import reports, service
+pytestmark = pytest.mark.django_db
 
 
-@pytest.fixture(autouse=True)
-def reset_service():
-    service.recommendations.clear()
-    service.evidences.clear()
-    service.plans.clear()
-    reports.clear()
+def _post(client, path, payload, role="UAI", user="uai-http", unit="UAI"):
+    return client.post(
+        path,
+        data=json.dumps(payload),
+        content_type="application/json",
+        HTTP_X_ROLE=role,
+        HTTP_X_USER_ID=user,
+        HTTP_X_UNIT_ID=unit,
+    )
+
+
+def _create_report(client, number="INF-HTTP-001"):
+    response = _post(
+        client,
+        "/api/v1/informes",
+        {
+            "numero_informe": number,
+            "periodo_auditado": "2026",
+            "fecha_notificacion": "2026-01-10",
+            "pdf_informe_url": "https://example.test/informe.pdf",
+        },
+    )
+    assert response.status_code == 201, response.content
+    return response.json()["data"]["id"]
 
 
 def test_health_and_dashboard_are_available():
@@ -30,81 +38,98 @@ def test_health_and_dashboard_are_available():
     assert "SITRA-CGE UNL" in client.get("/").content.decode()
 
 
+def test_login_sso_devuelve_identidad_y_rol():
+    client = Client()
+    valid = client.post(
+        "/api/v1/auth/login-sso",
+        data=json.dumps({"credential": "valid-sso-token"}),
+        content_type="application/json",
+    )
+    assert valid.status_code == 200
+    assert valid.json()["data"]["role"] == "UAI"
+
+    invalid = client.post(
+        "/api/v1/auth/login-sso",
+        data=json.dumps({"credential": "credencial-invalida"}),
+        content_type="application/json",
+    )
+    assert invalid.status_code == 409
+    assert invalid.json()["errors"]["code"] == "BUSINESS_RULE_VIOLATION"
+    assert invalid.json()["success"] is False
+
+
 def test_recommendation_flow_returns_universal_envelope():
     client = Client()
-    payload = {
-        "number": "R-001",
-        "description": "Implementar control institucional",
-        "unit_id": "unit-a",
-        "legal_days": 30,
-        "due_date": "2026-12-31",
-    }
-    created = client.post(
+    report_id = _create_report(client)
+    created = _post(
+        client,
         "/api/v1/recomendaciones",
-        data=json.dumps(payload),
-        content_type="application/json",
+        {
+            "report_id": report_id,
+            "number": "R-HTTP-001",
+            "description": "Implementar control institucional",
+            "unit_id": "UAI",
+            "legal_days": 30,
+            "due_date": "2026-12-31",
+        },
     )
-    assert created.status_code == 201
+    assert created.status_code == 201, created.content
     body = created.json()
     assert body["success"] is True
+    assert body["meta"]["request_id"]
     recommendation_id = body["data"]["id"]
 
-    listed = client.get("/api/v1/recomendaciones")
-    assert listed.status_code == 200
-    assert listed.json()["data"][0]["id"] == recommendation_id
-
-
-def test_invalid_login_has_structured_error():
-    response = Client().post(
-        "/api/v1/auth/login-sso",
-        data="{}",
-        content_type="application/json",
+    listed = client.get(
+        "/api/v1/recomendaciones",
+        HTTP_X_ROLE="UAI",
+        HTTP_X_USER_ID="uai-http",
+        HTTP_X_UNIT_ID="UAI",
     )
-    assert response.status_code == 409
-    assert response.json()["errors"]["code"] == "BUSINESS_RULE_VIOLATION"
+    assert listed.status_code == 200
+    assert any(item["id"] == recommendation_id for item in listed.json()["data"])
+
+    detail = client.get(
+        f"/api/v1/recomendaciones/{recommendation_id}",
+        HTTP_X_ROLE="UAI",
+        HTTP_X_USER_ID="uai-http",
+        HTTP_X_UNIT_ID="UAI",
+    )
+    assert detail.status_code == 200
+    assert detail.json()["data"]["evidencias"] == []
 
 
 def test_report_and_plan_routes_are_available():
     client = Client()
-    report = client.post(
-        "/api/v1/informes",
-        data=json.dumps(
-            {
-                "numero_informe": "INF-001",
-                "periodo_auditado": "2025",
-                "fecha_notificacion": "2026-01-10",
-                "pdf_informe_url": "https://example.test/inf-001.pdf",
-            }
-        ),
-        content_type="application/json",
-    )
-    assert report.status_code == 201
-
-    recommendation = client.post(
+    report_id = _create_report(client, "INF-HTTP-002")
+    recommendation = _post(
+        client,
         "/api/v1/recomendaciones",
-        data=json.dumps(
-            {
-                "number": "R-002",
-                "description": "Actualizar controles",
-                "unit_id": "unit-a",
-                "legal_days": 30,
-                "due_date": "2026-12-31",
-            }
-        ),
-        content_type="application/json",
+        {
+            "report_id": report_id,
+            "number": "R-HTTP-002",
+            "description": "Actualizar controles",
+            "unit_id": "UAI",
+            "legal_days": 30,
+            "due_date": "2026-12-31",
+        },
     )
     recommendation_id = recommendation.json()["data"]["id"]
-    plan = client.post(
+
+    plan = _post(
+        client,
         f"/api/v1/recomendaciones/{recommendation_id}/plan-accion",
-        data=json.dumps(
-            {
-                "descripcion_hito": "Presentar plan",
-                "fecha_compromiso": "2026-11-01",
-            }
-        ),
-        content_type="application/json",
-        HTTP_X_ROLE="EJECUTOR",
-        HTTP_X_UNIT_ID="unit-a",
+        {"descripcion_hito": "Presentar plan", "fecha_compromiso": "2026-11-01"},
+        role="EJECUTOR",
+        user="ejecutor-http",
+        unit="UAI",
     )
-    assert plan.status_code == 201
+    assert plan.status_code == 201, plan.content
     assert plan.json()["data"]["recommendation_id"] == recommendation_id
+
+    detail = client.get(
+        f"/api/v1/recomendaciones/{recommendation_id}",
+        HTTP_X_ROLE="UAI",
+        HTTP_X_USER_ID="uai-http",
+        HTTP_X_UNIT_ID="UAI",
+    )
+    assert detail.json()["data"]["state"] == "EN_EJECUCION"
