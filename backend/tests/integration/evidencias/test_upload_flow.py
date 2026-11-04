@@ -30,7 +30,7 @@ def test_carga_valida_invalida_y_transicion_a_revision():
         unidad_responsable=unit,
         plazo_legal_dias=30,
         fecha_vencimiento_legal=date(2026, 2, 9),
-        estado=Recomendacion.Estado.EN_EJECUCION,
+        estado=Recomendacion.Estado.EN_PROCESO,
     )
     plan = PlanAccion.objects.create(
         recomendacion=rec,
@@ -56,10 +56,10 @@ def test_carga_valida_invalida_y_transicion_a_revision():
     assert ev.inmutable is True
 
     # Transición a revisión interna (simulada)
-    rec.estado = Recomendacion.Estado.EN_REVISION_INTERNA
+    rec.estado = Recomendacion.Estado.EN_VALIDACION
     rec.save(update_fields=["estado"])
     rec.refresh_from_db()
-    assert rec.estado == Recomendacion.Estado.EN_REVISION_INTERNA
+    assert rec.estado == Recomendacion.Estado.EN_VALIDACION
 
     # Carga inválida (tamaño > 30MB simulado por validación lógica)
     from django.core.exceptions import ValidationError

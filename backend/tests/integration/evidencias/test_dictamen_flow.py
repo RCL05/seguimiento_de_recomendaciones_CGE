@@ -32,7 +32,7 @@ def test_cumplida_requiere_revision_interna_y_evidencia_validada():
         unidad_responsable=unit,
         plazo_legal_dias=30,
         fecha_vencimiento_legal=date(2026, 1, 31),
-        estado=Recomendacion.Estado.EN_REVISION_INTERNA,
+        estado=Recomendacion.Estado.EN_VALIDACION,
     )
     ev = Evidencia.objects.create(
         recomendacion=rec,
@@ -54,7 +54,7 @@ def test_cumplida_requiere_revision_interna_y_evidencia_validada():
         unit_id=str(rec.unidad_responsable_id),
         legal_days=rec.plazo_legal_dias,
         due_date=str(rec.fecha_vencimiento_legal),
-        state=RecommendationState.EN_REVISION_INTERNA,
+        state=RecommendationState.EN_VALIDACION,
         had_internal_review=True,
     )
     with pytest.raises(ConflictError):

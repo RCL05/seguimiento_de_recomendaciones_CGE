@@ -6,7 +6,13 @@ from uuid import UUID
 from django.db import transaction
 
 from backend.core.audit.repository import record_audit
-from backend.core.shared.domain_types import ConflictError, NotFoundError, ValidationError
+from backend.core.shared.domain_types import (
+    ConflictError,
+    NotFoundError,
+    RecommendationState,
+    ValidationError,
+)
+from backend.modules.recomendaciones.domain.state_machine import transition_state
 from backend.modules.recomendaciones.models import DictamenUAI, Evidencia, Recomendacion
 from backend.modules.usuarios.models import Usuario
 
@@ -31,7 +37,7 @@ class RejectEvidence:
         if rec is None:
             raise NotFoundError("La recomendación no existe.")
 
-        if rec.estado != Recomendacion.Estado.EN_REVISION_INTERNA:
+        if rec.estado != Recomendacion.Estado.EN_VALIDACION:
             raise ConflictError(
                 f"La recomendación en estado '{rec.estado}' no está lista para dictamen."
             )
@@ -39,9 +45,11 @@ class RejectEvidence:
         evidence = Evidencia.objects.filter(pk=evidence_id, recomendacion=rec).first()
         if evidence is None:
             raise ValidationError("La evidencia no pertenece a la recomendación.")
+        if evidence.estado != Evidencia.Estado.VIGENTE:
+            raise ConflictError("No se puede dictaminar una evidencia anulada.")
 
         previous_state = rec.estado
-        rec.estado = Recomendacion.Estado.RECHAZADA_CORRECCION
+        rec.estado = transition_state(rec.estado, RecommendationState.EN_PROCESO)
 
         dictamen = DictamenUAI.objects.create(
             recomendacion=rec,

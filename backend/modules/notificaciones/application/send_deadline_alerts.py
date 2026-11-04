@@ -46,9 +46,9 @@ def send_deadline_alerts() -> dict[str, int]:
         Recomendacion.objects.filter(
             estado__in=[
                 Recomendacion.Estado.PENDIENTE,
-                Recomendacion.Estado.EN_PLANIFICACION,
-                Recomendacion.Estado.EN_EJECUCION,
-                Recomendacion.Estado.RECHAZADA_CORRECCION,
+                Recomendacion.Estado.EN_PROCESO,
+                Recomendacion.Estado.EN_PROCESO,
+                Recomendacion.Estado.EN_PROCESO,
             ],
             fecha_vencimiento_legal__lte=threshold_date,
         )

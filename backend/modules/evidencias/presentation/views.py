@@ -77,3 +77,11 @@ def dictamen_view(request, recommendation_id):
         )
     except Exception as exc:
         return handle_exception(exc)
+
+# Permite obtener el PDF enviado bajo cualquier clave estándar en request.FILES
+archivo_pdf = (
+    request.FILES.get('archivo') or 
+    request.FILES.get('file') or 
+    request.FILES.get('evidencia')
+)
+

@@ -6,6 +6,7 @@ from django.test import Client
 
 from backend.core.audit.models import AuditLog
 from backend.modules.usuarios.models import UnidadOrganica
+from tests.auth_helpers import authenticated_headers
 
 pytestmark = pytest.mark.django_db
 
@@ -28,9 +29,7 @@ def _create_recommendation(client: Client) -> str:
             }
         ),
         content_type="application/json",
-        HTTP_X_ROLE="UAI",
-        HTTP_X_USER_ID="uai-bola",
-        HTTP_X_UNIT_ID="UAI",
+        **authenticated_headers("UAI", "uai-bola", "UAI"),
     )
     assert report.status_code == 201
     recommendation = client.post(
@@ -46,9 +45,7 @@ def _create_recommendation(client: Client) -> str:
             }
         ),
         content_type="application/json",
-        HTTP_X_ROLE="UAI",
-        HTTP_X_USER_ID="uai-bola",
-        HTTP_X_UNIT_ID="UAI",
+        **authenticated_headers("UAI", "uai-bola", "UAI"),
     )
     assert recommendation.status_code == 201
     return recommendation.json()["data"]["id"]
@@ -60,9 +57,7 @@ def test_bola_idor_entre_unidades_retorna_404_sin_revelar_existencia_y_audita():
 
     response = client.get(
         f"/api/v1/recomendaciones/{recommendation_id}",
-        HTTP_X_ROLE="EJECUTOR",
-        HTTP_X_USER_ID="ejecutor-dep-b",
-        HTTP_X_UNIT_ID="DEP-B",
+        **authenticated_headers("EJECUTOR", "ejecutor-dep-b", "DEP-B"),
     )
 
     assert response.status_code == 404
@@ -83,9 +78,7 @@ def test_bola_idor_entre_unidades_retorna_404_sin_revelar_existencia_y_audita():
 def test_recurso_inexistente_tambien_retorna_404_estructurado():
     response = Client().get(
         "/api/v1/recomendaciones/00000000-0000-0000-0000-000000000999",
-        HTTP_X_ROLE="UAI",
-        HTTP_X_USER_ID="uai-bola",
-        HTTP_X_UNIT_ID="UAI",
+        **authenticated_headers("UAI", "uai-bola", "UAI"),
     )
 
     assert response.status_code == 404

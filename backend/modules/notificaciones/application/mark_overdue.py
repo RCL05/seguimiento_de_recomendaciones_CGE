@@ -1,11 +1,11 @@
 
-"""Caso de uso: marcar recomendaciones vencidas como EN_MORA.
+"""Caso de uso: marcar recomendaciones vencidas como VENCIDA.
 
 Reglas de negocio (RF-012):
-- Solo las recomendaciones con plazo vencido y sin evidencia aprobada pasan a EN_MORA.
+- Recomendaciones Pendientes, En Proceso o En Validación sin evidencia aprobada pasan a Vencida.
 - La transición se ejecuta dentro de transaction.atomic con select_for_update.
 - Se notifica a la unidad responsable, UAI y Rectorado.
-- La tarea es idempotente: si ya está EN_MORA, no hace nada.
+- La tarea es idempotente: si ya está Vencida, no hace nada.
 - Un fallo SMTP no revierte la transición de negocio.
 """
 from __future__ import annotations
@@ -17,6 +17,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from backend.core.audit.repository import record_audit
+from backend.core.shared.domain_types import RecommendationState
 from backend.modules.notificaciones.application.service import (
     deliver_pending_notifications,
     schedule_notification,
@@ -25,20 +26,20 @@ from backend.modules.notificaciones.infrastructure.preferences_models import (
     ConfiguracionNotificacion,
 )
 from backend.modules.recomendaciones.models import Recomendacion
+from backend.modules.recomendaciones.domain.state_machine import transition_state
 from backend.modules.usuarios.models import Usuario
 
 logger = logging.getLogger(__name__)
 
 TRANSITIONABLE_STATES = [
     Recomendacion.Estado.PENDIENTE,
-    Recomendacion.Estado.EN_PLANIFICACION,
-    Recomendacion.Estado.EN_EJECUCION,
-    Recomendacion.Estado.RECHAZADA_CORRECCION,
+    Recomendacion.Estado.EN_PROCESO,
+    Recomendacion.Estado.EN_VALIDACION,
 ]
 
 
 def mark_overdue_recommendations() -> dict[str, int]:
-    """Evalúa vencimientos y transiciona recomendaciones a EN_MORA.
+    """Evalúa vencimientos y transiciona recomendaciones a Vencida.
 
     Retorna contadores de ejecución.
     """
@@ -79,7 +80,7 @@ def mark_overdue_recommendations() -> dict[str, int]:
                     continue
 
                 previous = rec.estado
-                rec.estado = Recomendacion.Estado.EN_MORA
+                rec.estado = transition_state(rec.estado, RecommendationState.VENCIDA)
                 rec.save(update_fields=["estado"])
 
                 record_audit(
@@ -97,7 +98,7 @@ def mark_overdue_recommendations() -> dict[str, int]:
                 # Notificar a Rectorado, UAI y ejecutores de la unidad
                 _notify_overdue(rec, today, config)
                 marked += 1
-                logger.info("Recomendación marcada EN_MORA: %s", rec.id)
+                logger.info("Recomendación marcada VENCIDA: %s", rec.id)
         except Exception as exc:  # noqa: BLE001
             logger.exception("Error al procesar mora para recomendación %s: %s", rec_id, exc)
 

@@ -1,0 +1,653 @@
+openapi: 3.1.0
+info:
+  title: SITRA-CGE UNL API
+  version: 1.0.0
+  description: |
+    Contrato HTTP del backend para seguimiento de recomendaciones CGE.
+    Las operaciones protegidas requieren un JWT Bearer emitido por el inicio
+    de sesión institucional. Las respuestas JSON usan el sobre universal del API.
+servers:
+  - url: http://localhost:8000
+    description: Entorno local Docker
+tags:
+  - name: Autenticación
+  - name: Informes
+  - name: Unidades
+  - name: Recomendaciones
+  - name: Evidencias
+  - name: Reportes
+  - name: Auditoría
+  - name: Notificaciones
+  - name: Operaciones internas
+paths:
+  /api/v1/auth/login-sso:
+    post:
+      tags: [Autenticación]
+      operationId: loginSso
+      summary: Validar credencial institucional y emitir JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credential]
+              properties:
+                credential:
+                  type: string
+                  description: Credencial temporal del proveedor SSO.
+      responses:
+        "200":
+          description: Identidad validada y JWT emitido.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/LoginData"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/v1/informes:
+    post:
+      tags: [Informes]
+      operationId: createReport
+      summary: Registrar un informe CGE
+      description: Requiere rol UAI.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [numero_informe, periodo_auditado, fecha_notificacion]
+              properties:
+                numero_informe: { type: string }
+                periodo_auditado: { type: string }
+                fecha_notificacion: { type: string, format: date }
+                pdf_informe_url: { type: string, format: uri, description: URL de documento ya alojado. }
+          multipart/form-data:
+            schema:
+              type: object
+              required: [numero_informe, periodo_auditado, fecha_notificacion, pdf_informe]
+              properties:
+                numero_informe: { type: string }
+                periodo_auditado: { type: string }
+                fecha_notificacion: { type: string, format: date }
+                pdf_informe: { type: string, format: binary, description: PDF oficial, máximo 30 MiB. }
+      responses:
+        "201": { $ref: "#/components/responses/Created" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/v1/unidades:
+    get:
+      tags: [Unidades]
+      operationId: listUnits
+      summary: Listar el catálogo completo de unidades orgánicas para asignación UAI
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Catálogo completo, incluidas unidades inactivas.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/Unit" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/v1/evidencias/{evidence_id}/archivo:
+    get:
+      tags: [Evidencias]
+      operationId: getEvidenceFile
+      summary: Previsualizar o descargar un PDF de evidencia
+      description: Requiere JWT; UAI accede a evidencias del dominio y EJECUTOR solo a las de su unidad.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: evidence_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: disposition
+          in: query
+          schema: { type: string, enum: [inline, attachment], default: inline }
+      responses:
+        "200":
+          description: Contenido PDF. La respuesta binaria no usa el sobre JSON.
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/v1/recomendaciones:
+    get:
+      tags: [Recomendaciones]
+      operationId: listRecommendations
+      summary: Listar recomendaciones paginadas y filtradas
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PageSize" }
+        - name: state
+          in: query
+          description: Estado canónico (también se acepta `estado`).
+          schema: { $ref: "#/components/schemas/RecommendationState" }
+        - name: unit_id
+          in: query
+          description: Código de unidad asignada (también se acepta `unidad_id`).
+          schema: { type: string }
+        - name: priority
+          in: query
+          description: Prioridad (también se acepta `prioridad`).
+          schema: { type: string }
+        - name: due_date
+          in: query
+          description: Fecha de vencimiento exacta, formato YYYY-MM-DD.
+          schema: { type: string, format: date }
+        - name: due_after
+          in: query
+          description: Fecha de vencimiento mínima inclusiva (también `fecha_vencimiento_desde`).
+          schema: { type: string, format: date }
+        - name: due_before
+          in: query
+          description: Fecha de vencimiento máxima inclusiva (también `fecha_vencimiento_hasta`).
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Página de recomendaciones.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/Recommendation" }
+                      meta:
+                        allOf:
+                          - $ref: "#/components/schemas/Meta"
+                          - type: object
+                            properties:
+                              pagination: { $ref: "#/components/schemas/Pagination" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/ServerError" }
+    post:
+      tags: [Recomendaciones]
+      operationId: createRecommendation
+      summary: Registrar una recomendación
+      description: Requiere rol UAI.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [report_id, number, description, unit_id, legal_days, due_date]
+              properties:
+                report_id: { type: string, format: uuid }
+                number: { type: string }
+                description: { type: string }
+                unit_id: { type: string, description: Código de unidad asignada. }
+                legal_days: { type: integer, minimum: 1 }
+                due_date: { type: string, format: date }
+                priority: { type: string, default: MEDIA }
+      responses:
+        "201": { $ref: "#/components/responses/Created" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/v1/recomendaciones/{recommendation_id}:
+    parameters:
+      - $ref: "#/components/parameters/RecommendationId"
+    get:
+      tags: [Recomendaciones]
+      operationId: getRecommendation
+      summary: Consultar una recomendación y sus evidencias
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/v1/recomendaciones/{recommendation_id}/plan-accion:
+    parameters:
+      - $ref: "#/components/parameters/RecommendationId"
+    post:
+      tags: [Recomendaciones]
+      operationId: createActionPlan
+      summary: Crear un hito del plan de acción
+      description: Requiere rol EJECUTOR de la unidad responsable.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [descripcion_hito, fecha_compromiso]
+              properties:
+                descripcion_hito: { type: string }
+                fecha_compromiso: { type: string, format: date }
+      responses:
+        "201": { $ref: "#/components/responses/Created" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /api/v1/recomendaciones/{recommendation_id}/evidencias:
+    parameters:
+      - $ref: "#/components/parameters/RecommendationId"
+    post:
+      tags: [Evidencias]
+      operationId: uploadEvidence
+      summary: Cargar una evidencia PDF en streaming
+      description: Requiere rol EJECUTOR de la unidad responsable.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: X-Filename
+          in: header
+          schema: { type: string, default: evidence.pdf }
+        - name: X-Evidence-Type
+          in: header
+          description: Tipo de evidencia a registrar.
+          schema: { type: string, enum: [BORRADOR, FINAL], default: BORRADOR }
+      requestBody:
+        required: true
+        content:
+          application/pdf:
+            schema: { type: string, format: binary }
+      responses:
+        "201": { $ref: "#/components/responses/Created" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
+
+  /api/v1/evidencias/{evidence_id}:
+    parameters:
+      - name: evidence_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [Evidencias]
+      operationId: annulEvidence
+      summary: Anular lógicamente una evidencia
+      description: Requiere rol UAI. La operación queda registrada en AuditLog.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /api/v1/recomendaciones/{recommendation_id}/dictamen:
+    parameters:
+      - $ref: "#/components/parameters/RecommendationId"
+    patch:
+      tags: [Evidencias]
+      operationId: issueEvidenceDecision
+      summary: Aprobar o rechazar una evidencia
+      description: Requiere rol UAI.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [evidence_id, approved]
+              properties:
+                evidence_id: { type: string, format: uuid }
+                approved: { type: boolean }
+                observaciones: { type: string }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /api/v1/reportes/matriz-cge:
+    post:
+      tags: [Reportes]
+      operationId: exportComplianceMatrix
+      summary: Descargar matriz de cumplimiento CGE en CSV
+      description: Roles permitidos UAI, RECTORADO y CGE_AUDITOR.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Archivo CSV UTF-8 con BOM.
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/reportes/tablero:
+    get:
+      tags: [Reportes]
+      operationId: getDashboard
+      summary: Consultar indicadores de cumplimiento
+      description: Roles permitidos RECTORADO, UAI y CGE_AUDITOR.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/auditoria:
+    get:
+      tags: [Auditoría]
+      operationId: listAuditLog
+      summary: Consultar historial de auditoría
+      description: Roles permitidos UAI y CGE_AUDITOR.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: entity
+          in: query
+          schema: { type: string }
+        - name: entity_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 500, default: 100 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/notificaciones:
+    get:
+      tags: [Notificaciones]
+      operationId: getNotificationInbox
+      summary: Consultar la bandeja del usuario autenticado
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/notificaciones/preferencias:
+    get:
+      tags: [Notificaciones]
+      operationId: getNotificationPreferences
+      summary: Consultar preferencias de notificación
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: usuario_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    put:
+      tags: [Notificaciones]
+      operationId: updateNotificationPreferences
+      summary: Actualizar preferencias de notificación
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [preferencias]
+              properties:
+                usuario_id: { type: string, format: uuid }
+                preferencias:
+                  type: array
+                  items:
+                    type: object
+                    required: [tipo_alerta]
+                    properties:
+                      tipo_alerta: { type: string }
+                      notificar_interno: { type: boolean }
+                      notificar_email: { type: boolean }
+                      activo: { type: boolean }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/notificaciones/configuracion:
+    get:
+      tags: [Notificaciones]
+      operationId: getNotificationSettings
+      summary: Consultar configuración global de notificaciones
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    put:
+      tags: [Notificaciones]
+      operationId: updateNotificationSettings
+      summary: Actualizar configuración global de notificaciones
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                umbral_dias: { type: integer, minimum: 1 }
+                notificaciones_activas: { type: boolean }
+                canal_interno_activo: { type: boolean }
+                canal_email_activo: { type: boolean }
+                destinatarios_vencimiento: { type: array, items: { type: string, format: email } }
+                destinatarios_mora: { type: array, items: { type: string, format: email } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/jobs/evaluar-plazos:
+    post:
+      tags: [Operaciones internas]
+      operationId: runDeadlineJobs
+      summary: Ejecutar evaluación de plazos y notificaciones
+      description: Endpoint interno; requiere rol DTI.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    RecommendationId:
+      name: recommendation_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: page_size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+  schemas:
+    Meta:
+      type: object
+      required: [request_id, timestamp, version]
+      properties:
+        request_id: { type: string, format: uuid }
+        timestamp: { type: string, format: date-time }
+        version: { type: string, example: v1 }
+        pagination: { oneOf: [{ $ref: "#/components/schemas/Pagination" }, { type: "null" }] }
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+        total_pages: { type: integer }
+        has_next: { type: boolean }
+        has_previous: { type: boolean }
+    SuccessEnvelope:
+      type: object
+      required: [success, message, data, errors, meta]
+      properties:
+        success: { const: true }
+        message: { type: string }
+        data: {}
+        errors: { type: "null" }
+        meta: { $ref: "#/components/schemas/Meta" }
+    ErrorEnvelope:
+      type: object
+      required: [success, message, data, errors, meta]
+      properties:
+        success: { const: false }
+        message: { type: string }
+        data: { type: "null" }
+        errors:
+          type: object
+          properties:
+            code: { type: string }
+            detail: { type: string }
+        meta: { $ref: "#/components/schemas/Meta" }
+    LoginData:
+      type: object
+      required: [access_token, token_type, expires_in, user_id, email, display_name, role]
+      properties:
+        access_token: { type: string }
+        token_type: { const: Bearer }
+        expires_in: { type: integer, example: 3600 }
+        user_id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        display_name: { type: string }
+        role: { type: string, enum: [DTI, UAI, EJECUTOR, RECTORADO, CGE_AUDITOR] }
+        unit_id: { type: [string, "null"] }
+    RecommendationState:
+      type: string
+      enum: [PENDIENTE, EN_PROCESO, EN_VALIDACION, VENCIDA, REABIERTA, CUMPLIDA]
+    Recommendation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        report_id: { type: string, format: uuid }
+        number: { type: string }
+        description: { type: string }
+        unit_id: { type: string }
+        legal_days: { type: integer }
+        due_date: { type: string, format: date }
+        state: { $ref: "#/components/schemas/RecommendationState" }
+    Unit:
+      type: object
+      required: [id, code, name]
+      properties:
+        id: { type: string, format: uuid }
+        codigo: { type: string, example: DEP-A }
+        nombre: { type: string, example: Departamento de Tecnologías de la Información }
+    ErrorResponse:
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    SuccessResponse:
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/SuccessEnvelope" }
+  responses:
+    Success:
+      description: Solicitud completada.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/SuccessEnvelope" }
+    Created:
+      description: Recurso creado.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/SuccessEnvelope" }
+    BadRequest:
+      description: Solicitud inválida.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Unauthorized:
+      description: JWT ausente, inválido o expirado.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Forbidden:
+      description: El usuario autenticado carece de permiso para la operación.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    NotFound:
+      description: Recurso inexistente o fuera del alcance del usuario.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    Conflict:
+      description: Operación incompatible con el estado actual.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    PayloadTooLarge:
+      description: El archivo excede el tamaño máximo permitido.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    ServerError:
+      description: Error interno del servidor.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }

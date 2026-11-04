@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import logging
 
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from django.http import JsonResponse
@@ -11,7 +10,7 @@ from django.http import JsonResponse
 from backend.core.api.error_catalog import error_response as domain_error_response
 from backend.core.api.request_context import get_or_create_request_id
 from backend.core.api.response_envelope import build_envelope, success_response
-from backend.core.api.views import _persistent_user
+from backend.core.api.views import _persistent_user, bearer_required
 from backend.core.shared.domain_types import (
     DomainError,
     NotFoundError,
@@ -36,10 +35,10 @@ def _error_response(request, exc: Exception) -> JsonResponse:
     if isinstance(exc, DomainError):
         payload, status = domain_error_response(exc, request_id)
         return JsonResponse(payload, status=status)
-    logger.exception("Error no controlado en configuración de notificaciones")
+    logger.exception("Error no controlado en configuraciÃ³n de notificaciones")
     payload = build_envelope(
         success=False,
-        message="Ocurrió un error interno.",
+        message="OcurriÃ³ un error interno.",
         errors={"code": "INTERNAL_ERROR"},
         request_id=request_id,
     )
@@ -50,7 +49,7 @@ def _payload(request) -> dict:
     try:
         return json.loads(request.body or "{}")
     except json.JSONDecodeError as error:
-        raise DomainError("El cuerpo debe ser JSON vÃ¡lido.") from error
+        raise DomainError("El cuerpo debe ser JSON vÃƒÂ¡lido.") from error
 
 
 def _target_user(request, actor: Usuario, payload: dict | None = None) -> Usuario:
@@ -117,8 +116,8 @@ def _effective_preferences(target: Usuario) -> list[dict]:
     return items
 
 
-@csrf_exempt
 @require_http_methods(["GET", "PUT"])
+@bearer_required
 def notification_preferences(request):
     try:
         _, actor = _persistent_user(request)
@@ -131,7 +130,7 @@ def notification_preferences(request):
                     "usuario_id": str(target.id),
                     "preferencias": _effective_preferences(target),
                 },
-                message="Preferencias de notificaciÃ³n consultadas",
+                message="Preferencias de notificaciÃƒÂ³n consultadas",
             )
 
         payload = _payload(request)
@@ -147,14 +146,14 @@ def notification_preferences(request):
                 "usuario_id": str(target.id),
                 "preferencias": [_preference_data(item) for item in saved],
             },
-            message="Preferencias de notificaciÃ³n actualizadas",
+            message="Preferencias de notificaciÃƒÂ³n actualizadas",
         )
     except Exception as exc:
         return _error_response(request, exc)
 
 
-@csrf_exempt
 @require_http_methods(["GET", "PUT"])
+@bearer_required
 def notification_settings(request):
     try:
         _, actor = _persistent_user(request)
@@ -164,7 +163,7 @@ def notification_settings(request):
             config = use_case.get_settings(actor=actor)
             return success_response(
                 data=_settings_data(config),
-                message="ConfiguraciÃ³n de notificaciones consultada",
+                message="ConfiguraciÃƒÂ³n de notificaciones consultada",
             )
 
         config = use_case.update_settings(
@@ -174,7 +173,7 @@ def notification_settings(request):
         )
         return success_response(
             data=_settings_data(config),
-            message="ConfiguraciÃ³n de notificaciones actualizada",
+            message="ConfiguraciÃƒÂ³n de notificaciones actualizada",
         )
     except Exception as exc:
         return _error_response(request, exc)

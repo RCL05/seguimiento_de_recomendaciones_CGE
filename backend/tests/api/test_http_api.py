@@ -1,7 +1,11 @@
 import json
 
 import pytest
-from django.test import Client
+from django.test import Client, override_settings
+
+from backend.modules.usuarios.infrastructure.sso_adapter import SsoAdapter
+from backend.modules.usuarios.models import UnidadOrganica
+from tests.auth_helpers import authenticated_headers
 
 pytestmark = pytest.mark.django_db
 
@@ -11,9 +15,7 @@ def _post(client, path, payload, role="UAI", user="uai-http", unit="UAI"):
         path,
         data=json.dumps(payload),
         content_type="application/json",
-        HTTP_X_ROLE=role,
-        HTTP_X_USER_ID=user,
-        HTTP_X_UNIT_ID=unit,
+        **authenticated_headers(role, user, unit),
     )
 
 
@@ -38,15 +40,32 @@ def test_health_and_dashboard_are_available():
     assert "SITRA-CGE UNL" in client.get("/").content.decode()
 
 
-def test_login_sso_devuelve_identidad_y_rol():
+def test_login_sso_devuelve_jwt_con_claims_de_identidad(monkeypatch):
     client = Client()
+    sso_identity = {
+        "correo": "jwt-login@unl.edu.ec",
+        "nombres": "Usuario JWT",
+        "rol": "UAI",
+        "unidad_codigo": "UAI",
+    }
+    monkeypatch.setattr(
+        "backend.core.api.views.SsoAdapter.authenticate",
+        lambda _adapter, *, token: sso_identity if token == "active-test-credential" else {},
+    )
     valid = client.post(
         "/api/v1/auth/login-sso",
-        data=json.dumps({"credential": "valid-sso-token"}),
+        data=json.dumps({"credential": "active-test-credential"}),
         content_type="application/json",
     )
     assert valid.status_code == 200
     assert valid.json()["data"]["role"] == "UAI"
+    data = valid.json()["data"]
+    claims = SsoAdapter().validate_session(data["access_token"])
+    assert claims["user_id"] == data["user_id"]
+    assert claims["correo"] == "jwt-login@unl.edu.ec"
+    assert claims["rol"] == "UAI"
+    assert claims["unidad_codigo"] == "UAI"
+    assert data["expires_in"] == SsoAdapter.token_ttl_seconds
 
     invalid = client.post(
         "/api/v1/auth/login-sso",
@@ -81,18 +100,14 @@ def test_recommendation_flow_returns_universal_envelope():
 
     listed = client.get(
         "/api/v1/recomendaciones",
-        HTTP_X_ROLE="UAI",
-        HTTP_X_USER_ID="uai-http",
-        HTTP_X_UNIT_ID="UAI",
+        **authenticated_headers("UAI", "uai-http", "UAI"),
     )
     assert listed.status_code == 200
     assert any(item["id"] == recommendation_id for item in listed.json()["data"])
 
     detail = client.get(
         f"/api/v1/recomendaciones/{recommendation_id}",
-        HTTP_X_ROLE="UAI",
-        HTTP_X_USER_ID="uai-http",
-        HTTP_X_UNIT_ID="UAI",
+        **authenticated_headers("UAI", "uai-http", "UAI"),
     )
     assert detail.status_code == 200
     assert detail.json()["data"]["evidencias"] == []
@@ -128,8 +143,89 @@ def test_report_and_plan_routes_are_available():
 
     detail = client.get(
         f"/api/v1/recomendaciones/{recommendation_id}",
-        HTTP_X_ROLE="UAI",
-        HTTP_X_USER_ID="uai-http",
-        HTTP_X_UNIT_ID="UAI",
+        **authenticated_headers("UAI", "uai-http", "UAI"),
     )
-    assert detail.json()["data"]["state"] == "EN_EJECUCION"
+    assert detail.json()["data"]["state"] == "EN_PROCESO"
+
+
+def test_evidence_requires_plan_then_moves_to_review_and_locks_plan(tmp_path):
+    client = Client()
+    report_id = _create_report(client, "INF-EVIDENCE-STATE")
+    recommendation = _post(
+        client,
+        "/api/v1/recomendaciones",
+        {
+            "report_id": report_id,
+            "number": "R-EVIDENCE-STATE",
+            "description": "Registrar controles",
+            "unit_id": "UAI",
+            "legal_days": 30,
+            "due_date": "2026-12-31",
+        },
+    ).json()["data"]
+    recommendation_id = recommendation["id"]
+    executor_headers = authenticated_headers("EJECUTOR", "evidence-state-executor", "UAI")
+    pdf = b"%PDF-1.4\ncontenido de prueba"
+
+    with override_settings(MEDIA_ROOT=tmp_path):
+        pending_upload = client.post(
+            f"/api/v1/recomendaciones/{recommendation_id}/evidencias",
+            data=pdf,
+            content_type="application/pdf",
+            HTTP_X_FILENAME="evidencia.pdf",
+            **executor_headers,
+        )
+        assert pending_upload.status_code == 400
+        assert "Plan de accion" in pending_upload.json()["errors"]["detail"]
+
+        plan = client.post(
+            f"/api/v1/recomendaciones/{recommendation_id}/plan-accion",
+            data=json.dumps({
+                "descripcion_hito": "Aplicar control",
+                "fecha_compromiso": "2026-11-30",
+            }),
+            content_type="application/json",
+            **executor_headers,
+        )
+        assert plan.status_code == 201, plan.content
+
+        uploaded = client.post(
+            f"/api/v1/recomendaciones/{recommendation_id}/evidencias",
+            data=pdf,
+            content_type="application/pdf",
+            HTTP_X_FILENAME="evidencia.pdf",
+            **executor_headers,
+        )
+        assert uploaded.status_code == 201, uploaded.content
+
+    detail = client.get(
+        f"/api/v1/recomendaciones/{recommendation_id}",
+        **authenticated_headers("UAI", "uai-http", "UAI"),
+    )
+    assert detail.json()["data"]["state"] == "EN_VALIDACION"
+
+    locked_plan = client.post(
+        f"/api/v1/recomendaciones/{recommendation_id}/plan-accion",
+        data=json.dumps({
+            "descripcion_hito": "Otro hito",
+            "fecha_compromiso": "2026-12-01",
+        }),
+        content_type="application/json",
+        **executor_headers,
+    )
+    assert locked_plan.status_code == 409
+
+
+def test_units_endpoint_returns_full_catalog_with_model_field_names():
+    inactive = UnidadOrganica.objects.create(
+        codigo="OLD-UNIT",
+        nombre="Unidad desactivada",
+        activo=False,
+    )
+    response = Client().get(
+        "/api/v1/unidades",
+        **authenticated_headers("UAI", "uai-units", "UAI"),
+    )
+    assert response.status_code == 200, response.content
+    units = response.json()["data"]
+    assert {"id": str(inactive.id), "codigo": "OLD-UNIT", "nombre": "Unidad desactivada"} in units

@@ -7,19 +7,16 @@ from backend.core.shared.domain_types import (
 
 
 ALLOWED_TRANSITIONS = {
-    RecommendationState.PENDIENTE: {RecommendationState.EN_PLANIFICACION},
-    RecommendationState.EN_PLANIFICACION: {RecommendationState.EN_EJECUCION},
-    RecommendationState.EN_EJECUCION: {RecommendationState.EN_REVISION_INTERNA},
-    RecommendationState.EN_REVISION_INTERNA: {
+    RecommendationState.PENDIENTE: {RecommendationState.EN_PROCESO, RecommendationState.VENCIDA},
+    RecommendationState.EN_PROCESO: {RecommendationState.EN_VALIDACION, RecommendationState.VENCIDA},
+    RecommendationState.EN_VALIDACION: {
         RecommendationState.CUMPLIDA,
-        RecommendationState.RECHAZADA_CORRECCION,
+        RecommendationState.EN_PROCESO,
+        RecommendationState.VENCIDA,
     },
-    RecommendationState.RECHAZADA_CORRECCION: {
-        RecommendationState.EN_EJECUCION,
-        RecommendationState.EN_REVISION_INTERNA,
-    },
-    RecommendationState.EN_MORA: set(),
-    RecommendationState.CUMPLIDA: set(),
+    RecommendationState.VENCIDA: {RecommendationState.EN_PROCESO},
+    RecommendationState.CUMPLIDA: {RecommendationState.REABIERTA},
+    RecommendationState.REABIERTA: {RecommendationState.EN_PROCESO},
 }
 
 
@@ -29,16 +26,32 @@ def transition(
     *,
     has_validated_evidence: bool = False,
 ) -> None:
-    allowed = ALLOWED_TRANSITIONS[recommendation.state]
+    recommendation.state = transition_state(
+        recommendation.state,
+        target,
+        had_internal_review=recommendation.had_internal_review,
+        has_validated_evidence=has_validated_evidence,
+    )
+    if target is RecommendationState.EN_VALIDACION:
+        recommendation.had_internal_review = True
+
+
+def transition_state(
+    current_state: RecommendationState | str,
+    target: RecommendationState,
+    *,
+    had_internal_review: bool = False,
+    has_validated_evidence: bool = False,
+) -> RecommendationState:
+    current_state = RecommendationState(current_state)
+    allowed = ALLOWED_TRANSITIONS[current_state]
     if target not in allowed:
         raise ConflictError(
-            f"Transición inválida: {recommendation.state.value} -> {target.value}."
+            f"Transición inválida: {current_state.value} -> {target.value}."
         )
     if target is RecommendationState.CUMPLIDA:
-        if not recommendation.had_internal_review or not has_validated_evidence:
+        if not had_internal_review or not has_validated_evidence:
             raise ConflictError(
                 "Cumplida requiere revisión interna y evidencia PDF validada."
             )
-    if target is RecommendationState.EN_REVISION_INTERNA:
-        recommendation.had_internal_review = True
-    recommendation.state = target
+    return target

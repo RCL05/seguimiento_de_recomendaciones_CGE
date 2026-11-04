@@ -13,6 +13,7 @@ from backend.modules.notificaciones.infrastructure.preferences_models import (
     ConfiguracionNotificacion,
 )
 from backend.modules.usuarios.models import Usuario
+from tests.auth_helpers import authenticated_headers
 
 SECRET_VALUE = "super-secreto-no-loggear"
 
@@ -25,6 +26,7 @@ class SecretAndLogSafetyTests(TestCase):
             rol=Usuario.Rol.DTI,
         )
         self.client = Client()
+        self.auth = authenticated_headers("DTI", "dti-seguridad")
 
     def test_redaccion_recursiva_oculta_credenciales_y_conserva_ids(self):
         payload = {
@@ -90,8 +92,7 @@ class SecretAndLogSafetyTests(TestCase):
             "/api/v1/notificaciones/configuracion",
             data=json.dumps({"smtp_password": SECRET_VALUE}),
             content_type="application/json",
-            HTTP_X_ROLE="DTI",
-            HTTP_X_USER_ID="dti-api",
+            **self.auth,
         )
 
         self.assertEqual(response.status_code, 400, response.content.decode("utf-8"))
@@ -105,8 +106,7 @@ class SecretAndLogSafetyTests(TestCase):
             "/api/v1/notificaciones/configuracion",
             data=json.dumps({"umbral_dias": 7, "canal_email_activo": False}),
             content_type="application/json",
-            HTTP_X_ROLE="DTI",
-            HTTP_X_USER_ID="dti-api",
+            **self.auth,
         )
 
         audit = AuditLog.objects.filter(

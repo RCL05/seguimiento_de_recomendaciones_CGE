@@ -31,7 +31,7 @@ def test_concurrencia_dictamen_con_select_for_update():
         unidad_responsable=unit,
         plazo_legal_dias=30,
         fecha_vencimiento_legal=date(2026, 1, 31),
-        estado=Recomendacion.Estado.EN_REVISION_INTERNA,
+        estado=Recomendacion.Estado.EN_VALIDACION,
     )
     Evidencia.objects.create(
         recomendacion=rec,
@@ -46,4 +46,4 @@ def test_concurrencia_dictamen_con_select_for_update():
 
     with transaction.atomic():
         locked = Recomendacion.objects.select_for_update().get(pk=rec.pk)
-        assert locked.estado == Recomendacion.Estado.EN_REVISION_INTERNA
+        assert locked.estado == Recomendacion.Estado.EN_VALIDACION

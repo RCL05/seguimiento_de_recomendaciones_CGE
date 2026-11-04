@@ -11,7 +11,8 @@ class InformeCGE(models.Model):
     numero_informe = models.CharField(max_length=100, unique=True)
     periodo_auditado = models.CharField(max_length=100)
     fecha_notificacion = models.DateField()
-    pdf_informe_url = models.URLField()
+    pdf_informe_url = models.URLField(blank=True)
+    pdf_informe = models.FileField(upload_to="informes/", null=True, blank=True)
     creado_por = models.ForeignKey(Usuario, on_delete=models.PROTECT)
     creado_en = models.DateTimeField(auto_now_add=True)
 
@@ -22,12 +23,11 @@ class InformeCGE(models.Model):
 class Recomendacion(models.Model):
     class Estado(models.TextChoices):
         PENDIENTE = "PENDIENTE", "Pendiente"
-        EN_PLANIFICACION = "EN_PLANIFICACION", "En planificación"
-        EN_EJECUCION = "EN_EJECUCION", "En ejecución"
-        EN_REVISION_INTERNA = "EN_REVISION_INTERNA", "En revisión interna"
+        EN_PROCESO = "EN_PROCESO", "En Proceso"
+        EN_VALIDACION = "EN_VALIDACION", "En Validación"
+        VENCIDA = "VENCIDA", "Vencida"
+        REABIERTA = "REABIERTA", "Reabierta"
         CUMPLIDA = "CUMPLIDA", "Cumplida"
-        RECHAZADA_CORRECCION = "RECHAZADA_CORRECCION", "Rechazada/corrección"
-        EN_MORA = "EN_MORA", "En mora"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     informe = models.ForeignKey(InformeCGE, on_delete=models.PROTECT, related_name="recomendaciones")
@@ -67,6 +67,14 @@ class PlanAccion(models.Model):
 
 
 class Evidencia(models.Model):
+    class Tipo(models.TextChoices):
+        BORRADOR = "BORRADOR", "Borrador"
+        FINAL = "FINAL", "Final"
+
+    class Estado(models.TextChoices):
+        VIGENTE = "VIGENTE", "Vigente"
+        ANULADA = "ANULADA", "Anulada"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     recomendacion = models.ForeignKey(Recomendacion, on_delete=models.PROTECT, related_name="evidencias")
     plan_accion = models.ForeignKey(PlanAccion, null=True, blank=True, on_delete=models.PROTECT)
@@ -85,6 +93,8 @@ class Evidencia(models.Model):
     )
     fecha_carga = models.DateTimeField(auto_now_add=True)
     subido_por = models.ForeignKey(Usuario, on_delete=models.PROTECT)
+    tipo = models.CharField(max_length=10, choices=Tipo.choices, default=Tipo.BORRADOR)
+    estado = models.CharField(max_length=10, choices=Estado.choices, default=Estado.VIGENTE)
     inmutable = models.BooleanField(default=True)
     validada = models.BooleanField(default=False)
 

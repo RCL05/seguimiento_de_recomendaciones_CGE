@@ -8,6 +8,7 @@ from django.test import Client, TestCase, override_settings
 
 from backend.core.audit.models import AuditLog
 from backend.modules.usuarios.models import UnidadOrganica
+from tests.auth_helpers import authenticated_headers
 
 PDF_BYTES = b"%PDF-1.7\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
 
@@ -33,9 +34,7 @@ class QuickstartSmokeTests(TestCase):
             path,
             data=json.dumps(payload),
             content_type="application/json",
-            HTTP_X_ROLE=role,
-            HTTP_X_USER_ID=user,
-            HTTP_X_UNIT_ID=unit,
+            **authenticated_headers(role, user, unit),
         )
 
     def _create_recommendation(self, number="REC-QS-001"):
@@ -87,9 +86,7 @@ class QuickstartSmokeTests(TestCase):
             data=content,
             content_type="application/pdf",
             HTTP_X_FILENAME="evidencia.pdf",
-            HTTP_X_ROLE="EJECUTOR",
-            HTTP_X_USER_ID="ejecutor-a",
-            HTTP_X_UNIT_ID="DEP-A",
+            **authenticated_headers("EJECUTOR", "ejecutor-a", "DEP-A"),
         )
 
     def test_flujo_principal_aprobacion_y_cadena_de_auditoria(self):
@@ -103,10 +100,9 @@ class QuickstartSmokeTests(TestCase):
 
         detail = self.client.get(
             f"/api/v1/recomendaciones/{recommendation_id}",
-            HTTP_X_ROLE="UAI",
-            HTTP_X_USER_ID="uai-quickstart",
+            **authenticated_headers("UAI", "uai-quickstart", "UAI"),
         )
-        self.assertEqual(detail.json()["data"]["state"], "EN_REVISION_INTERNA")
+        self.assertEqual(detail.json()["data"]["state"], "EN_VALIDACION")
         self.assertEqual(len(detail.json()["data"]["evidencias"]), 1)
 
         dictamen = self.client.patch(
@@ -119,8 +115,7 @@ class QuickstartSmokeTests(TestCase):
                 }
             ),
             content_type="application/json",
-            HTTP_X_ROLE="UAI",
-            HTTP_X_USER_ID="uai-quickstart",
+            **authenticated_headers("UAI", "uai-quickstart", "UAI"),
         )
         self.assertEqual(dictamen.status_code, 200, dictamen.content)
         self.assertEqual(dictamen.json()["data"]["state"], "CUMPLIDA")
@@ -148,16 +143,14 @@ class QuickstartSmokeTests(TestCase):
                 }
             ),
             content_type="application/json",
-            HTTP_X_ROLE="UAI",
-            HTTP_X_USER_ID="uai-quickstart",
+            **authenticated_headers("UAI", "uai-quickstart", "UAI"),
         )
         self.assertEqual(rejection.status_code, 200, rejection.content)
-        self.assertEqual(rejection.json()["data"]["state"], "RECHAZADA_CORRECCION")
+        self.assertEqual(rejection.json()["data"]["state"], "EN_PROCESO")
 
         detail = self.client.get(
             f"/api/v1/recomendaciones/{recommendation_id}",
-            HTTP_X_ROLE="UAI",
-            HTTP_X_USER_ID="uai-quickstart",
+            **authenticated_headers("UAI", "uai-quickstart", "UAI"),
         )
         self.assertEqual(len(detail.json()["data"]["evidencias"]), 1)
 
@@ -170,9 +163,7 @@ class QuickstartSmokeTests(TestCase):
 
         response = self.client.get(
             f"/api/v1/recomendaciones/{recommendation_id}",
-            HTTP_X_ROLE="EJECUTOR",
-            HTTP_X_USER_ID="ejecutor-b",
-            HTTP_X_UNIT_ID="DEP-B",
+            **authenticated_headers("EJECUTOR", "ejecutor-b", "DEP-B"),
         )
 
         self.assertEqual(response.status_code, 404)
@@ -188,16 +179,13 @@ class QuickstartSmokeTests(TestCase):
     def test_matriz_csv_restingida_por_rol(self):
         forbidden = self.client.post(
             "/api/v1/reportes/matriz-cge",
-            HTTP_X_ROLE="EJECUTOR",
-            HTTP_X_USER_ID="ejecutor-a",
-            HTTP_X_UNIT_ID="DEP-A",
+            **authenticated_headers("EJECUTOR", "ejecutor-a", "DEP-A"),
         )
         self.assertEqual(forbidden.status_code, 403)
 
         allowed = self.client.post(
             "/api/v1/reportes/matriz-cge",
-            HTTP_X_ROLE="CGE_AUDITOR",
-            HTTP_X_USER_ID="auditor-quickstart",
+            **authenticated_headers("CGE_AUDITOR", "auditor-quickstart"),
         )
         self.assertEqual(allowed.status_code, 200)
         self.assertEqual(allowed["Content-Type"], "text/csv; charset=utf-8")

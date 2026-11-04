@@ -7,13 +7,14 @@ name = "sitra-cge-unl"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
-    "Django>=5.2,<6.0",
+    "Django==5.2.18",
+    "PyJWT>=2.10,<3.0",
     "djangorestframework>=3.15,<4.0",
     "psycopg[binary]>=3.2,<4.0",
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=8.0", "pytest-django>=4.9"]
+test = ["pytest>=8.0", "pytest-django>=4.9", "PyJWT>=2.10,<3.0"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

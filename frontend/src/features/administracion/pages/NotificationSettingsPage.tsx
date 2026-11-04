@@ -1,12 +1,13 @@
 import { FormEvent, useEffect, useState } from "react";
 
 import { api, ApiError, NotificationPreference, NotificationSettings } from "../../../api/client";
+import { Toast } from "../../../components/Toast";
+import { useToast } from "../../../hooks/useToast";
 
 export function NotificationSettingsPage() {
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
   const [preferences, setPreferences] = useState<NotificationPreference[]>([]);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const { toast, showToast, dismissToast } = useToast();
 
   useEffect(() => {
     Promise.all([api.getNotificationSettings(), api.getPreferences()])
@@ -14,17 +15,14 @@ export function NotificationSettingsPage() {
         setSettings(loadedSettings);
         setPreferences(loadedPreferences.preferencias);
       })
-      .catch((caught) =>
-        setError(
-          caught instanceof ApiError ? caught.message : "No se pudo cargar la configuración.",
-        ),
-      );
-  }, []);
+      .catch((caught) => showToast(
+        caught instanceof ApiError ? caught.message : "No se pudo cargar la configuración.",
+        "error",
+      ));
+  }, [showToast]);
 
   async function saveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
-    setMessage("");
     const form = new FormData(event.currentTarget);
     const roles = String(form.get("destinatarios_mora") ?? "")
       .split(",")
@@ -39,9 +37,9 @@ export function NotificationSettingsPage() {
         destinatarios_mora: roles,
       });
       setSettings(updated);
-      setMessage("Configuración institucional actualizada y auditada.");
+      showToast("Configuración institucional actualizada y auditada.");
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "No se pudo guardar.");
+      showToast(caught instanceof ApiError ? caught.message : "No se pudo guardar.", "error");
     }
   }
 
@@ -49,7 +47,6 @@ export function NotificationSettingsPage() {
     preference: NotificationPreference,
     field: "notificar_email" | "notificar_interno",
   ) {
-    setError("");
     try {
       const updated = await api.updatePreferences([{ ...preference, [field]: !preference[field] }]);
       setPreferences((current) => {
@@ -62,9 +59,9 @@ export function NotificationSettingsPage() {
         });
         return next;
       });
-      setMessage("Preferencia personal actualizada.");
+      showToast("Preferencia personal actualizada.");
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "No se pudo guardar la preferencia.");
+      showToast(caught instanceof ApiError ? caught.message : "No se pudo guardar la preferencia.", "error");
     }
   }
 
@@ -149,8 +146,7 @@ export function NotificationSettingsPage() {
         </ul>
       )}
 
-      {message && <p className="feedback success">{message}</p>}
-      {error && <p className="feedback error">{error}</p>}
+      <Toast toast={toast} onClose={dismissToast} />
     </section>
   );
 }

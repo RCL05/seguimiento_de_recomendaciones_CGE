@@ -2,10 +2,10 @@
 
 Reglas de negocio:
 - Solo el ejecutor de la unidad responsable puede registrar hitos.
-- La recomendación debe estar en PENDIENTE o EN_PLANIFICACION para aceptar hitos.
-  Si está PENDIENTE, avanza automáticamente a EN_PLANIFICACION.
+- Una recomendación Pendiente, Vencida o Reabierta puede iniciar ejecución.
+- Una recomendación En Proceso puede recibir hitos adicionales.
 - La fecha de compromiso no puede exceder fecha_vencimiento_legal.
-- Al guardar el primer hito se transiciona a EN_EJECUCION.
+- La transición de inicio pasa por la máquina de estados.
 - Operación atómica con select_for_update.
 - Se audita dentro de la misma transacción.
 """
@@ -17,7 +17,13 @@ from uuid import UUID
 from django.db import transaction
 
 from backend.core.audit.repository import record_audit
-from backend.core.shared.domain_types import ConflictError, NotFoundError, ValidationError
+from backend.core.shared.domain_types import (
+    ConflictError,
+    NotFoundError,
+    RecommendationState,
+    ValidationError,
+)
+from backend.modules.recomendaciones.domain.state_machine import transition_state
 from backend.modules.recomendaciones.models import PlanAccion, Recomendacion
 from backend.modules.usuarios.models import Usuario
 
@@ -70,19 +76,17 @@ class CreatePlanAccion:
             )
 
         # Transición de estado
-        if rec.estado == Recomendacion.Estado.PENDIENTE:
-            rec.estado = Recomendacion.Estado.EN_PLANIFICACION
-
-        if rec.estado not in {
-            Recomendacion.Estado.EN_PLANIFICACION,
-            Recomendacion.Estado.RECHAZADA_CORRECCION,
+        previous_state = rec.estado
+        if rec.estado in {
+            Recomendacion.Estado.PENDIENTE,
+            Recomendacion.Estado.VENCIDA,
+            Recomendacion.Estado.REABIERTA,
         }:
+            rec.estado = transition_state(rec.estado, RecommendationState.EN_PROCESO)
+        elif rec.estado != Recomendacion.Estado.EN_PROCESO:
             raise ConflictError(
                 f"La recomendación en estado '{rec.estado}' no acepta planes de acción."
             )
-
-        previous_state = rec.estado
-        rec.estado = Recomendacion.Estado.EN_EJECUCION
 
         plan = PlanAccion.objects.create(
             recomendacion=rec,

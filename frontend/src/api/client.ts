@@ -1,8 +1,12 @@
 export type Role = "DTI" | "UAI" | "EJECUTOR" | "RECTORADO" | "CGE_AUDITOR";
 
 export type Session = {
+  accessToken: string;
+  expiresAt: number;
   role: Role;
   userId: string;
+  email: string;
+  displayName: string;
   unitId?: string;
 };
 
@@ -26,6 +30,21 @@ export type Evidence = {
   sha256: string;
   uploaded_at: string;
   validated: boolean;
+  type?: "BORRADOR" | "FINAL";
+  status?: "VIGENTE" | "ANULADA";
+  file_url?: string;
+};
+
+export type Unit = {
+  id: string;
+  codigo: string;
+  nombre: string;
+};
+
+export type Report = {
+  id: string;
+  numero_informe: string;
+  pdf_informe_url: string;
 };
 
 export type RecommendationDetail = Recommendation & { evidencias: Evidence[] };
@@ -76,7 +95,19 @@ type Envelope<T> = {
   message: string;
   data: T;
   errors: { code?: string; detail?: string } | null;
-  meta: { request_id: string; timestamp: string; version: string };
+  meta: {
+    request_id: string;
+    timestamp: string;
+    version: string;
+    pagination: {
+      page: number;
+      page_size: number;
+      total: number;
+      total_pages: number;
+      has_next: boolean;
+      has_previous: boolean;
+    } | null;
+  };
 };
 
 export class ApiError extends Error {
@@ -92,29 +123,63 @@ export class ApiError extends Error {
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+const SESSION_KEY = "sitra.session";
 
-let session: Session = { role: "UAI", userId: "demo-uai", unitId: "UAI" };
+type LoginResponse = {
+  access_token: string;
+  token_type: "Bearer";
+  expires_in: number;
+  user_id: string;
+  email: string;
+  display_name: string;
+  role: Role;
+  unit_id?: string | null;
+};
 
-export function setSession(next: Partial<Session>) {
-  session = { ...session, ...next };
+export function getSession(): Session | null {
+  const stored = sessionStorage.getItem(SESSION_KEY);
+  if (!stored) return null;
+  try {
+    const session = JSON.parse(stored) as Session;
+    if (!session.accessToken || session.expiresAt <= Date.now()) {
+      clearSession();
+      return null;
+    }
+    return session;
+  } catch {
+    clearSession();
+    return null;
+  }
 }
 
-export function getSession(): Session {
+export function setSession(response: LoginResponse): Session {
+  const session: Session = {
+    accessToken: response.access_token,
+    expiresAt: Date.now() + response.expires_in * 1000,
+    role: response.role,
+    userId: response.user_id,
+    email: response.email,
+    displayName: response.display_name,
+    unitId: response.unit_id ?? undefined,
+  };
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
   return session;
 }
 
+export function clearSession() {
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
 function authHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    "X-Role": session.role,
-    "X-User-ID": session.userId,
-  };
-  if (session.unitId) {
-    headers["X-Unit-ID"] = session.unitId;
-  }
-  return headers;
+  const session = getSession();
+  return session ? { Authorization: `Bearer ${session.accessToken}` } : {};
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
+  if (response.status === 401) {
+    clearSession();
+    window.dispatchEvent(new Event("sitra:session-expired"));
+  }
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
     if (!response.ok) {
@@ -138,7 +203,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   for (const [key, value] of Object.entries(authHeaders())) {
     headers.set(key, value);
   }
-  if (init.body && !(init.body instanceof Blob) && !(init.body instanceof File)) {
+  if (
+    init.body &&
+    !(init.body instanceof Blob) &&
+    !(init.body instanceof File) &&
+    !(init.body instanceof FormData)
+  ) {
     headers.set("Content-Type", "application/json");
   }
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
@@ -146,19 +216,26 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  login: async (credential: string): Promise<Session> => {
+    const response = await fetch(`${API_BASE}/api/v1/auth/login-sso`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential }),
+    });
+    const payload = await parseResponse<LoginResponse>(response);
+    return setSession(payload);
+  },
+
   listRecommendations: () => request<Recommendation[]>("/api/v1/recomendaciones"),
+
+  listUnits: () => request<Unit[]>("/api/v1/unidades"),
 
   getRecommendation: (id: string) => request<RecommendationDetail>(`/api/v1/recomendaciones/${id}`),
 
-  createReport: (payload: {
-    numero_informe: string;
-    periodo_auditado: string;
-    fecha_notificacion: string;
-    pdf_informe_url: string;
-  }) =>
-    request<{ id: string }>("/api/v1/informes", {
+  createReport: (payload: FormData) =>
+    request<Report>("/api/v1/informes", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: payload,
     }),
 
   createRecommendation: (payload: {
@@ -184,16 +261,36 @@ export const api = {
       { method: "POST", body: JSON.stringify(payload) },
     ),
 
-  uploadEvidence: async (recommendationId: string, file: File): Promise<Evidence> => {
+  uploadEvidence: async (
+    recommendationId: string,
+    file: File,
+    evidenceType: Evidence["type"] = "FINAL",
+  ): Promise<Evidence> => {
     const response = await fetch(
       `${API_BASE}/api/v1/recomendaciones/${recommendationId}/evidencias`,
       {
         method: "POST",
-        headers: { ...authHeaders(), "X-Filename": file.name },
+        headers: {
+          ...authHeaders(),
+          "X-Filename": file.name,
+          "X-Evidence-Type": evidenceType,
+        },
         body: file,
       },
     );
     return parseResponse<Evidence>(response);
+  },
+
+  getEvidenceFile: async (evidenceId: string, disposition: "inline" | "attachment" = "inline") => {
+    const response = await fetch(
+      `${API_BASE}/api/v1/evidencias/${evidenceId}/archivo?disposition=${disposition}`,
+      { headers: authHeaders() },
+    );
+    if (!response.ok) {
+      await parseResponse<never>(response);
+      throw new ApiError("No se pudo abrir la evidencia.", "INTERNAL_ERROR", response.status);
+    }
+    return response.blob();
   },
 
   submitDictamen: (
@@ -224,6 +321,10 @@ export const api = {
       headers: authHeaders(),
     });
     if (!response.ok) {
+      if (response.status === 401) {
+        clearSession();
+        window.dispatchEvent(new Event("sitra:session-expired"));
+      }
       throw new ApiError("No se pudo exportar la matriz CGE.", "FORBIDDEN", response.status);
     }
     return response.blob();

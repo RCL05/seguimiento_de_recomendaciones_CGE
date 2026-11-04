@@ -2,10 +2,10 @@
 
 Reglas de negocio:
 - Solo el rol UAI puede emitir dictámenes.
-- La recomendación debe estar en EN_REVISION_INTERNA.
+- La recomendación debe estar En Validación.
 - La evidencia debe pertenecer a la recomendación.
 - Aprobado → CUMPLIDA (requiere historial de revisión interna y evidencia validada).
-- Rechazado → RECHAZADA_CORRECCION (conserva archivos y revisiones previas).
+- Rechazado → En Proceso (conserva archivos y revisiones previas).
 - Operación atómica con select_for_update (bloqueo pesimista).
 - Se audita dentro de la misma transacción.
 """
@@ -16,7 +16,13 @@ from uuid import UUID
 from django.db import transaction
 
 from backend.core.audit.repository import record_audit
-from backend.core.shared.domain_types import ConflictError, NotFoundError, ValidationError
+from backend.core.shared.domain_types import (
+    ConflictError,
+    NotFoundError,
+    RecommendationState,
+    ValidationError,
+)
+from backend.modules.recomendaciones.domain.state_machine import transition_state
 from backend.modules.recomendaciones.models import DictamenUAI, Evidencia, Recomendacion
 from backend.modules.usuarios.models import Usuario
 
@@ -44,7 +50,7 @@ class IssueDictamen:
             raise NotFoundError("La recomendación no existe.")
 
         # Validación de estado
-        if rec.estado != Recomendacion.Estado.EN_REVISION_INTERNA:
+        if rec.estado != Recomendacion.Estado.EN_VALIDACION:
             raise ConflictError(
                 f"La recomendación en estado '{rec.estado}' no está lista para dictamen."
             )
@@ -55,6 +61,8 @@ class IssueDictamen:
         )
         if evidence is None:
             raise ValidationError("La evidencia no pertenece a la recomendación.")
+        if evidence.estado != Evidencia.Estado.VIGENTE:
+            raise ConflictError("No se puede dictaminar una evidencia anulada.")
 
         previous_state = rec.estado
 
@@ -62,10 +70,15 @@ class IssueDictamen:
             # Validar condición de CUMPLIDA: evidencia aprobada
             evidence.validada = True
             evidence.save(update_fields=["validada"])
-            rec.estado = Recomendacion.Estado.CUMPLIDA
+            rec.estado = transition_state(
+                rec.estado,
+                RecommendationState.CUMPLIDA,
+                had_internal_review=True,
+                has_validated_evidence=True,
+            )
         else:
             # Rechazo: conserva evidencia y registra observaciones
-            rec.estado = Recomendacion.Estado.RECHAZADA_CORRECCION
+            rec.estado = transition_state(rec.estado, RecommendationState.EN_PROCESO)
 
         dictamen = DictamenUAI.objects.create(
             recomendacion=rec,

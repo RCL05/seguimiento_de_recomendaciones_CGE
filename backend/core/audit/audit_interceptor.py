@@ -3,6 +3,8 @@ from __future__ import annotations
 from functools import wraps
 from uuid import uuid4
 
+from django.db import transaction
+
 from backend.core.audit.repository import record_audit
 
 
@@ -16,8 +18,8 @@ class AuditInterceptor:
                 user = kwargs.get("actor") or kwargs.get("user")
                 request_id = kwargs.get("request_id") or uuid4()
                 ip_address = getattr(request, "META", {}).get("REMOTE_ADDR") if request else None
-                result = func(*args, **kwargs)
-                try:
+                with transaction.atomic():
+                    result = func(*args, **kwargs)
                     record_audit(
                         request_id=request_id,
                         user=user,
@@ -28,9 +30,7 @@ class AuditInterceptor:
                         ip_address=ip_address,
                         modulo=module,
                     )
-                except Exception:
-                    pass
-                return result
+                    return result
 
             return wrapper
 

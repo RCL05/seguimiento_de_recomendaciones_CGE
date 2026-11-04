@@ -22,7 +22,7 @@ const pending = {
   unit_id: "UAI",
   legal_days: 30,
   due_date: "2026-11-30",
-  state: "EN_REVISION_INTERNA",
+  state: "EN_VALIDACION",
 };
 
 const closed = { ...pending, id: "r-2", number: "REC-002", state: "APROBADA" };

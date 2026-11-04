@@ -5,19 +5,20 @@ from django.http import HttpResponse, JsonResponse
 
 from backend.core.api.request_context import request_id_from
 from backend.core.api.response_envelope import build_envelope
-from backend.core.api.views import _persistent_user, _user
+from backend.core.api.views import _persistent_user, _user, bearer_required
 from backend.core.audit.repository import query_audit_log
 from backend.core.shared.domain_types import Role
 from backend.modules.recomendaciones.models import Recomendacion
 from django.db.models import Count
 
 
+@bearer_required
 def export_matriz_cge(request):
     if request.method != "POST":
         return JsonResponse(
             build_envelope(
                 success=False,
-                message="Método no permitido.",
+                message="MÃ©todo no permitido.",
                 errors={"code": "METHOD_NOT_ALLOWED"},
                 request_id=request_id_from(request),
             ),
@@ -51,12 +52,13 @@ def export_matriz_cge(request):
     return response
 
 
+@bearer_required
 def dashboard_summary(request):
-    """Tablero ejecutivo con semáforo de riesgo (RF-013).
+    """Tablero ejecutivo con semÃ¡foro de riesgo (RF-013).
 
     Accesible por RECTORADO, UAI y CGE_AUDITOR.
     """
-    user = _user(request, Role.RECTORADO)
+    user = _user(request)
     if user.role not in {Role.RECTORADO, Role.UAI, Role.CGE_AUDITOR}:
         return JsonResponse(
             build_envelope(
@@ -74,11 +76,11 @@ def dashboard_summary(request):
     }
     total = sum(counts.values())
     completed = counts.get(Recomendacion.Estado.CUMPLIDA, 0)
-    overdue = counts.get(Recomendacion.Estado.EN_MORA, 0)
-    in_revision = counts.get(Recomendacion.Estado.EN_REVISION_INTERNA, 0)
+    overdue = counts.get(Recomendacion.Estado.VENCIDA, 0)
+    in_revision = counts.get(Recomendacion.Estado.EN_VALIDACION, 0)
     pct = round((completed / total) * 100, 2) if total else 0
 
-    # Semáforo de riesgo institucional
+    # SemÃ¡foro de riesgo institucional
     if pct >= 75:
         semaforo = "VERDE"
     elif pct >= 40:
@@ -101,8 +103,9 @@ def dashboard_summary(request):
     ))
 
 
+@bearer_required
 def audit_log_list(request):
-    """Consulta del historial de auditoría (RF-018, US5/AC1).
+    """Consulta del historial de auditorÃ­a (RF-018, US5/AC1).
 
     Accesible solo por UAI y CGE_AUDITOR.
     Soporta filtros: entity, entity_id, limit.
@@ -112,7 +115,7 @@ def audit_log_list(request):
         return JsonResponse(
             build_envelope(
                 success=False,
-                message="No tiene permisos para consultar la auditoría.",
+                message="No tiene permisos para consultar la auditorÃ­a.",
                 errors={"code": "PERMISSION_DENIED"},
                 request_id=request_id_from(request),
             ),
@@ -148,7 +151,7 @@ def audit_log_list(request):
     ]
     return JsonResponse(build_envelope(
         success=True,
-        message="Historial de auditoría consultado",
+        message="Historial de auditorÃ­a consultado",
         data=data,
         request_id=request_id_from(request),
     ))

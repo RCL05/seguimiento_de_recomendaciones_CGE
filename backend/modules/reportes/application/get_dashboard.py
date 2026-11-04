@@ -14,7 +14,7 @@ def get_dashboard(*, unit_id: str | None = None):
 
     total = qs.count()
     cumplidas = qs.filter(estado=Recomendacion.Estado.CUMPLIDA).count()
-    en_mora = qs.filter(estado=Recomendacion.Estado.EN_MORA).count()
+    en_mora = qs.filter(estado=Recomendacion.Estado.VENCIDA).count()
     porcentaje_cumplimiento = round((cumplidas / total * 100), 2) if total else 0.0
 
     por_unidad = (
@@ -22,7 +22,7 @@ def get_dashboard(*, unit_id: str | None = None):
         .annotate(
             total=Count("id"),
             cumplidas=Count("id", filter=Q(estado=Recomendacion.Estado.CUMPLIDA)),
-            en_mora=Count("id", filter=Q(estado=Recomendacion.Estado.EN_MORA)),
+            en_mora=Count("id", filter=Q(estado=Recomendacion.Estado.VENCIDA)),
         )
         .order_by("unidad_responsable__codigo")
     )

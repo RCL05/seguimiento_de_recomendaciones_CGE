@@ -1,4 +1,5 @@
 from django.test import TestCase
+from unittest.mock import patch
 
 from backend.core.audit.models import AuditLog
 from backend.modules.notificaciones.application.manage_notification_settings import (
@@ -7,6 +8,7 @@ from backend.modules.notificaciones.application.manage_notification_settings imp
 from backend.modules.usuarios.application.login_sso import LoginSsoUseCase
 from backend.modules.usuarios.application.manage_roles import ManageRolesUseCase
 from backend.modules.usuarios.application.manage_units import ManageUnitsUseCase
+from backend.modules.usuarios.infrastructure.sso_adapter import SsoAdapter
 from backend.modules.usuarios.models import Usuario
 from uuid import uuid4
 
@@ -14,14 +16,38 @@ from uuid import uuid4
 class IdentityConfigurationFlowTests(TestCase):
     def test_flujo_completo_de_identidad_y_configuracion(self):
         login = LoginSsoUseCase()
-        dti_identity = login.execute(token="dti-sso-token", request_id=uuid4())
-        self.assertEqual(dti_identity["rol"], "DTI")
+        identities = {
+            "opaque-dti-credential": {
+                "correo": "dti@unl.edu.ec",
+                "nombres": "DTI Institucional",
+                "rol": "DTI",
+                "unidad_codigo": "DTI",
+            },
+            "opaque-uai-credential": {
+                "correo": "uai@unl.edu.ec",
+                "nombres": "UAI Institucional",
+                "rol": "UAI",
+                "unidad_codigo": "UAI",
+            },
+        }
+        with patch.object(
+            SsoAdapter,
+            "authenticate",
+            autospec=True,
+            side_effect=lambda _adapter, *, token: identities.get(token, {}),
+        ):
+            dti_identity = login.execute(
+                token="opaque-dti-credential", request_id=uuid4()
+            )
+            user_identity = login.execute(
+                token="opaque-uai-credential",
+                request_id=uuid4(),
+                ip_address="127.0.0.1",
+            )
 
-        user_identity = login.execute(
-            token="valid-sso-token",
-            request_id=uuid4(),
-            ip_address="127.0.0.1",
-        )
+        self.assertEqual(set(dti_identity), {"usuario_id", "rol", "expira_en"})
+        self.assertEqual(dti_identity["rol"], "DTI")
+        self.assertEqual(set(user_identity), {"usuario_id", "rol", "expira_en"})
         self.assertEqual(user_identity["rol"], "UAI")
 
         dti = Usuario.objects.get(correo_institucional="dti@unl.edu.ec")

@@ -9,4 +9,4 @@ def test_smtp_fallido_no_revierte_transaccion_y_reintentos():
 def test_paso_a_en_mora_y_tablero():
     from backend.modules.recomendaciones.models import Recomendacion
 
-    assert hasattr(Recomendacion.Estado, "EN_MORA")
+    assert hasattr(Recomendacion.Estado, "VENCIDA")

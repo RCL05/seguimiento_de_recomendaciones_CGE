@@ -27,7 +27,7 @@ async function mockApi(page: Page) {
           semaforo_riesgo: "AMARILLO",
           en_mora: 1,
           en_revision_interna: 2,
-          por_estado: { APROBADA: 3, EN_REVISION_INTERNA: 1 },
+          por_estado: { APROBADA: 3, EN_VALIDACION: 1 },
         }),
       });
     }

@@ -23,6 +23,11 @@ class NotFoundError(DomainError):
     status_code = 404
 
 
+class PayloadTooLarge(DomainError):
+    code = "PAYLOAD_TOO_LARGE"
+    status_code = 413
+
+
 class ConflictError(DomainError):
     code = "CONFLICT"
     status_code = 409
@@ -38,12 +43,11 @@ class Role(str, Enum):
 
 class RecommendationState(str, Enum):
     PENDIENTE = "PENDIENTE"
-    EN_PLANIFICACION = "EN_PLANIFICACION"
-    EN_EJECUCION = "EN_EJECUCION"
-    EN_REVISION_INTERNA = "EN_REVISION_INTERNA"
+    EN_PROCESO = "EN_PROCESO"
+    EN_VALIDACION = "EN_VALIDACION"
+    VENCIDA = "VENCIDA"
+    REABIERTA = "REABIERTA"
     CUMPLIDA = "CUMPLIDA"
-    RECHAZADA_CORRECCION = "RECHAZADA_CORRECCION"
-    EN_MORA = "EN_MORA"
 
 
 @dataclass(frozen=True)

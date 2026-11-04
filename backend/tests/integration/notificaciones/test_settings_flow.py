@@ -11,6 +11,7 @@ from backend.modules.notificaciones.infrastructure.preferences_models import (
 )
 from backend.modules.notificaciones.models import Notificacion
 from backend.modules.usuarios.models import Usuario
+from tests.auth_helpers import authenticated_headers
 
 
 class NotificationSettingsFlowTests(TestCase):
@@ -29,8 +30,7 @@ class NotificationSettingsFlowTests(TestCase):
                 }
             ),
             content_type="application/json",
-            HTTP_X_ROLE="DTI",
-            HTTP_X_USER_ID="dti-config",
+            **authenticated_headers("DTI", "dti-config"),
         )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["success"])
@@ -42,8 +42,7 @@ class NotificationSettingsFlowTests(TestCase):
 
         get_response = self.client.get(
             "/api/v1/notificaciones/configuracion",
-            HTTP_X_ROLE="DTI",
-            HTTP_X_USER_ID="dti-config",
+            **authenticated_headers("DTI", "dti-config"),
         )
         self.assertEqual(get_response.status_code, 200)
         self.assertEqual(get_response.json()["data"]["umbral_dias"], 30)
@@ -62,8 +61,7 @@ class NotificationSettingsFlowTests(TestCase):
                 }
             ),
             content_type="application/json",
-            HTTP_X_ROLE="EJECUTOR",
-            HTTP_X_USER_ID="ejecutor-prefs",
+            **authenticated_headers("EJECUTOR", "ejecutor-prefs"),
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.json()["data"]["preferencias"][0]["notificar_email"])
@@ -79,8 +77,7 @@ class NotificationSettingsFlowTests(TestCase):
 
         get_response = self.client.get(
             "/api/v1/notificaciones/preferencias",
-            HTTP_X_ROLE="EJECUTOR",
-            HTTP_X_USER_ID="ejecutor-prefs",
+            **authenticated_headers("EJECUTOR", "ejecutor-prefs"),
         )
         self.assertEqual(get_response.status_code, 200)
         self.assertEqual(len(get_response.json()["data"]["preferencias"]), len(TipoAlerta.values))
@@ -93,8 +90,7 @@ class NotificationSettingsFlowTests(TestCase):
         )
         response = self.client.get(
             f"/api/v1/notificaciones/preferencias?usuario_id={target.id}",
-            HTTP_X_ROLE="EJECUTOR",
-            HTTP_X_USER_ID="ejecutor-prefs-2",
+            **authenticated_headers("EJECUTOR", "ejecutor-prefs-2"),
         )
         self.assertEqual(response.status_code, 403)
 
@@ -103,8 +99,7 @@ class NotificationSettingsFlowTests(TestCase):
             "/api/v1/notificaciones/configuracion",
             data=json.dumps({"umbral_dias": 12}),
             content_type="application/json",
-            HTTP_X_ROLE="DTI",
-            HTTP_X_USER_ID="dti-audit",
+            **authenticated_headers("DTI", "dti-audit"),
         )
         self.client.put(
             "/api/v1/notificaciones/preferencias",
@@ -116,8 +111,7 @@ class NotificationSettingsFlowTests(TestCase):
                 }
             ),
             content_type="application/json",
-            HTTP_X_ROLE="UAI",
-            HTTP_X_USER_ID="uai-audit",
+            **authenticated_headers("UAI", "uai-audit"),
         )
         actions = set(
             AuditLog.objects.filter(modulo="notificaciones").values_list("accion", flat=True)
