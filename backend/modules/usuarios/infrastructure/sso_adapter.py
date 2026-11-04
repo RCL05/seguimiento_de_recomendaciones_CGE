@@ -110,6 +110,12 @@ class SsoAdapter:
                 "rol": Role.DTI.value,
                 "unidad_codigo": "DTI",
             },
+            "rectorado-sso-token": {
+                "email": "rectorado@unl.edu.ec",
+                "nombres": "Usuario Rectorado",
+                "rol": Role.RECTORADO.value,
+                "unidad_codigo": "RECTORADO",
+            },
         }
         identity = identities.get(token)
         return identity.copy() if identity else {}

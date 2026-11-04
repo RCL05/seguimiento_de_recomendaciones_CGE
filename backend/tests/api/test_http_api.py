@@ -72,9 +72,35 @@ def test_login_sso_devuelve_jwt_con_claims_de_identidad(monkeypatch):
         data=json.dumps({"credential": "credencial-invalida"}),
         content_type="application/json",
     )
-    assert invalid.status_code == 409
-    assert invalid.json()["errors"]["code"] == "BUSINESS_RULE_VIOLATION"
+    assert invalid.status_code == 401
+    assert invalid.json()["errors"]["code"] == "AUTHENTICATION_REQUIRED"
     assert invalid.json()["success"] is False
+
+
+def test_peticion_sin_token_responde_401_authentication_required():
+    response = Client().get("/api/v1/recomendaciones")
+    assert response.status_code == 401
+    assert response.json()["errors"]["code"] == "AUTHENTICATION_REQUIRED"
+
+
+@override_settings(DEBUG=True)
+def test_rectorado_inicia_sesion_y_consulta_tablero():
+    client = Client()
+    login = client.post(
+        "/api/v1/auth/login-sso",
+        data=json.dumps({"credential": "rectorado-sso-token"}),
+        content_type="application/json",
+    )
+    assert login.status_code == 200, login.content
+    assert login.json()["data"]["role"] == "RECTORADO"
+
+    token = login.json()["data"]["access_token"]
+    tablero = client.get(
+        "/api/v1/reportes/tablero",
+        HTTP_AUTHORIZATION=f"Bearer {token}",
+    )
+    assert tablero.status_code == 200, tablero.content
+    assert "semaforo_riesgo" in tablero.json()["data"]
 
 
 def test_recommendation_flow_returns_universal_envelope():

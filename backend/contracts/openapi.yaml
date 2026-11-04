@@ -50,6 +50,7 @@ paths:
                       data:
                         $ref: "#/components/schemas/LoginData"
         "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/ServerError" }
 

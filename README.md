@@ -156,7 +156,7 @@ usarse como encabezado `Authorization`.
 | `uai-sso-token` | `UAI` | `UAI` | Registrar informes y recomendaciones, consultar unidades, revisar/aprobar o rechazar evidencias, consultar auditoría y exportar matrices. | Disponible |
 | `ejecutor-sso-token` | `EJECUTOR` | `DEP-A` | Consultar recomendaciones de su unidad, registrar planes de acción y cargar evidencias PDF. | Disponible |
 | `dti-sso-token` | `DTI` | `DTI` | Administrar usuarios/unidades, configurar notificaciones y ejecutar jobs internos de vencimiento. | Disponible |
-| `rectorado-sso-token` | `RECTORADO` | `RECTORADO` | Consultar tablero ejecutivo y exportar matrices. | **No implementado actualmente** |
+| `rectorado-sso-token` | `RECTORADO` | `RECTORADO` | Consultar tablero ejecutivo y exportar matrices. | Disponible |
 
 Para probar el login:
 
@@ -164,9 +164,7 @@ Para probar el login:
 2. Introduzca uno de los tokens disponibles.
 3. Use el JWT devuelto por la aplicación para las peticiones protegidas.
 
-`rectorado-sso-token` aparece en esta tabla como credencial planificada, pero
-no funciona hasta que se agregue su identidad al adaptador SSO. No se debe
-presentar como una credencial válida en una demostración actual.
+Una credencial SSO inválida responde `401 AUTHENTICATION_REQUIRED`.
 
 ## Máquina de estados
 

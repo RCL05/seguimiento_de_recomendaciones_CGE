@@ -10,6 +10,7 @@ from backend.core.api.error_catalog import error_response
 from backend.core.api.request_context import request_id_from
 from backend.core.api.response_envelope import build_envelope
 from backend.core.shared.domain_types import (
+    AuthenticationRequired,
     DomainError,
     NotFoundError,
     PayloadTooLarge,
@@ -56,25 +57,25 @@ def _user(request):
     authorization = request.headers.get("Authorization", "")
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
-        raise DomainError("Se requiere un token Bearer vÃ¡lido.")
+        raise AuthenticationRequired("Se requiere un token Bearer válido.")
     identity = SsoAdapter().validate_session(token)
     if not identity or not identity.get("user_id"):
-        raise DomainError("El token de sesiÃ³n no es vÃ¡lido o expirÃ³.")
+        raise AuthenticationRequired("El token de sesión no es válido o expiró.")
     actor = Usuario.objects.select_related("unidad_org").filter(
         pk=identity["user_id"],
         correo_institucional=identity["correo"],
         activo=True,
     ).first()
     if actor is None:
-        raise DomainError("La identidad no estÃ¡ habilitada en el sistema.")
+        raise AuthenticationRequired("La identidad no está habilitada en el sistema.")
     try:
         role = Role(identity["rol"])
     except ValueError as error:
-        raise DomainError("El rol registrado no es vÃ¡lido.") from error
+        raise AuthenticationRequired("El rol registrado no es válido.") from error
     unit_id = identity.get("unidad_codigo")
     current_unit_id = actor.unidad_org.codigo if actor.unidad_org_id else None
     if actor.rol != role.value or current_unit_id != unit_id:
-        raise DomainError("Los permisos del token ya no coinciden con la cuenta activa.")
+        raise AuthenticationRequired("Los permisos del token ya no coinciden con la cuenta activa.")
     return User(str(identity["user_id"]), role, unit_id)
 
 def _persistent_user(request) -> tuple[User, Usuario]:
@@ -166,7 +167,7 @@ def login_sso(request):
         payload = _json(request)
         identity = SsoAdapter().authenticate(token=payload.get("credential", ""))
         if not identity:
-            raise DomainError("La credencial SSO no es vÃƒÂ¡lida.")
+            raise AuthenticationRequired("La credencial SSO no es válida.")
         actor, _ = Usuario.objects.get_or_create(
             correo_institucional=identity["correo"],
             defaults={
@@ -176,7 +177,7 @@ def login_sso(request):
             },
         )
         if not actor.activo:
-            raise DomainError("La identidad no estÃ¡ habilitada en el sistema.")
+            raise AuthenticationRequired("La identidad no está habilitada en el sistema.")
         if actor.unidad_org_id is None and identity.get("unidad_codigo"):
             unit, _ = UnidadOrganica.objects.get_or_create(codigo=identity["unidad_codigo"], defaults={"nombre": identity["unidad_codigo"]})
             actor.unidad_org = unit
