@@ -1,11 +1,16 @@
 import os
+import secrets
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 MEDIA_ROOT = Path(os.getenv("DJANGO_MEDIA_ROOT", BASE_DIR / "media"))
 MEDIA_URL = "/media/"
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "development-only-change-me")
 DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    if not DEBUG:
+        raise RuntimeError("DJANGO_SECRET_KEY es obligatorio cuando DEBUG está desactivado.")
+    SECRET_KEY = secrets.token_urlsafe(48)
 ROOT_URLCONF = "config.urls"
 ALLOWED_HOSTS = [host for host in os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",") if host]
 INSTALLED_APPS = [
@@ -18,6 +23,7 @@ INSTALLED_APPS = [
     "rest_framework",
 ]
 MIDDLEWARE = [
+    "backend.core.api.middleware.ApiErrorEnvelopeMiddleware",
     "django.middleware.security.SecurityMiddleware",
 ]
 REST_FRAMEWORK = {

@@ -13,6 +13,11 @@ class ValidationError(DomainError):
     status_code = 400
 
 
+class AuthenticationRequired(DomainError):
+    code = "AUTHENTICATION_REQUIRED"
+    status_code = 401
+
+
 class PermissionDenied(DomainError):
     code = "PERMISSION_DENIED"
     status_code = 403
@@ -21,6 +26,11 @@ class PermissionDenied(DomainError):
 class NotFoundError(DomainError):
     code = "RESOURCE_NOT_FOUND"
     status_code = 404
+
+
+class PayloadTooLarge(DomainError):
+    code = "PAYLOAD_TOO_LARGE"
+    status_code = 413
 
 
 class ConflictError(DomainError):
@@ -38,12 +48,11 @@ class Role(str, Enum):
 
 class RecommendationState(str, Enum):
     PENDIENTE = "PENDIENTE"
-    EN_PLANIFICACION = "EN_PLANIFICACION"
-    EN_EJECUCION = "EN_EJECUCION"
-    EN_REVISION_INTERNA = "EN_REVISION_INTERNA"
+    EN_PROCESO = "EN_PROCESO"
+    EN_VALIDACION = "EN_VALIDACION"
+    VENCIDA = "VENCIDA"
+    REABIERTA = "REABIERTA"
     CUMPLIDA = "CUMPLIDA"
-    RECHAZADA_CORRECCION = "RECHAZADA_CORRECCION"
-    EN_MORA = "EN_MORA"
 
 
 @dataclass(frozen=True)

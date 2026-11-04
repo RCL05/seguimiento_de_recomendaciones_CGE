@@ -192,3 +192,21 @@
 3. Fase 4 → evidencias.
 4. Fase 5 → auditoría.
 5. Fase 6 → contrato y validación integral de F1.
+
+## Phase 7: Convergence
+
+- [ ] **T046** Alinear la autenticación de sesión con JWT firmado, claims de identidad/rol/unidad, expiración y validación, y cubrir tokens válidos, expirados y manipulados per plan.md §4.1 / T011 (contradicts)
+- [ ] **T047** Completar los casos de uso y endpoints de responsables, tareas, transiciones, historial por recomendación y anulación lógica de evidencias per HU-03/HU-04/HU-07 / T020,T021,T032,T036,T038,T039 (partial)
+- [ ] **T048** Resolver las clarificaciones de estados y alinear el modelo persistente, la máquina de estados, dictámenes y pruebas con la matriz aprobada de specify.md §3.1 / T018,T022 (contradicts)
+- [ ] **T049** Completar el ciclo de vida de evidencias con tipo borrador/final, estado vigente/anulada, validación MIME/contenido, endpoint de anulación y preservación auditable del rastro per RNF-03, CA-05.4, CA-07.3 / T027-T032 (partial)
+- [ ] **T050** Centralizar la identidad autenticada y aplicar RBAC y autorización por unidad en todas las vistas, eliminando rutas que confían en X-Role o seleccionan arbitrariamente el primer usuario del rol per RNF-02, CA-06.3 / T012-T015 (partial)
+- [ ] **T051** Crear el contrato OpenAPI 3.0, Docker/Compose y pipeline CI con pruebas, análisis estático y lint OpenAPI; reparar la instalación reproducible de pruebas backend/frontend per plan.md §2.4, §6.3 / T004,T009,T042-T045 (missing)
+- [ ] **T052** Completar filtros por estado, unidad, plazo y prioridad, además de ordenamiento con lista blanca y metadatos de paginación en el listado de recomendaciones per RNF-08 / T041 (partial)
+
+## Phase 8: Convergence
+
+- [ ] **T053** Implementar endpoints y casos de uso para asignación de múltiples responsables, tareas, transiciones y consulta del historial por recomendación, con autorización, auditoría y pruebas per HU-03/HU-04/HU-07 / T020,T021,T036,T038 (missing)
+- [ ] **T054** Alinear el contrato OpenAPI y las rutas de anulación de evidencias con plan.md §2.1 y §2.4, adoptando OpenAPI 3.0 y `PATCH /api/v1/evidencias/{id}/anulacion`, o registrar una decisión SDD aprobada para la alternativa per T039,T042 (contradicts)
+- [ ] **T055** Reforzar el historial de auditoría como append-only real frente a UPDATE/DELETE masivos y configurar controles verificables a nivel de base de datos per Constitución §6 / T034,T037 (contradicts)
+- [ ] **T056** Crear workflows de CI que ejecuten pruebas backend/frontend, análisis estático y lint/validación OpenAPI, bloqueando merges cuando fallen per plan.md §6.3 / T009,T045 (missing)
+- [ ] **T057** Añadir parámetro `sort` con lista blanca, dirección `asc|desc`, propagación al repositorio y pruebas de contrato/seguridad para los listados per RNF-08 / T041,T052 (partial)

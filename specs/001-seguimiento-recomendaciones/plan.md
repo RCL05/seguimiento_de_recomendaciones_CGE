@@ -206,23 +206,32 @@ integridad PDF, auditoría, alertas y concurrencia.
 
 ## Matriz de Trazabilidad de Diseño
 
-| Requisito | Componente | Datos | Contrato | Prueba |
+| Requisito | Componente | Entidad / datos | Endpoint o contrato | Prueba automatizada |
 | --- | --- | --- | --- | --- |
-| RF-001–004 | Usuarios/Auth, configuración | usuarios, unidades | `/auth/login-sso` | integración, RBAC |
-| RF-005–006 | Informes y recomendaciones | informes_cge, recomendaciones | `POST /informes`, `POST /recomendaciones` | unidad, integración |
-| RF-007 | Plan de acción | planes_accion | `POST /recomendaciones/{id}/plan-accion` | unidad, integración |
-| RF-008, RF-020 | Evidencias y transacciones | evidencias | `POST /recomendaciones/{id}/evidencias` | unidad, integridad, concurrencia |
-| RF-009–010 | Máquina de estados, dictamen | recomendaciones, dictamenes_uai | `PATCH /recomendaciones/{id}/dictamen` | dominio, integración |
-| RF-011–012, RF-021 | Política de plazos, notificaciones | notificaciones, recomendaciones | tarea interna | jobs, reintentos |
-| RF-013 | Reportes y tablero | recomendaciones, unidades | consulta de tablero | integración, rendimiento |
-| RF-014, RF-018 | Reportes y auditoría | matriz, audit_logs | `POST /reportes/matriz-cge` | contrato, exportación CSV, RBAC |
-| RF-015–016 | Core API y errores | request_id, audit_logs | todos los endpoints | contrato, errores |
-| RF-017 | Auditoría | audit_logs | interceptor mutativo | integración, seguridad |
-| RF-019 | Autorización de objeto | recomendaciones, unidades | consultas y cargas | BOLA/IDOR |
-| RNF-001–004 | Core, Evidencias, DB | evidencias, audit_logs | todos | integridad, seguridad |
-| RNF-005–006 | Reportes | índices y consultas | tablero y matriz CSV | rendimiento con carga de referencia |
-| RNF-007–008 | Notificaciones y Core | notificaciones, logs | respuestas y tareas | resiliencia, privacidad |
-| RNF-009 | SDD | artefactos Spec Kit | requisitos y pruebas | revisión de trazabilidad |
+| RF-001 | `modules/usuarios/application/login_sso.py`, `infrastructure/sso_adapter.py`, `core/api/views.py::login_sso` | `Usuario`, sesión | `POST /api/v1/auth/login-sso` | `tests/api/test_http_api.py::test_login_sso_devuelve_identidad_y_rol` |
+| RF-002 | `modules/usuarios/application/manage_roles.py`, `core/auth/authorization.py` | `Usuario.rol`, `UnidadOrganica` | RBAC de cabeceras/servidor | `tests/unit/usuarios/test_identity_rules.py`, `tests/integration/usuarios/test_admin_flow.py` |
+| RF-003 | `modules/usuarios/application/manage_units.py` | historial de reasignación | servicio interno; sin endpoint publicado (brecha T128) | `tests/unit/usuarios/test_identity_rules.py::test_reasignacion_sin_perder_historial` |
+| RF-004 | `modules/notificaciones/application/manage_notification_settings.py`, `send_deadline_alerts.py` | `ConfiguracionNotificacion`, `Notificacion` | `GET/PUT /api/v1/notificaciones/configuracion` | `tests/unit/notificaciones/test_settings_rules.py`, `tests/integration/notificaciones/test_settings_flow.py` |
+| RF-005 | `modules/informes_cge/application/register_informe.py` | `InformeCGE` | `POST /api/v1/informes` | `tests/integration/recomendaciones/test_registration.py`, `tests/integration/test_quickstart.py` |
+| RF-006 | `modules/recomendaciones/application/create_recomendacion.py` | `Recomendacion` | `POST /api/v1/recomendaciones` | `tests/integration/recomendaciones/test_registration.py`, `tests/unit/recomendaciones/test_creation_rules.py` |
+| RF-007 | `modules/recomendaciones/application/create_plan_accion.py` | `PlanAccion` | `POST /api/v1/recomendaciones/{id}/plan-accion` | `tests/api/test_http_api.py::test_report_and_plan_routes_are_available`, `tests/integration/evidencias/test_upload_flow.py` |
+| RF-008 | `modules/recomendaciones/application/upload_evidencia.py`, `core/files/pdf_integrity.py` | `Evidencia.hash_sha256` | `POST /api/v1/recomendaciones/{id}/evidencias` | `tests/unit/evidencias/test_upload_rules.py`, `tests/integration/evidencias/test_upload_flow.py` |
+| RF-009 | `modules/recomendaciones/application/issue_dictamen.py`, máquina de estados | `Recomendacion.estado` | `POST /api/v1/recomendaciones/{id}/dictamen` | `tests/integration/evidencias/test_dictamen_flow.py`, `tests/unit/test_mvp.py` |
+| RF-010 | `modules/evidencias/application/reject_evidence.py`, `issue_dictamen.py` | `DictamenUAI`, revisiones | `POST /api/v1/recomendaciones/{id}/dictamen` | `tests/integration/test_quickstart.py::test_rechazo_conserva_evidencia_y_permite_corregir` |
+| RF-011, RF-021 | `modules/notificaciones/application/send_deadline_alerts.py`, `service.py` | `Notificacion`, clave idempotente | `POST /api/v1/jobs/evaluar-plazos` | `tests/unit/notificaciones/test_deadlines.py`, `tests/integration/notificaciones/test_settings_flow.py` |
+| RF-012 | `modules/notificaciones/application/mark_overdue.py` | `Recomendacion.estado=EN_MORA` | tarea de plazos / tablero | `tests/integration/notificaciones/test_scheduled_flows.py` |
+| RF-013 | `modules/reportes/views.py::dashboard_summary` | agregados por unidad/estado | `GET /api/v1/reportes/tablero` | `tests/integration/reportes/test_report_performance.py`, `frontend/src/features/dashboard/pages/ExecutiveDashboardPage.tsx` |
+| RF-014, RF-018 | `modules/reportes/views.py::export_matriz_cge`, `audit_log_list` | matriz CSV, `AuditLog` | `GET /api/v1/reportes/matriz-cge`, `GET /api/v1/auditoria` | `tests/integration/test_quickstart.py::test_matriz_csv_restingida_por_rol`, `tests/security/test_audit_and_reports.py` |
+| RF-015, RF-016, RNF-004 | `core/api/response_envelope.py`, `error_catalog.py`, `exception_handler.py` | `request_id`, catálogo de errores | todos los endpoints JSON | `tests/integration/test_foundation.py`, `tests/contract/test_api_contract.py` |
+| RF-017, RNF-002 | `core/audit/models.py`, `repository.py`, `modules/*/application/audit_events.py` | `AuditLog` inmutable | inserción en cada mutación | `tests/integration/test_quickstart.py::test_flujo_principal_aprobacion_y_cadena_de_auditoria`, `tests/security/test_audit_and_reports.py` |
+| RF-019, RNF-003 | `core/auth/authorization.py`, `core/api/views.py` | unidad del recurso | consulta, plan, evidencia y dictamen | `tests/security/test_evidence_object_authorization.py`, `tests/integration/test_quickstart.py::test_bola_entre_unidades_responde_404_y_audita_el_intento` |
+| RF-020 | `transaction.atomic` + `select_for_update` en casos de uso | `Recomendacion`, `Evidencia` | cargas y dictamen | `tests/concurrency/test_recommendation_locking.py` |
+| RF-022 | `contracts/openapi.yaml`, vistas publicadas | contrato 14 paths / 23 schemas | OpenAPI 3.1.0 | `tests/contract/test_api_contract.py` (cobertura parcial de esquema) |
+| RNF-001 | `modules/evidencias/application/verify_integrity.py` | SHA-256 almacenado vs recalculado | verificación de integridad | `tests/integration/evidencias/test_integrity_flow.py` |
+| RNF-005, RNF-006 | `modules/reportes/views.py` | consultas de tablero y exportación | tablero y matriz CSV | solo umbrales declarados; falta benchmark con carga de referencia (T139) |
+| RNF-007 | `modules/notificaciones/infrastructure/smtp_adapter.py` | `Notificacion` y reintentos | jobs internos | `tests/integration/notificaciones/test_scheduled_flows.py` (cobertura mínima) |
+| RNF-008 | `core/security/log_safety.py`, `manage_notification_settings.py` | logs y auditoría redactados | respuestas y registros | `tests/security/test_secret_and_log_safety.py` |
+| RNF-009 | artefactos Spec Kit | requisitos EARS y escenarios BDD | `spec.md`, `plan.md`, `tasks.md` | revisión de trazabilidad (esta matriz); sin verificador automático |
 
 ## Seguimiento de la Implementación
 

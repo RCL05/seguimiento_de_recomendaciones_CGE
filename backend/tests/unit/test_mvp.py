@@ -29,7 +29,7 @@ def recommendation_in_execution(service, uai):
         due_date="2026-11-18",
         request_id="req-create",
     )
-    recommendation.state = RecommendationState.EN_EJECUCION
+    recommendation.state = RecommendationState.EN_PROCESO
     return recommendation
 
 
@@ -52,7 +52,7 @@ def test_evidence_moves_recommendation_to_internal_review():
         content=b"%PDF-1.7 evidence",
         request_id="req-upload",
     )
-    assert recommendation.state is RecommendationState.EN_REVISION_INTERNA
+    assert recommendation.state is RecommendationState.EN_VALIDACION
     assert evidence.sha256
     assert len(service.audit.all()) == 2
 
@@ -80,7 +80,7 @@ def test_executor_cannot_upload_for_another_unit():
         due_date="2026-10-29",
         request_id="req-create",
     )
-    recommendation.state = RecommendationState.EN_EJECUCION
+    recommendation.state = RecommendationState.EN_PROCESO
     with pytest.raises(Exception):
         service.upload_evidence(
             executor,

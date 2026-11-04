@@ -65,8 +65,8 @@ class RecommendationService:
         recommendation = self._get(recommendation_id)
         require_same_unit(user, recommendation.unit_id)
         if recommendation.state not in {
-            RecommendationState.EN_EJECUCION,
-            RecommendationState.RECHAZADA_CORRECCION,
+            RecommendationState.EN_PROCESO,
+            RecommendationState.EN_PROCESO,
         }:
             raise ConflictError("La recomendación no acepta evidencias en su estado actual.")
         digest = validate_pdf(filename, content)
@@ -80,7 +80,7 @@ class RecommendationService:
         )
         self.evidences[evidence.id] = evidence
         previous = recommendation.state.value
-        transition(recommendation, RecommendationState.EN_REVISION_INTERNA)
+        transition(recommendation, RecommendationState.EN_VALIDACION)
         self._audit(user, request_id, "UPLOAD_EVIDENCE", recommendation, previous, recommendation.state.value)
         return evidence
 
@@ -107,7 +107,7 @@ class RecommendationService:
                 has_validated_evidence=True,
             )
         else:
-            transition(recommendation, RecommendationState.RECHAZADA_CORRECCION)
+            transition(recommendation, RecommendationState.EN_PROCESO)
         self._audit(user, request_id, "ISSUE_DICTAMEN", recommendation, previous, recommendation.state.value)
         return recommendation
 
