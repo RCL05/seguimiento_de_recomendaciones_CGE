@@ -65,9 +65,10 @@ export function EvidenceUpload({
           disabled={disabled || status === "uploading"}
         />
       </label>
-      {disabledMessage && <p className="state-notice" role="status">{disabledMessage}</p>}
+      <p className="hint">Al cargarla, la recomendación pasa a validación de la UAI y se calcula su huella SHA-256.</p>
+      {disabledMessage && <p className="notice warning" role="status">{disabledMessage}</p>}
       {status === "uploading" && (
-        <p className="hint" role="status">Validando y cargando evidencia...</p>
+        <p className="notice info" role="status">Validando y cargando evidencia...</p>
       )}
       {hash && (
         <p className="hash" title={hash}>

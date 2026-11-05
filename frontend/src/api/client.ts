@@ -25,6 +25,15 @@ export type Recommendation = {
   overdue_registered_at?: string | null;
 };
 
+export type Milestone = {
+  id: string;
+  recommendation_id: string;
+  descripcion_hito: string;
+  fecha_compromiso: string;
+  completado: boolean;
+  created_by: string;
+};
+
 export type Dictamen = {
   id: string;
   resultado: "APROBADO" | "RECHAZADO";
@@ -104,6 +113,7 @@ export type NotificationSettings = {
   canal_email_activo: boolean;
   destinatarios_vencimiento: string[];
   destinatarios_mora: string[];
+  actualizado_en?: string;
 };
 
 type Envelope<T> = {
@@ -267,6 +277,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+
+  listPlan: (recommendationId: string) =>
+    request<Milestone[]>(`/api/v1/recomendaciones/${recommendationId}/plan-accion`),
 
   createPlan: (
     recommendationId: string,

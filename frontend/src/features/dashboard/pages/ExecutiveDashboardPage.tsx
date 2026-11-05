@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 
 import { api, ApiError, Dashboard } from "../../../api/client";
+import { formatDate, STATE_OPTIONS } from "../../../components/format";
+import { EmptyState, Notice, PageHeader } from "../../../components/ui";
 
-const SEMAPHORE_LABEL: Record<Dashboard["semaforo_riesgo"], string> = {
-  VERDE: "Cumplimiento institucional en nivel aceptable",
-  AMARILLO: "Cumplimiento institucional en riesgo moderado",
-  ROJO: "Cumplimiento institucional crítico",
+const SEMAPHORE: Record<Dashboard["semaforo_riesgo"], { icon: string; title: string; text: string }> = {
+  VERDE: { icon: "✓", title: "Riesgo bajo", text: "El cumplimiento institucional está en un nivel aceptable (≥ 75 %)." },
+  AMARILLO: { icon: "!", title: "Riesgo moderado", text: "El cumplimiento está entre 40 % y 75 %: conviene priorizar seguimientos." },
+  ROJO: { icon: "×", title: "Riesgo crítico", text: "Menos del 40 % de las recomendaciones está cumplido." },
 };
 
 export function ExecutiveDashboardPage() {
@@ -16,88 +18,178 @@ export function ExecutiveDashboardPage() {
     api
       .getDashboard()
       .then(setDashboard)
-      .catch((caught) =>
-        setError(caught instanceof ApiError ? caught.message : "No se pudo cargar el tablero."),
-      );
+      .catch((caught) => setError(caught instanceof ApiError ? caught.message : "No se pudo cargar el tablero."));
   }, []);
+
+  async function exportMatriz() {
+    try {
+      const blob = await api.downloadMatriz();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "matriz-cge.csv";
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : "No se pudo exportar la matriz.");
+    }
+  }
+
+  const header = (
+    <PageHeader
+      eyebrow="Supervisión institucional"
+      title="Tablero ejecutivo"
+      description="Estado del cumplimiento de las recomendaciones de la Contraloría y unidades con plazos vencidos."
+      actions={
+        <button type="button" className="secondary" onClick={exportMatriz}>
+          Exportar matriz CSV
+        </button>
+      }
+    />
+  );
 
   if (error) {
     return (
-      <section className="card">
-        <h2>Tablero ejecutivo</h2>
-        <p className="feedback error">{error}</p>
-      </section>
+      <>
+        {header}
+        <Notice tone="error">{error}</Notice>
+      </>
     );
   }
 
   if (!dashboard) {
     return (
-      <section className="card">
-        <h2>Tablero ejecutivo</h2>
-        <p>Consultando indicadores institucionales...</p>
-      </section>
+      <>
+        {header}
+        <p role="status" className="muted">
+          Consultando indicadores institucionales...
+        </p>
+      </>
     );
   }
 
+  const semaphore = SEMAPHORE[dashboard.semaforo_riesgo];
+  // Orden fijo del flujo; los estados sin recomendaciones se muestran con 0.
+  const distribution = STATE_OPTIONS.map((option) => ({
+    ...option,
+    total: dashboard.por_estado[option.value] ?? 0,
+  }));
+  const maxTotal = Math.max(1, ...distribution.map((item) => item.total));
+
   return (
-    <section className="card" aria-labelledby="dashboard-title">
-      <h2 id="dashboard-title">Tablero ejecutivo de Rectorado</h2>
-      <div className={`semaphore ${dashboard.semaforo_riesgo.toLowerCase()}`}>
-        <strong>{dashboard.semaforo_riesgo}</strong>
-        <span>{SEMAPHORE_LABEL[dashboard.semaforo_riesgo]}</span>
+    <>
+      {header}
+
+      <div className={`semaphore ${dashboard.semaforo_riesgo.toLowerCase()}`} role="status">
+        <span className="semaphore-light" aria-hidden="true">
+          {semaphore.icon}
+        </span>
+        <div>
+          <strong>
+            Semáforo {dashboard.semaforo_riesgo.toLowerCase()} · {semaphore.title}
+          </strong>
+          <span>{semaphore.text}</span>
+        </div>
       </div>
 
-      <dl className="metrics">
-        <div>
+      <dl className="kpis">
+        <div className="kpi">
           <dt>Recomendaciones</dt>
           <dd>{dashboard.total}</dd>
+          <small>registradas en el sistema</small>
         </div>
-        <div>
+        <div className="kpi">
           <dt>Cumplimiento</dt>
           <dd>{dashboard.cumplimiento_porcentaje}%</dd>
+          <small>{dashboard.por_estado.CUMPLIDA ?? 0} cumplidas</small>
         </div>
-        <div>
-          <dt>En mora</dt>
+        <div className="kpi">
+          <dt>Vencidas</dt>
           <dd>{dashboard.en_mora}</dd>
+          <small>plazo legal expirado sin cumplir</small>
         </div>
-        <div>
-          <dt>En revisión interna</dt>
+        <div className="kpi">
+          <dt>En validación UAI</dt>
           <dd>{dashboard.en_revision_interna}</dd>
+          <small>evidencias pendientes de dictamen</small>
         </div>
       </dl>
 
-      <h3>Distribución por estado</h3>
-      {Object.keys(dashboard.por_estado).length === 0 ? (
-        <p>No hay recomendaciones registradas.</p>
-      ) : (
-        <ul>
-          {Object.entries(dashboard.por_estado).map(([state, total]) => (
-            <li key={state}>
-              <strong>{state}</strong>
-              <span>{total}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="split">
+        <section className="card" aria-labelledby="estado-title">
+          <div className="card-header">
+            <div>
+              <h2 id="estado-title">Recomendaciones por estado</h2>
+              <p>Corte al {formatDate(dashboard.fecha_corte)}</p>
+            </div>
+          </div>
+          {dashboard.total === 0 ? (
+            <EmptyState title="Sin recomendaciones registradas" />
+          ) : (
+            <ul className="bar-chart" aria-label="Recomendaciones por estado">
+              {distribution.map((item) => (
+                <li
+                  key={item.value}
+                  className="bar-row"
+                  title={`${item.label}: ${item.total} de ${dashboard.total}`}
+                >
+                  <span className="bar-label">{item.label}</span>
+                  <span className="bar-track" aria-hidden="true">
+                    <span
+                      className="bar-fill"
+                      style={{ width: item.total ? `${(item.total / maxTotal) * 100}%` : 0, display: "block" }}
+                    />
+                  </span>
+                  <span className="bar-value">{item.total}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-      <h3>Unidades en mora</h3>
-      {dashboard.unidades_en_mora.length === 0 ? (
-        <p>Ninguna unidad tiene recomendaciones vencidas.</p>
-      ) : (
-        <ul aria-label="Unidades en mora">
-          {dashboard.unidades_en_mora.map((unidad) => (
-            <li key={unidad.unidad_codigo}>
-              <strong>
-                {unidad.unidad_codigo} — {unidad.unidad_nombre}
-              </strong>
-              <span>
-                {unidad.vencidas} vencida{unidad.vencidas === 1 ? "" : "s"} de {unidad.total}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className="hint">Corte: {dashboard.fecha_corte}</p>
-    </section>
+        <section className="card" aria-labelledby="mora-title">
+          <div className="card-header">
+            <div>
+              <h2 id="mora-title">Unidades en mora</h2>
+              <p>Unidades con recomendaciones vencidas, de mayor a menor.</p>
+            </div>
+          </div>
+          {dashboard.unidades_en_mora.length === 0 ? (
+            <EmptyState title="Ninguna unidad en mora">
+              <p>Todas las recomendaciones están dentro de su plazo legal o cumplidas.</p>
+            </EmptyState>
+          ) : (
+            <div className="table-wrap">
+              <table aria-label="Unidades en mora">
+                <thead>
+                  <tr>
+                    <th>Unidad</th>
+                    <th className="num">Vencidas</th>
+                    <th className="num">Total</th>
+                    <th className="num">% vencido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dashboard.unidades_en_mora.map((unidad) => (
+                    <tr key={unidad.unidad_codigo}>
+                      <td>
+                        <div className="cell-title">{unidad.unidad_codigo}</div>
+                        <div className="cell-sub">{unidad.unidad_nombre}</div>
+                      </td>
+                      <td className="num">{unidad.vencidas}</td>
+                      <td className="num">{unidad.total}</td>
+                      <td className="num">{Math.round((unidad.vencidas / unidad.total) * 100)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
+      <p className="hint" style={{ marginTop: "1rem" }}>
+        “Vencida” es un indicador de plazo, no un estado: una recomendación vencida conserva su estado de cumplimiento.
+      </p>
+    </>
   );
 }
