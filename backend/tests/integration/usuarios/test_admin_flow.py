@@ -78,6 +78,7 @@ def test_tokens_sso_de_desarrollo_crean_identidades_completas():
         "valid-sso-token": ("uai@unl.edu.ec", "UAI", "UAI"),
         "ejecutor-sso-token": ("ejecutor@unl.edu.ec", "EJECUTOR", "DEP-A"),
         "dti-sso-token": ("dti@unl.edu.ec", "DTI", "DTI"),
+        "rectorado-sso-token": ("rectorado@unl.edu.ec", "RECTORADO", "RECTORADO"),
     }
 
     for token, (email, role, unit_code) in expected.items():

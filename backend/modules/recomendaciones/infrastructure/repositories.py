@@ -1,9 +1,38 @@
+from datetime import date
 from uuid import UUID
 
 from django.db import transaction
-from django.db.models import Prefetch
+from django.db.models import BooleanField, Case, Exists, OuterRef, Prefetch, Q, Value, When
+from django.utils import timezone
 
 from backend.modules.recomendaciones.models import Evidencia, InformeCGE, Recomendacion
+
+
+def anotar_vencimiento(queryset, hoy: date | None = None):
+    """Agrega `entrega_oportuna` y `vencida` calculados en SQL (regla de domain/vencimiento.py).
+
+    `entrega_oportuna`: existe una evidencia vigente, cargada hasta la fecha de
+    vencimiento (hora local) y todavía sin dictamen UAI.
+    """
+    hoy = hoy or timezone.localdate()
+    entrega_oportuna = Evidencia.objects.filter(
+        recomendacion=OuterRef("pk"),
+        estado=Evidencia.Estado.VIGENTE,
+        dictamenuai__isnull=True,
+        fecha_carga__date__lte=OuterRef("fecha_vencimiento_legal"),
+    )
+    return queryset.annotate(entrega_oportuna=Exists(entrega_oportuna)).annotate(
+        vencida=Case(
+            When(
+                Q(fecha_vencimiento_legal__lt=hoy)
+                & ~Q(estado=Recomendacion.Estado.CUMPLIDA)
+                & ~Q(estado=Recomendacion.Estado.EN_VALIDACION, entrega_oportuna=True),
+                then=Value(True),
+            ),
+            default=Value(False),
+            output_field=BooleanField(),
+        )
+    )
 
 
 class ReportRepository:
@@ -49,7 +78,10 @@ class RecommendationRepository:
         due_date=None,
         due_before=None,
         due_after=None,
+        overdue: bool | None = None,
     ):
+        if overdue is not None:
+            queryset = queryset.filter(vencida=overdue)
         if state:
             queryset = queryset.filter(estado=state)
         if unit_code:
@@ -67,15 +99,23 @@ class RecommendationRepository:
     def get_detail(self, recommendation_id: UUID) -> Recomendacion | None:
         evidences = Evidencia.objects.order_by("-fecha_carga")
         return (
-            Recomendacion.objects.select_related("informe", "unidad_responsable")
+            anotar_vencimiento(Recomendacion.objects.select_related("informe", "unidad_responsable"))
             .prefetch_related(Prefetch("evidencias", queryset=evidences))
             .filter(pk=recommendation_id)
             .first()
         )
 
     @staticmethod
+    def esta_vencida(recommendation_id: UUID) -> bool:
+        return bool(
+            anotar_vencimiento(Recomendacion.objects.filter(pk=recommendation_id))
+            .values_list("vencida", flat=True)
+            .first()
+        )
+
+    @staticmethod
     def _with_list_relations():
-        return Recomendacion.objects.select_related("informe", "unidad_responsable")
+        return anotar_vencimiento(Recomendacion.objects.select_related("informe", "unidad_responsable"))
 
     @transaction.atomic
     def save(self, recommendation: Recomendacion) -> Recomendacion:

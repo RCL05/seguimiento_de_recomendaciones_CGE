@@ -13,6 +13,11 @@ class ValidationError(DomainError):
     status_code = 400
 
 
+class AuthenticationRequired(DomainError):
+    code = "AUTHENTICATION_REQUIRED"
+    status_code = 401
+
+
 class PermissionDenied(DomainError):
     code = "PERMISSION_DENIED"
     status_code = 403
@@ -45,7 +50,6 @@ class RecommendationState(str, Enum):
     PENDIENTE = "PENDIENTE"
     EN_PROCESO = "EN_PROCESO"
     EN_VALIDACION = "EN_VALIDACION"
-    VENCIDA = "VENCIDA"
     REABIERTA = "REABIERTA"
     CUMPLIDA = "CUMPLIDA"
 

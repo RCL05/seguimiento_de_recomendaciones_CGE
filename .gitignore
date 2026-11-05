@@ -18,3 +18,5 @@ Thumbs.db
 
 # Editor
 .vscode/
+# Archivos cargados (evidencias e informes PDF): nunca se versionan
+backend/media/

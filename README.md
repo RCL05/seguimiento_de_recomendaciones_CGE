@@ -156,7 +156,7 @@ usarse como encabezado `Authorization`.
 | `uai-sso-token` | `UAI` | `UAI` | Registrar informes y recomendaciones, consultar unidades, revisar/aprobar o rechazar evidencias, consultar auditoría y exportar matrices. | Disponible |
 | `ejecutor-sso-token` | `EJECUTOR` | `DEP-A` | Consultar recomendaciones de su unidad, registrar planes de acción y cargar evidencias PDF. | Disponible |
 | `dti-sso-token` | `DTI` | `DTI` | Administrar usuarios/unidades, configurar notificaciones y ejecutar jobs internos de vencimiento. | Disponible |
-| `rectorado-sso-token` | `RECTORADO` | `RECTORADO` | Consultar tablero ejecutivo y exportar matrices. | **No implementado actualmente** |
+| `rectorado-sso-token` | `RECTORADO` | `RECTORADO` | Consultar tablero ejecutivo y exportar matrices. | Disponible |
 
 Para probar el login:
 
@@ -164,9 +164,7 @@ Para probar el login:
 2. Introduzca uno de los tokens disponibles.
 3. Use el JWT devuelto por la aplicación para las peticiones protegidas.
 
-`rectorado-sso-token` aparece en esta tabla como credencial planificada, pero
-no funciona hasta que se agregue su identidad al adaptador SSO. No se debe
-presentar como una credencial válida en una demostración actual.
+Una credencial SSO inválida responde `401 AUTHENTICATION_REQUIRED`.
 
 ## Máquina de estados
 
@@ -184,16 +182,18 @@ EN_VALIDACION
     └── Dictamen rechazado por UAI ────► EN_PROCESO
 ```
 
-Estados complementarios:
+Reapertura:
 
 ```text
-PENDIENTE / EN_PROCESO / EN_VALIDACION
-    └── Job de vencimientos ───────────► VENCIDA
-
-VENCIDA ── Reanudación por EJECUTOR ──► EN_PROCESO
-CUMPLIDA ─ Hallazgo y reapertura UAI ─► REABIERTA
-REABIERTA ─ Nuevo plan por EJECUTOR ──► EN_PROCESO
+CUMPLIDA ─ Hallazgo y reapertura UAI (PATCH, con motivo) ─► REABIERTA
+REABIERTA ─ Nuevo plan por EJECUTOR ──────────────────────► EN_PROCESO
 ```
+
+Vencimiento (indicador, no estado): una recomendación está **vencida** cuando no
+está `CUMPLIDA`, ya pasó su fecha de vencimiento legal y no tiene una evidencia
+entregada a tiempo pendiente de dictamen. El estado de cumplimiento no cambia:
+puede estar `EN_PROCESO` y vencida, y cumplirse tarde. El job de plazos registra
+y notifica el vencimiento una sola vez (`vencimiento_registrado_en`).
 
 Reglas:
 
@@ -203,8 +203,8 @@ Reglas:
 - `EN_VALIDACION`: la UAI revisa la evidencia; el Ejecutor no puede aprobar su
   propio cumplimiento.
 - `CUMPLIDA`: solo se alcanza con dictamen aprobado y evidencia validada.
-- `VENCIDA`: la tarea automática marca recomendaciones cuyo plazo expiró sin
-  cumplimiento aprobado.
+- Vencida: con el plazo legal vencido, los nuevos hitos deben tener fecha de hoy
+  en adelante; la API expone `vencida` y el filtro `?vencida=true|false`.
 - `REABIERTA`: la UAI puede reabrir una recomendación cumplida cuando exista
   un hallazgo que lo justifique.
 - Toda transición no definida por la máquina de estados debe rechazarse.
