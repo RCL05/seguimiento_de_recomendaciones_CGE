@@ -35,10 +35,10 @@ def _error_response(request, exc: Exception) -> JsonResponse:
     if isinstance(exc, DomainError):
         payload, status = domain_error_response(exc, request_id)
         return JsonResponse(payload, status=status)
-    logger.exception("Error no controlado en configuraciÃ³n de notificaciones")
+    logger.exception("Error no controlado en configuración de notificaciones")
     payload = build_envelope(
         success=False,
-        message="OcurriÃ³ un error interno.",
+        message="Ocurrió un error interno.",
         errors={"code": "INTERNAL_ERROR"},
         request_id=request_id,
     )
@@ -49,7 +49,7 @@ def _payload(request) -> dict:
     try:
         return json.loads(request.body or "{}")
     except json.JSONDecodeError as error:
-        raise DomainError("El cuerpo debe ser JSON vÃƒÂ¡lido.") from error
+        raise DomainError("El cuerpo debe ser JSON válido.") from error
 
 
 def _target_user(request, actor: Usuario, payload: dict | None = None) -> Usuario:
@@ -130,7 +130,7 @@ def notification_preferences(request):
                     "usuario_id": str(target.id),
                     "preferencias": _effective_preferences(target),
                 },
-                message="Preferencias de notificaciÃƒÂ³n consultadas",
+                message="Preferencias de notificación consultadas",
             )
 
         payload = _payload(request)
@@ -146,7 +146,7 @@ def notification_preferences(request):
                 "usuario_id": str(target.id),
                 "preferencias": [_preference_data(item) for item in saved],
             },
-            message="Preferencias de notificaciÃƒÂ³n actualizadas",
+            message="Preferencias de notificación actualizadas",
         )
     except Exception as exc:
         return _error_response(request, exc)
@@ -163,7 +163,7 @@ def notification_settings(request):
             config = use_case.get_settings(actor=actor)
             return success_response(
                 data=_settings_data(config),
-                message="ConfiguraciÃƒÂ³n de notificaciones consultada",
+                message="Configuración de notificaciones consultada",
             )
 
         config = use_case.update_settings(
@@ -173,7 +173,7 @@ def notification_settings(request):
         )
         return success_response(
             data=_settings_data(config),
-            message="ConfiguraciÃƒÂ³n de notificaciones actualizada",
+            message="Configuración de notificaciones actualizada",
         )
     except Exception as exc:
         return _error_response(request, exc)

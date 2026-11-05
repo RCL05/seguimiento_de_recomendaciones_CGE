@@ -614,6 +614,12 @@ components:
           schema: { $ref: "#/components/schemas/SuccessEnvelope" }
     Created:
       description: Recurso creado.
+      headers:
+        Location:
+          description: >-
+            URI del recurso creado (RFC 9110 §10.2.2). Se envía cuando el recurso
+            tiene una representación consultable: recomendaciones y archivos de evidencia.
+          schema: { type: string, format: uri-reference }
       content:
         application/json:
           schema: { $ref: "#/components/schemas/SuccessEnvelope" }

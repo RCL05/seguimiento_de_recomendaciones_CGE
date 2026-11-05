@@ -5,6 +5,8 @@ from uuid import UUID
 
 from django.db import IntegrityError
 from django.http import FileResponse, JsonResponse
+from django.urls import reverse
+from django.views.decorators.http import require_http_methods
 
 from backend.core.api.error_catalog import error_response
 from backend.core.api.request_context import request_id_from
@@ -42,7 +44,7 @@ def _json(request):
     try:
         return json.loads(request.body or "{}")
     except json.JSONDecodeError as error:
-        raise DomainError("El cuerpo debe ser JSON vÃƒÂ¡lido.") from error
+        raise ValidationError("El cuerpo debe ser JSON válido.") from error
 
 
 def _request_chunks(request, chunk_size: int = 64 * 1024):
@@ -111,8 +113,8 @@ def _evidence_data(evidence):
     }
 
 
-def _response(request, data, message, status=200, pagination=None):
-    return JsonResponse(
+def _response(request, data, message, status=200, pagination=None, location=None):
+    response = JsonResponse(
         build_envelope(
             success=True,
             message=message,
@@ -122,6 +124,10 @@ def _response(request, data, message, status=200, pagination=None):
         ),
         status=status,
     )
+    if location:
+        # RFC 9110 §10.2.2: en 201 Created, Location identifica el recurso creado.
+        response["Location"] = location
+    return response
 
 
 def _error(request, error):
@@ -140,14 +146,14 @@ def bearer_required(view):
         return view(request, *args, **kwargs)
     return wrapped
 
+@require_http_methods(["GET", "HEAD"])
 def health(request):
     return _response(request, {"status": "ok"}, "Servicio disponible")
 
 
+@require_http_methods(["GET"])
 @bearer_required
 def units_list(request):
-    if request.method != "GET":
-        return _error(request, DomainError("Método no permitido."))
     try:
         _, actor = _persistent_user(request)
         units = ListUnits().execute(actor=actor)
@@ -160,9 +166,8 @@ def units_list(request):
         return _error(request, error)
 
 
+@require_http_methods(["POST"])
 def login_sso(request):
-    if request.method != "POST":
-        return JsonResponse({"detail": "MÃƒÂ©todo no permitido."}, status=405)
     try:
         payload = _json(request)
         identity = SsoAdapter().authenticate(token=payload.get("credential", ""))
@@ -205,15 +210,14 @@ def login_sso(request):
             "Identidad institucional validada",
         )
     except (DomainError, ValueError) as error:
-        return _error(request, error if isinstance(error, DomainError) else DomainError(str(error)))
+        return _error(request, error if isinstance(error, DomainError) else ValidationError(str(error)))
 
 
+@require_http_methods(["GET", "POST"])
 @bearer_required
 def recommendation_list(request):
     if request.method == "POST":
         return recommendation_create(request)
-    if request.method != "GET":
-        return JsonResponse({"detail": "Method not allowed."}, status=405)
     try:
         try:
             page_number = int(request.GET.get("page", "1"))
@@ -249,10 +253,8 @@ def recommendation_list(request):
         return _error(request, error)
 
 
-@bearer_required
 def recommendation_create(request):
-    if request.method != "POST":
-        return JsonResponse({"detail": "MÃƒÂ©todo no permitido."}, status=405)
+    """Rama POST de recommendation_list (ya autenticada y con método validado)."""
     try:
         payload = _json(request)
         user, actor = _persistent_user(request)
@@ -272,25 +274,30 @@ def recommendation_create(request):
             priority=payload.get("priority", "MEDIA"),
             ip_address=request.META.get("REMOTE_ADDR"),
         )
-        return _response(request, _recommendation_data(recommendation), "RecomendaciÃƒÂ³n creada", 201)
+        return _response(
+            request,
+            _recommendation_data(recommendation),
+            "Recomendación creada",
+            201,
+            location=reverse("recommendation-detail", args=[recommendation.id]),
+        )
     except (DomainError, KeyError, TypeError, ValueError, IntegrityError) as error:
-        return _error(request, error if isinstance(error, DomainError) else DomainError("Datos de recomendaciÃƒÂ³n invÃƒÂ¡lidos."))
+        return _error(request, error if isinstance(error, DomainError) else ValidationError("Datos de recomendación inválidos."))
 
 
+@require_http_methods(["POST"])
 @bearer_required
 def report_create(request):
-    if request.method != "POST":
-        return JsonResponse({"detail": "Method not allowed."}, status=405)
     try:
         is_multipart = request.content_type.startswith("multipart/form-data")
         payload = request.POST if is_multipart else _json(request)
         report_file = request.FILES.get("pdf_informe") if is_multipart else None
         required = ("numero_informe", "periodo_auditado", "fecha_notificacion")
         if any(not payload.get(field) for field in required):
-            raise DomainError("El informe requiere número, período y fecha de notificación.")
+            raise ValidationError("El informe requiere número, período y fecha de notificación.")
         document_url = str(payload.get("pdf_informe_url", ""))
         if not document_url and report_file is None:
-            raise DomainError("Adjunte el PDF oficial o proporcione su URL.")
+            raise ValidationError("Adjunte el PDF oficial o proporcione su URL.")
         if report_file is not None:
             if not report_file.name.lower().endswith(".pdf") or report_file.content_type != "application/pdf":
                 raise ValidationError("El documento oficial debe ser un archivo PDF.")
@@ -302,7 +309,7 @@ def report_create(request):
                 raise ValidationError("El contenido no corresponde a un documento PDF.")
         user, actor = _persistent_user(request)
         if user.role is not Role.UAI:
-            raise PermissionDenied("Only UAI can register reports.")
+            raise PermissionDenied("Solo el rol UAI puede registrar informes.")
         created = RegisterInforme().execute(
             number=str(payload["numero_informe"]),
             audited_period=str(payload["periodo_auditado"]),
@@ -320,18 +327,17 @@ def report_create(request):
         }
         return _response(request, report, "Informe CGE registrado", 201)
     except (DomainError, TypeError, ValueError, IntegrityError) as error:
-        return _error(request, error if isinstance(error, DomainError) else DomainError("Invalid report data."))
+        return _error(request, error if isinstance(error, DomainError) else ValidationError("Datos de informe inválidos."))
 
 
+@require_http_methods(["POST"])
 @bearer_required
 def recommendation_plan(request, recommendation_id: UUID):
-    if request.method != "POST":
-        return JsonResponse({"detail": "MÃƒÂ©todo no permitido."}, status=405)
     try:
         payload = _json(request)
         user, actor = _persistent_user(request)
         if user.role is not Role.EJECUTOR:
-            raise PermissionDenied("Solo el rol EJECUTOR puede crear planes de acciÃ³n.")
+            raise PermissionDenied("Solo el rol EJECUTOR puede crear planes de acción.")
         use_case = CreatePlanAccion()
         plan_model = use_case.execute(
             actor=actor,
@@ -351,11 +357,12 @@ def recommendation_plan(request, recommendation_id: UUID):
             "fecha_compromiso": str(plan_model.fecha_compromiso),
             "completado": plan_model.completado,
             "created_by": str(actor.id),
-        }, "Plan de acciÃƒÂ³n creado", 201)
+        }, "Plan de acción creado", 201)
     except (DomainError, KeyError, TypeError, ValueError) as error:
-        return _error(request, error if isinstance(error, DomainError) else DomainError("Datos de plan invÃƒÂ¡lidos."))
+        return _error(request, error if isinstance(error, DomainError) else ValidationError("Datos de plan inválidos."))
 
 
+@require_http_methods(["GET", "HEAD"])
 @bearer_required
 def recommendation_detail(request, recommendation_id: UUID):
     try:
@@ -376,10 +383,9 @@ def recommendation_detail(request, recommendation_id: UUID):
     return _response(request, data, "Recommendation retrieved")
 
 
+@require_http_methods(["POST"])
 @bearer_required
 def recommendation_evidence(request, recommendation_id: UUID):
-    if request.method != "POST":
-        return JsonResponse({"detail": "MÃƒÂ©todo no permitido."}, status=405)
     content_length = request.headers.get("Content-Length")
     if content_length is not None:
         try:
@@ -420,15 +426,15 @@ def recommendation_evidence(request, recommendation_id: UUID):
             },
             "Evidencia cargada",
             201,
+            location=reverse("evidence-file", args=[evidence.id]),
         )
     except (DomainError, Recomendacion.DoesNotExist) as error:
-        return _error(request, error if isinstance(error, DomainError) else NotFoundError("La recomendaciÃƒÂ³n no existe."))
+        return _error(request, error if isinstance(error, DomainError) else NotFoundError("La recomendación no existe."))
 
 
+@require_http_methods(["DELETE"])
 @bearer_required
 def evidence_annul(request, evidence_id: UUID):
-    if request.method != "DELETE":
-        return JsonResponse({"detail": "Method not allowed."}, status=405)
     try:
         user, actor = _persistent_user(request)
         if user.role is not Role.UAI:
@@ -446,10 +452,9 @@ def evidence_annul(request, evidence_id: UUID):
         return _error(request, error if isinstance(error, DomainError) else NotFoundError("La evidencia no existe."))
 
 
+@require_http_methods(["GET", "HEAD"])
 @bearer_required
 def evidence_file(request, evidence_id: UUID):
-    if request.method != "GET":
-        return _error(request, DomainError("Método no permitido."))
     try:
         _, actor = _persistent_user(request)
         path, filename = GetEvidenceFile().execute(actor=actor, evidence_id=evidence_id)
@@ -466,15 +471,14 @@ def evidence_file(request, evidence_id: UUID):
         return _error(request, error)
 
 
+@require_http_methods(["PATCH"])
 @bearer_required
 def recommendation_review(request, recommendation_id: UUID):
-    if request.method != "PATCH":
-        return JsonResponse({"detail": "MÃƒÂ©todo no permitido."}, status=405)
     try:
         payload = _json(request)
         user, actor = _persistent_user(request)
         if user.role is not Role.UAI:
-            raise DomainError("Solo el rol UAI puede emitir dictÃƒÂ¡menes.")
+            raise PermissionDenied("Solo el rol UAI puede emitir dictámenes.")
         use_case = IssueDictamen()
         dictamen = use_case.execute(
             actor=actor,
@@ -488,4 +492,4 @@ def recommendation_review(request, recommendation_id: UUID):
         recommendation = dictamen.recomendacion
         return _response(request, _recommendation_data(recommendation), "Dictamen registrado")
     except (DomainError, KeyError, ValueError, Recomendacion.DoesNotExist) as error:
-        return _error(request, error if isinstance(error, DomainError) else DomainError("El dictamen requiere evidence_id y approved."))
+        return _error(request, error if isinstance(error, DomainError) else ValidationError("El dictamen requiere evidence_id y approved."))

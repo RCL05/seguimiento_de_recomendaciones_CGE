@@ -41,5 +41,9 @@ class ApiErrorEnvelopeMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
         if response.status_code in ERRORS:
-            return api_error_response(request, response.status_code)
+            normalized = api_error_response(request, response.status_code)
+            # RFC 9110 §15.5.6: un 405 DEBE indicar los métodos admitidos en Allow.
+            if response.has_header("Allow"):
+                normalized["Allow"] = response["Allow"]
+            return normalized
         return response

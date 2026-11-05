@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 
 from backend.core.api.request_context import request_id_from
 from backend.core.api.response_envelope import build_envelope
@@ -7,6 +8,7 @@ from backend.core.shared.domain_types import Role
 from backend.modules.notificaciones.models import Notificacion
 
 
+@require_http_methods(["GET", "HEAD"])
 @bearer_required
 def notification_inbox(request):
     """Bandeja de notificaciones del usuario autenticado."""
@@ -33,24 +35,14 @@ def notification_inbox(request):
     ))
 
 
+@require_http_methods(["POST"])
 @bearer_required
 def run_jobs(request):
     """Endpoint interno para evaluar plazos, mora y entregar notificaciones pendientes.
 
     Solo el rol DTI puede ejecutar este endpoint manualmente.
-    En producciÃ³n se llama desde un cron / tarea programada.
+    En producción se llama desde un cron / tarea programada.
     """
-    if request.method != "POST":
-        return JsonResponse(
-            build_envelope(
-                success=False,
-                message="MÃ©todo no permitido.",
-                errors={"code": "METHOD_NOT_ALLOWED"},
-                request_id=request_id_from(request),
-            ),
-            status=405,
-        )
-
     user, _ = _persistent_user(request)
     if user.role is not Role.DTI:
         return JsonResponse(

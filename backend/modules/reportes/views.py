@@ -2,6 +2,7 @@ import csv
 from io import StringIO
 
 from django.http import HttpResponse, JsonResponse
+from django.views.decorators.http import require_http_methods
 
 from backend.core.api.request_context import request_id_from
 from backend.core.api.response_envelope import build_envelope
@@ -12,18 +13,9 @@ from backend.modules.recomendaciones.models import Recomendacion
 from django.db.models import Count
 
 
+@require_http_methods(["POST"])
 @bearer_required
 def export_matriz_cge(request):
-    if request.method != "POST":
-        return JsonResponse(
-            build_envelope(
-                success=False,
-                message="MÃ©todo no permitido.",
-                errors={"code": "METHOD_NOT_ALLOWED"},
-                request_id=request_id_from(request),
-            ),
-            status=405,
-        )
     user = _user(request)
     if user.role not in {Role.UAI, Role.RECTORADO, Role.CGE_AUDITOR}:
         return JsonResponse(
@@ -52,9 +44,10 @@ def export_matriz_cge(request):
     return response
 
 
+@require_http_methods(["GET", "HEAD"])
 @bearer_required
 def dashboard_summary(request):
-    """Tablero ejecutivo con semÃ¡foro de riesgo (RF-013).
+    """Tablero ejecutivo con semáforo de riesgo (RF-013).
 
     Accesible por RECTORADO, UAI y CGE_AUDITOR.
     """
@@ -80,7 +73,7 @@ def dashboard_summary(request):
     in_revision = counts.get(Recomendacion.Estado.EN_VALIDACION, 0)
     pct = round((completed / total) * 100, 2) if total else 0
 
-    # SemÃ¡foro de riesgo institucional
+    # Semáforo de riesgo institucional
     if pct >= 75:
         semaforo = "VERDE"
     elif pct >= 40:
@@ -103,9 +96,10 @@ def dashboard_summary(request):
     ))
 
 
+@require_http_methods(["GET", "HEAD"])
 @bearer_required
 def audit_log_list(request):
-    """Consulta del historial de auditorÃ­a (RF-018, US5/AC1).
+    """Consulta del historial de auditoría (RF-018, US5/AC1).
 
     Accesible solo por UAI y CGE_AUDITOR.
     Soporta filtros: entity, entity_id, limit.
@@ -115,7 +109,7 @@ def audit_log_list(request):
         return JsonResponse(
             build_envelope(
                 success=False,
-                message="No tiene permisos para consultar la auditorÃ­a.",
+                message="No tiene permisos para consultar la auditoría.",
                 errors={"code": "PERMISSION_DENIED"},
                 request_id=request_id_from(request),
             ),
@@ -124,7 +118,20 @@ def audit_log_list(request):
 
     entity = request.GET.get("entity")
     entity_id = request.GET.get("entity_id")
-    limit = min(int(request.GET.get("limit", 100)), 500)
+    try:
+        limit = int(request.GET.get("limit", 100))
+    except ValueError:
+        limit = 0
+    if not 1 <= limit <= 500:
+        return JsonResponse(
+            build_envelope(
+                success=False,
+                message="limit debe ser un número entero entre 1 y 500.",
+                errors={"code": "VALIDATION_ERROR", "detail": "limit debe ser un número entero entre 1 y 500."},
+                request_id=request_id_from(request),
+            ),
+            status=400,
+        )
 
     logs = query_audit_log(
         entity=entity or None,
@@ -151,7 +158,7 @@ def audit_log_list(request):
     ]
     return JsonResponse(build_envelope(
         success=True,
-        message="Historial de auditorÃ­a consultado",
+        message="Historial de auditoría consultado",
         data=data,
         request_id=request_id_from(request),
     ))

@@ -21,11 +21,33 @@ INSTALLED_APPS = [
     "backend.modules.reportes.apps.ReportesConfig",
     "backend.modules.notificaciones.apps.NotificacionesConfig",
     "rest_framework",
+    "corsheaders",
 ]
 MIDDLEWARE = [
+    # CORS va primero para responder preflights OPTIONS antes de la autenticación.
+    "corsheaders.middleware.CorsMiddleware",
     "backend.core.api.middleware.ApiErrorEnvelopeMiddleware",
     "django.middleware.security.SecurityMiddleware",
 ]
+
+# CORS: orígenes explícitos por entorno (lista separada por comas). Sin valor, en
+# desarrollo se admite el servidor de Vite; fuera de DEBUG no se admite ningún origen.
+_default_cors_origins = "http://localhost:5173,http://127.0.0.1:5173" if DEBUG else ""
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in (os.getenv("DJANGO_CORS_ALLOWED_ORIGINS") or _default_cors_origins).split(",")
+    if origin.strip()
+]
+CORS_URLS_REGEX = r"^/(api|health)/.*$"
+CORS_ALLOW_HEADERS = (
+    "accept",
+    "authorization",
+    "content-type",
+    "x-filename",
+    "x-evidence-type",
+    "x-request-id",
+)
+CORS_EXPOSE_HEADERS = ("Location", "Content-Disposition")
 REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "backend.core.api.exception_handler.handle_exception",
 }
