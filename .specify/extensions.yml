@@ -1,0 +1,38 @@
+# Hooks opcionales para el flujo Spec Kit de SITRA-CGE UNL.
+#
+# Los hooks se muestran como acciones sugeridas por los skills. Se mantienen
+# opcionales para que una validación incompleta no bloquee la implementación.
+# Los comandos usan nombres con puntos; Spec Kit los presenta con guiones.
+
+hooks:
+  after_clarify:
+    - extension: sitra-traceability-review
+      command: speckit.analyze
+      enabled: true
+      optional: true
+      description: Revisar consistencia entre spec, plan y tareas después de aclarar requisitos.
+      prompt: Ejecuta /speckit-analyze y corrige contradicciones antes de regenerar el plan.
+
+  after_plan:
+    - extension: sitra-task-coverage-review
+      command: speckit.analyze
+      enabled: true
+      optional: true
+      description: Comprobar que el diseño técnico conserva la trazabilidad funcional.
+      prompt: Ejecuta /speckit-analyze y verifica que cada requisito tenga diseño, contrato y prueba.
+
+  after_tasks:
+    - extension: sitra-implementation-readiness
+      command: speckit.analyze
+      enabled: true
+      optional: true
+      description: Revisar dependencias, rutas de archivos y cobertura de tareas.
+      prompt: Ejecuta /speckit-analyze antes de iniciar /speckit-implement.
+
+  after_implement:
+    - extension: sitra-completeness-review
+      command: speckit.converge
+      enabled: true
+      optional: true
+      description: Detectar trabajo pendiente contra la especificación después de implementar.
+      prompt: Ejecuta /speckit-converge, revisa las tareas nuevas y continúa con /speckit-implement.

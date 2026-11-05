@@ -1,221 +1,351 @@
-# Constitución del Proyecto — Sistema de Seguimiento de Recomendaciones de la Contraloría General del Estado (CGE)
+<!--
+Informe de impacto de sincronización
+- Cambio de versión: 1.0.1 -> 1.1.0
+- Principios modificados: se amplían los principios de especificaciones, arquitectura,
+  seguridad, calidad y trazabilidad para incorporar el texto adjunto.
+- Secciones agregadas: Contexto y Propósito del Proyecto; Módulos y Estructura del
+  Monolito Modular; Comunicación con APIs y Contrato Universal; Organización
+  Centralizada de Errores; Sintaxis de Requisitos y Criterios de Aceptación;
+  Versionado y Convenciones Git; Gestión de Contexto en SDD.
+- Secciones eliminadas: ninguna.
+- Pendientes: verificar la vigencia y
+  aplicabilidad del marco legal; confirmar Django, PostgreSQL, ORM, SSO institucional,
+  estructura definitiva del repositorio y proveedor SMTP antes de hacerlos obligatorios.
+-->
 
-Esta Constitución establece los principios normativos, criterios de calidad, restricciones arquitectónicas y reglas de gobernanza que **DEBEN** cumplirse durante las tres fases del Sistema de Seguimiento de Recomendaciones de la CGE. Es única y transversal a F1 (Backend y API REST), F2 (Frontend web) y F3 (Aplicación móvil). Toda persona que participe en el proyecto **DEBE** acatar este documento.
+# Constitución de SITRA-CGE UNL
 
-Las obligaciones se expresan con los términos formales **DEBE** (obligatorio), **NO DEBE** (prohibido) y **DEBERÍA** (recomendado, sujeto a justificación registrada).
+## Principios Fundamentales
 
-**Nota de fuentes:** el prompt de generación solicitó revisar `references/backend/Guia_Didactica_Arquitectura_Backend_SOLID.pdf` y la documentación `docs/01-proyecto/…`, `docs/02-analisis/…`, `docs/03-requisitos/…`. Ninguno de esos archivos existe en el repositorio a la fecha de esta versión. Se registran como ausencias en la sección "Fuentes no disponibles" y esta Constitución se construyó con las fuentes disponibles: `.spec/constitution.md`, `.spec/clarify.md`, `.spec/plan.md`, `.spec/tasks.md`, `README.md`, `docs/problem-definition.md`, `docs/control-questions.md` y `feature-map.md`.
+### I. Propósito Institucional, Legal y Auditable
+SITRA-CGE UNL es el Sistema de Trazabilidad y Seguimiento de Recomendaciones de la
+Contraloría General del Estado para la Universidad Nacional de Loja. El sistema DEBE
+reemplazar la gestión manual y dispersa mediante un flujo de cumplimiento oportuno,
+verificable, auditable y trazable.
 
----
+El diseño DEBE considerar el artículo 92 de la Ley Orgánica de la Contraloría General
+del Estado (LOCGE) y el Acuerdo No. 010-CG-2022 de la CGE, incluyendo acciones,
+cronogramas y medios de verificación. La aplicabilidad, vigencia e interpretación
+jurídica de estas normas DEBEN verificarse con las instancias competentes antes de
+codificar obligaciones legales definitivas.
 
-## I. Desarrollo Guiado por Especificaciones (SDD) — PRINCIPIO RECTOR
+El sistema DEBE permitir el seguimiento completo de una recomendación, la consulta
+auditable de la información en un máximo de tres clics cuando la interfaz lo permita
+y la eliminación de registros manuales dispersos sin evidencia verificable.
 
-Toda funcionalidad **DEBE** originarse en una especificación antes de escribirse código.
+### II. Desarrollo Dirigido por Especificaciones
+Toda capacidad DEBE especificarse antes de implementarse. Una especificación DEBE
+contener contexto, requisitos funcionales y no funcionales, restricciones, escenarios
+de aceptación y criterios de verificación. Cada implementación y prueba DEBE poder
+trazarse hasta un requisito, una decisión arquitectónica o una obligación legal
+verificada.
 
-- **DEBE** diferenciarse explícitamente el problema de control, las necesidades de los usuarios, los requisitos del sistema y la solución técnica. No **SE DEBE** presentar una solución técnica como si fuera un requisito de negocio.
-- **DEBEN** definirse historias de usuario, reglas de negocio de auditoría y criterios de aceptación comprobables antes de planificar la implementación.
-- Las ambigüedades críticas (por ejemplo, quién valida formalmente una recomendación) **DEBEN** clarificarse antes de planificar. No **SE DEBE** implementar requisitos sustantivos basándose solo en supuestos.
-- **DEBE** mantenerse trazabilidad entre requisitos, diseño, tareas, código y evidencia de pruebas.
-- **DEBE** utilizarse el flujo de Spec Kit: `constitution → specify → clarify → plan → tasks → implement → converge`.
-- Toda decisión asistida por IA **DEBE** ser revisada y aprobada por una persona antes de incorporarse.
+El flujo obligatorio de trabajo es:
 
-*Justificación:* el proyecto adoptó SDD para evitar que el sistema dé por "cumplida" una recomendación normativamente rechazada o pendiente, riesgo crítico identificado en `docs/problem-definition.md` §4.
+`specify -> clarify -> plan -> analyze -> implement -> converge`
 
-## II. Arquitectura Modular y Separación de Responsabilidades
+La versión instalada de Spec Kit y sus comandos disponibles DEBEN inspeccionarse antes
+de utilizarse; NO DEBEN inventarse comandos ni asumirse artefactos no presentes en el
+repositorio.
 
-- **DEBE** aplicarse una arquitectura por capas: Presentación/API, Aplicación, Dominio, Infraestructura/Persistencia.
-- Cada capa **DEBE** tener límites claros y **NO DEBE** acceder directamente a responsabilidades de otra capa.
-- La lógica del dominio **NO DEBE** depender del framework ni de la base de datos.
-- El sistema **DEBE** organizarse por capacidades de negocio (por ejemplo: módulo de Recomendaciones, módulo de Evidencias, módulo de Auditoría/Trazabilidad, módulo de Responsables).
-- **DEBE** adoptarse el Monolito Modular como punto de partida técnico, privilegiando alta cohesión y bajo acoplamiento.
-- **NO SE DEBE** introducir sobreingeniería (interfaces, clases o indirecciones) sin justificación arquitectónica documentada.
+### III. Arquitectura Limpia y Principios SOLID
+El sistema DEBE organizarse como un monolito modular evolutivo, salvo que una decisión
+arquitectónica aprobada registre una alternativa. La arquitectura DEBE separar
+estrictamente estas cuatro capas:
 
-*Justificación:* la separación de capas y módulos protege la independencia del dominio de auditoría y facilita las tres fases del sistema.
+- **Presentación/API:** recibe HTTP, valida entradas mediante DTOs o serializadores,
+  autentica y autoriza y aplica el contrato universal de respuestas. NO DEBE contener
+  reglas de negocio ni consultas SQL directas.
+- **Aplicación/Casos de Uso:** coordina flujos transaccionales, servicios,
+  autorizaciones y puertos. DEBE depender de abstracciones y NO DEBE acoplarse a
+  detalles de HTTP, frameworks, ORM o base de datos.
+- **Dominio:** contiene entidades puras, objetos de valor, invariantes, políticas y
+  máquinas de estado. DEBE ser independiente de bases de datos, frameworks y
+  tecnologías de infraestructura.
+- **Infraestructura:** implementa adaptadores de persistencia, almacenamiento de
+  archivos, SMTP, tareas programadas y servicios externos.
 
-## III. Principios SOLID
+SOLID es obligatorio:
 
-- **DEBEN** aplicarse estrictamente SRP, OCP, LSP, ISP y DIP en el diseño de servicios y casos de uso.
-- Cada caso de uso **DEBE** tener una única responsabilidad de negocio identificable (SRP).
-- Las dependencias **DEBEN** invertirse hacia abstracciones del dominio (DIP), no hacia detalles de infraestructura.
-- **NO SE DEBE** crear interfaces o clases innecesarias sin justificación arquitectónica.
+- **SRP:** cada módulo o servicio DEBE responder a un solo actor o responsabilidad de
+  negocio;
+- **OCP:** las variaciones DEBEN resolverse mediante estrategias e interfaces sin
+  alterar innecesariamente las reglas estables del dominio;
+- **LSP:** las implementaciones DEBEN ser sustituibles sin efectos secundarios
+  incompatibles;
+- **ISP:** los protocolos e interfaces DEBEN ser pequeños y específicos; y
+- **DIP:** aplicación y dominio DEBEN depender de abstracciones, no de implementaciones
+  concretas.
 
-*Justificación:* SOLID sostiene la mantenibilidad y la testeabilidad exigidas por la naturaleza de control y auditoría del sistema.
+### IV. Integridad del Estado, las Evidencias y la Trazabilidad
+El ciclo de vida de las recomendaciones DEBE representarse mediante una máquina de
+estados explícita con los estados **Pendiente**, **En Planificación**, **En
+Ejecución**, **En Revisión Interna**, **Cumplida**, **Rechazada/Corrección** y **En
+Mora**. Cada transición DEBE definir precondiciones, roles autorizados, eventos
+registrables y respuesta ante fallos.
 
-## IV. Diseño y Estandarización de API REST (F1)
+Una recomendación NO DEBE pasar a **Cumplida** sin haber pasado por **En Revisión
+Interna** y sin contar con al menos una evidencia PDF validada por la Unidad de
+Auditoría Interna (UAI). Una evidencia rechazada DEBE activar el flujo de corrección
+y conservar la trazabilidad de sus revisiones. Las transiciones inválidas DEBEN
+rechazarse con HTTP 409 y NO DEBEN producir cambios parciales.
 
-- Los endpoints **DEBEN** ser semánticos y consistentes respecto a los recursos (por ejemplo, `/api/v1/recomendaciones`, `/api/v1/evidencias`).
-- Los contratos **DEBEN** documentarse mediante OpenAPI.
-- Los listados **DEBEN** soportar paginación, filtrado (por estado, unidad, plazo) y ordenamiento estandarizado.
-- Las operaciones críticas **DEBEN** ser idempotentes cuando corresponda.
-- El mismo API backend **DEBE** reutilizarse tanto para el Frontend Web (F2) como para la App Móvil (F3). **NO SE DEBE** duplicar lógica de dominio en los clientes.
+Cada PDF DEBE validarse por tipo MIME real, extensión, contenido y tamaño máximo
+configurado. El sistema DEBE calcular y persistir un hash SHA-256 junto con los
+metadatos necesarios para verificar la integridad. DEBE detectar discrepancias entre
+el archivo almacenado y el hash registrado. El hash por sí solo NO DEBE considerarse
+prueba de autenticidad ni protección contra alteraciones de la base de datos; también
+son obligatorios el control de acceso, almacenamiento protegido, auditoría y
+detección de cambios.
 
-*Justificación:* un contrato REST uniforme y documentado garantiza interoperabilidad entre las tres fases.
+Toda operación mutativa DEBE generar un registro de auditoría, incluyendo creación,
+actualización, eliminación lógica, asignaciones, cambios de estado, carga y
+validación de evidencias y modificación de plazos. Cada registro DEBE incluir, como
+mínimo, `usuario_id`, `fecha_hora`, `ip_origen` cuando esté disponible, `request_id`,
+entidad e identificador afectados, operación, estado anterior, estado nuevo y
+resultado. Los cambios de negocio y su auditoría DEBEN ser transaccionales cuando sea
+necesario para evitar inconsistencias. Los registros DEBEN estar protegidos contra
+modificaciones y eliminaciones no autorizadas.
 
-## V. Contrato Universal de Respuestas
+### V. Seguridad, Mínimo Privilegio y Defensa en Profundidad
+La autenticación DEBE integrarse con el mecanismo institucional aprobado, como SSO
+mediante LDAP/CAS, o utilizar sesiones HttpOnly o tokens Bearer con rotación y
+caducidad estrictas cuando esa sea la decisión aprobada.
 
-Todas las respuestas de la API **DEBEN** seguir el esquema JSON unificado:
+La autorización DEBE combinar RBAC con autorización a nivel de objeto para prevenir
+BOLA/IDOR, incluido OWASP API1:2023. Un Ejecutor de Unidad DEBE consultar, modificar
+y cargar evidencias únicamente de recomendaciones asignadas expresamente a su propia
+dependencia. La autorización DEBE ejecutarse en el servidor para cada operación y
+recurso; los controles de la interfaz NO constituyen una frontera de seguridad.
+
+El modelo DEBE contemplar, como mínimo, administración del sistema, ejecución por
+dependencia, revisión de evidencias y supervisión o auditoría institucional,
+ajustados a los roles reales del proyecto. Cada endpoint DEBE validar entradas,
+proteger sesiones o tokens, manejar archivos de forma segura y registrar eventos de
+seguridad.
+
+NO DEBEN almacenarse credenciales, claves, tokens ni contraseñas en Git. Los archivos
+`.env` con secretos DEBEN excluirse mediante `.gitignore`; los despliegues DEBEN usar
+variables de entorno o un gestor seguro de secretos. Los logs NO DEBEN registrar
+contraseñas, tokens, datos personales sensibles ni consultas SQL directas.
+
+### VI. Calidad Verificable, Concurrencia y Confiabilidad Operativa
+Cada regla de dominio, caso de uso y transición relevante DEBE contar con pruebas
+automatizadas. DEBEN cubrirse pruebas unitarias de dominio, integración con
+persistencia y servicios externos, API, autorización por rol y dependencia,
+integridad de archivos, concurrencia y tareas programadas.
+
+Los casos positivos y negativos DEBEN incluir datos inválidos, permisos insuficientes,
+recursos inexistentes, conflictos HTTP 409, fallos de correo, reintentos, evidencias
+rechazadas o alteradas, notificaciones duplicadas y operaciones concurrentes.
+
+Los cambios de estado, reservas de plazos y cargas de evidencias DEBEN ejecutarse en
+transacciones atómicas. Cuando el ORM y la base de datos seleccionados lo soporten,
+las operaciones críticas DEBEN usar bloqueos pesimistas de fila, como
+`select_for_update`, o un control de concurrencia equivalente. La implementación DEBE
+prevenir condiciones de carrera, actualizaciones perdidas y transiciones
+contradictorias.
+
+Las tareas programadas DEBEN evaluar los plazos y enviar alertas SMTP cuando falten
+15 días o menos para el vencimiento y no exista evidencia presentada que cumpla las
+condiciones configuradas. “Presentada” DEBE definirse separadamente de “validada”.
+El cambio a **En Mora** DEBE ocurrir solo cuando se cumplan las condiciones
+temporales y de negocio. Las tareas DEBEN ser idempotentes, observables, tolerantes a
+reintentos y resistentes a notificaciones duplicadas; además, DEBEN registrar
+ejecuciones y errores y definir explícitamente zona horaria, frecuencia y escalamiento.
+
+## Contexto, Módulos y Restricciones Técnicas
+
+### Estructura del Monolito Modular
+Los límites lógicos de los módulos DEBEN ser claros y verificables en el árbol del
+repositorio. La estructura objetivo es:
+
+```text
+backend/
+├── config/                  # Configuración global, URLs y settings
+├── core/                    # Respuestas, excepciones, middleware y auditoría
+├── apps/
+│   ├── usuarios/            # Identidad, RBAC y estructura orgánica UNL
+│   ├── informes_cge/        # Registro de exámenes especiales de la CGE
+│   ├── recomendaciones/     # Estados, plazos y asignaciones
+│   └── evidencias/          # PDFs y hashes SHA-256
+├── docs/                    # C4, OpenAPI y portal Quarto
+└── tests/                   # Pruebas unitarias, integración, contrato y seguridad
+```
+
+Esta estructura es una guía arquitectónica y DEBE ajustarse a la tecnología
+confirmada sin perder sus límites. Los módulos DEBEN comunicarse únicamente mediante
+contratos de servicio de la capa de aplicación o eventos internos. Un módulo NO DEBE
+acceder directamente al ORM o a la base de datos de otro módulo.
+
+El alcance inicial incluye registrar recomendaciones y responsables, registrar
+informes o exámenes especiales de la CGE, gestionar cronogramas, cargar evidencias
+PDF, aprobar evidencias, mantener trazabilidad y exportar matrices de cumplimiento.
+Quedan fuera la sincronización en tiempo real con la base de datos de la CGE y la
+gestión de responsabilidades penales o judiciales.
+
+El lenguaje, framework, base de datos, almacenamiento, despliegue, SSO y proveedor
+SMTP DEBEN registrarse en una decisión arquitectónica antes de fijarse como
+configuración definitiva. PostgreSQL, Django, un ORM, `transaction.atomic` y
+`select_for_update` son opciones previstas por el texto fuente; solo son obligaciones
+operativas cuando el equipo confirme esas tecnologías.
+
+### Comunicación con APIs y Contrato Universal
+La API DEBE seguir un estilo REST bajo el prefijo `/api/v1/`. DEBEN utilizarse
+semánticamente `GET`, `POST`, `PUT`, `PATCH` y `DELETE`. El uso de `QUERY` para
+búsquedas con cuerpo JSON NO DEBE introducirse sin una decisión documentada sobre
+compatibilidad, intermediarios y clientes.
+
+La especificación OpenAPI 3.1.x DEBE ser el contrato verificable de la API cuando el
+artefacto sea adoptado por el proyecto. DEBE mantenerse sincronizada con la
+implementación mediante pruebas automáticas.
+
+Toda respuesta JSON DEBE usar esta envoltura:
 
 ```json
 {
   "success": true,
-  "message": "string",
+  "message": "Mensaje claro y descriptivo para el cliente",
   "data": {},
   "errors": null,
   "meta": {
-    "request_id": "string",
-    "timestamp": "string",
-    "version": "string"
+    "request_id": "UUID-v4",
+    "timestamp": "ISO-8601 UTC",
+    "version": "v1",
+    "pagination": {
+      "page": 1,
+      "page_size": 10,
+      "total_items": 100,
+      "total_pages": 10
+    }
   }
 }
 ```
 
-- **DEBEN** usarse códigos HTTP estándar y códigos de error internos estables.
-- **NO SE DEBE** exponer detalles internos de infraestructura en las respuestas al cliente.
+Una respuesta con `success=true` DEBE tener `errors=null`. Una respuesta con
+`success=false` DEBE tener `data=null` y un código HTTP 4xx o 5xx. Las excepciones
+legítimas son `204 No Content`, `304 Not Modified` y peticiones `HEAD`.
 
-*Justificación:* un contrato universal simplifica el consumo por web y móvil y estandariza el manejo de errores.
+La API DEBE usar estos códigos:
 
-## VI. Persistencia, Integridad y Gestión de Archivos
+| Código | Significado |
+| --- | --- |
+| 200 | Operación exitosa |
+| 201 | Recurso creado |
+| 400 | Solicitud mal formada o validación fallida |
+| 401 | Usuario no autenticado |
+| 403 | Usuario sin permisos suficientes |
+| 404 | Recurso inexistente o no visible por política de divulgación |
+| 409 | Conflicto de negocio o transición inválida |
+| 500 | Error interno no controlado |
 
-- **DEBE** garantizarse integridad referencial estricta entre recomendaciones, responsables, acciones y archivos adjuntos.
-- Los cambios de estado que involucren carga de evidencia **DEBEN** ejecutarse en transacciones atómicas.
-- **DEBE** aplicarse control de concurrencia para evitar actualizaciones sobrepuestas sobre una recomendación.
-- **DEBE** definirse una estrategia clara de almacenamiento seguro de los archivos físicos de evidencia y de su metadata asociada.
+### Organización Centralizada de Errores
+El sistema DEBE diferenciar errores esperados de dominio de fallos técnicos no
+previstos de infraestructura. El catálogo institucional DEBE usar identificadores
+`UPPER_SNAKE_CASE`:
 
-*Justificación:* la evidencia respalda decisiones de cumplimiento; su integridad y atomicidad son indispensables para la validez de la auditoría.
+- `VALIDATION_ERROR` (400): campos, formatos o tipos inválidos;
+- `AUTHENTICATION_REQUIRED` (401): token o sesión ausente o expirada;
+- `PERMISSION_DENIED` (403): permisos insuficientes sobre el recurso;
+- `RESOURCE_NOT_FOUND` (404): entidad inexistente o no visible;
+- `BUSINESS_RULE_VIOLATION` o `CONFLICT` (409): regla o transición incumplida; y
+- `INTERNAL_ERROR` (500): fallo inesperado del servidor o base de datos.
 
-## VII. Seguridad, Privacidad y Auditoría
+Un manejador global DEBE traducir las excepciones al contrato universal y, cuando el
+contrato sea adoptado, alinearlas con RFC 9457 Problem Details. Todo fallo DEBE
+registrarse con `request_id` para correlacionar observabilidad. Los errores 500 NO
+DEBEN exponer stack traces, SQL ni detalles técnicos al cliente.
 
-- **DEBE** implementarse autenticación segura y autorización basada en roles (RBAC): Administrador, Responsable de Unidad, Validador, Auditor.
-- **DEBE** aplicarse control de acceso a nivel de recurso: un usuario **NO DEBE** gestionar recomendaciones ajenas a su área.
-- **DEBE** mantenerse un registro inmutable de auditoría que indique quién cambió el estado, cuándo, desde qué IP y qué evidencia adjuntó.
-- Los archivos/evidencias subidos **DEBEN** pasar por sanitización y validación estricta (tipo, tamaño, contenido).
-- **DEBE** cumplirse el estándar OWASP Top 10.
-- **NO SE DEBEN** registrar ni exponer secretos, credenciales o datos personales innecesarios.
+## Requisitos, Versionado y Flujo de Trabajo
 
-*Justificación:* el sistema es una herramienta de control institucional; su credibilidad depende de la seguridad y la trazabilidad verificable.
+### Sintaxis EARS y Criterios BDD
+Los requisitos DEBEN usar la sintaxis EARS:
 
-## VIII. Gobernanza de Recomendaciones y Evidencias (Reglas de Negocio)
+- **Ubicuo:** “El sistema DEBE [acción]”.
+- **Dirigido por eventos:** “Cuando [evento], el sistema DEBE [acción]”.
+- **Dirigido por estados:** “Mientras [estado], el sistema DEBE [acción]”.
+- **Condicional:** “Si [precondición], el sistema DEBE [acción]”.
+- **Caso no deseado:** “Si [condición de error], entonces el sistema DEBE [respuesta]”.
 
-- Ninguna recomendación **DEBE** marcarse como "Cumplida" sin la aprobación formal del validador. **DEBE** existir separación clara entre el registro de avance y la validación formal de cumplimiento.
-- **DEBE** controlarse las fechas límite y **DEBEN** generarse alertas automatizadas por vencimiento.
-- El retiro o anulación de una evidencia **DEBE** ser controlado y **DEBE** conservar obligatoriamente el historial.
-- **DEBE** distinguirse claramente entre borradores de avance y entregas finales de evidencias.
-- El flujo de estados **DEBE** alinearse con la normativa de la CGE aplicable (referencia inicial: Acuerdo 010-CG-2022).
+Cada requisito DEBE complementarse con escenarios BDD verificables en formato
+`Given / When / Then`, incluyendo casos positivos, negativos y de autorización cuando
+corresponda.
 
-*Justificación:* es el riesgo crítico del proyecto (`docs/problem-definition.md` §4); estas reglas son el núcleo normativo del seguimiento CGE.
+### Versionado Semántico y Git
+El producto DEBE seguir SemVer 2.0.0:
 
-## IX. Calidad y Pruebas Automatizadas
+- **MAJOR:** cambio incompatible en contrato público o comportamiento;
+- **MINOR:** nueva funcionalidad compatible; y
+- **PATCH:** corrección de errores o parche de seguridad.
 
-- **DEBEN** existir pruebas unitarias para reglas de negocio y flujos de estado.
-- **DEBEN** existir pruebas de integración para API, persistencia y carga de archivos.
-- **DEBEN** existir pruebas de autorización que verifiquen que usuarios no autorizados no alteran estados.
-- **DEBE** cumplirse una Condición de Terminado (Definition of Done) antes de fusionar código.
-- Los resultados de pruebas reportados **DEBEN** corresponder a pruebas efectivamente ejecutadas.
+La API DEBE versionarse mediante `/api/v1/`. La versión de la API NO DEBE cambiar por
+parches internos; solo DEBE incrementarse ante cambios incompatibles del contrato
+JSON.
 
-*Justificación:* la calidad verificable es condición para la confianza institucional en el seguimiento.
+El repositorio DEBE usar GitFlow:
 
-## X. Gestión de Errores y Diagnóstico
+- `main`: producción protegida;
+- `develop`: integración continua;
+- `feature/<nombre>`: nuevas funcionalidades; y
+- `hotfix/<nombre>`: parches urgentes de producción.
 
-- Los errores **DEBEN** categorizarse como: Validación, Negocio, Autorización e Infraestructura.
-- Cada petición **DEBE** tracearse mediante un `request_id` único presente en los logs.
-- **NO SE DEBEN** exponer detalles sensibles de infraestructura en mensajes al cliente.
+Los cambios en `main` y `develop` DEBEN realizarse mediante Pull Requests con revisión
+y verificaciones automáticas exitosas. Los commits DEBEN seguir Conventional Commits
+con el formato `tipo(módulo): descripción corta`, por ejemplo:
+`feat(recomendaciones): validar máquina de estados`.
 
-*Justificación:* un diagnóstico uniforme agiliza la operación y evita filtraciones de información.
+### Gestión de Contexto en Spec Kit
+Los artefactos del flujo SDD son:
 
-## XI. Modelado y Documentación
+- `.specify/memory/constitution.md`: gobierno y principios no negociables;
+- `specs/<feature>/spec.md`: historias, requisitos EARS y criterios BDD;
+- `specs/<feature>/clarify.md`: ambigüedades resueltas;
+- `specs/<feature>/plan.md`: arquitectura, ER, OpenAPI y ADRs;
+- `specs/<feature>/tasks.md`: tareas atómicas y dependencias; y
+- artefactos de análisis y convergencia generados por las herramientas disponibles.
 
-- **DEBEN** elaborarse diagramas C4 (Contexto, Contenedores, Componentes) para la arquitectura general.
-- **DEBEN** elaborarse diagramas BPMN/UML que modelen el ciclo de vida y los estados de las recomendaciones.
-- Las decisiones arquitectónicas clave **DEBEN** registrarse como ADR en formato Markdown.
-- La documentación y los artefactos SDD **DEBEN** actualizarse cuando un cambio modifique comportamiento, arquitectura, requisitos o procedimientos.
+La trazabilidad DEBE mantenerse desde la norma legal verificada hasta el requisito
+EARS, escenario BDD, contrato OpenAPI, tarea, prueba automatizada, commit y
+documentación técnica. Ningún cambio DEBE considerarse completo si rompe esa cadena
+sin una excepción aprobada.
 
-*Justificación:* el flujo de estados es el reto central del proyecto; modelarlo explícitamente reduce el riesgo de lógica de negocio.
+## Desarrollo, Documentación y Puertas de Calidad
 
-## XII. Versionamiento y Colaboración
+El proyecto DEBE seguir Docs as Code. Los cambios de arquitectura, flujo de negocio,
+autorización o contratos DEBEN actualizar documentación técnica, diagramas C4,
+OpenAPI y portal Quarto cuando esos artefactos existan.
 
-- **DEBE** aplicarse el modelo GitFlow: `main`, `develop`, `feature/*`, `release/*`, `hotfix/*`.
-- Todo cambio destinado a `develop` o `main` **DEBE** pasar por un Pull Request con revisión de otra persona y validaciones automatizadas.
-- Los commits **DEBEN** ser claros y estar vinculados a tareas e historias de usuario de Spec Kit.
-- **NO SE DEBEN** fusionar cambios con conflictos conocidos o fallos sin resolver.
+La integración continua DEBE ejecutar lint, análisis estático disponible, pruebas,
+controles de seguridad y detección de secretos. Una Pull Request DEBE aportar
+trazabilidad, pruebas relevantes, cobertura de estados y evidencias cuando aplique,
+controles de seguridad, actualización documental o justificación de no modificación
+y notas de migración para cambios de esquema o contrato.
 
-*Justificación:* la colaboración disciplinada sostiene la trazabilidad exigida por SDD.
+## Gobernanza
 
-## XIII. DevOps y Automatización
+Esta constitución es el documento de gobierno de mayor jerarquía. Si otra práctica
+entra en conflicto con ella, DEBE resolverse a favor de esta constitución o
+registrarse una excepción aprobada antes de continuar.
 
-- **DEBE** configurarse Integración Continua (CI) con análisis estático y ejecución de pruebas.
-- La configuración **DEBE** parametrizarse por entorno (desarrollo, pruebas, producción).
-- **DEBEN** usarse contenedores Docker para entornos de desarrollo reproducibles.
+Toda modificación DEBE identificar la sección afectada, registrar impactos en
+requisitos, código, pruebas, documentación y operación, incluir un plan de migración
+cuando corresponda, ser aprobada por responsables técnicos e institucionales y
+comunicarse al equipo.
 
-*Justificación:* entornos reproducibles y CI reducen errores de despliegue entre las fases F1–F3.
+La versión de esta constitución sigue semver:
 
-## XIV. Observabilidad y Operación
+- **MAJOR:** elimina o redefine un principio de forma incompatible;
+- **MINOR:** agrega un principio o amplía materialmente el gobierno; y
+- **PATCH:** aclara, corrige redacción o realiza cambios no semánticos.
 
-- **DEBE** usarse logging estructurado con niveles de severidad: `INFO`, `WARN`, `ERROR`, `AUDIT`.
-- **DEBEN** existir verificaciones de estado de salud (health checks) del sistema.
-- **DEBEN** definirse procedimientos de respaldo y recuperación de la base de datos y de los archivos de evidencia.
+El cumplimiento DEBE revisarse durante especificación, diseño, Pull Request y
+validación de lanzamiento. Las revisiones DEBEN comprobar invariantes de dominio,
+autorización, auditoría, integridad de evidencias, concurrencia, errores, pruebas,
+documentación y secretos. Las excepciones DEBEN ser explícitas, documentadas,
+aprobadas, justificadas con controles compensatorios y limitadas en el tiempo cuando
+sea posible.
 
-*Justificación:* la operación continua del sistema de control requiere visibilidad y recuperabilidad.
+La constitución DEBE revisarse cuando cambien la arquitectura, la base legal, la
+seguridad, el ciclo de vida, los contratos de integración o el flujo SDD.
 
-## XV. Rendimiento y Escalabilidad
-
-- Los listados masivos de recomendaciones **DEBEN** usar paginación y **DEBERÍAN** usar carga diferida.
-- La generación de reportes y las descargas de evidencias pesadas **DEBEN** procesarse de forma asíncrona.
-
-*Justificación:* evita degradación del servicio a medida que crece el volumen de recomendaciones y evidencias.
-
-## XVI. Evolución de las Tres Fases
-
-- **F1:** API backend robusto, probado e independiente. **NO DEBE** contener lógica de presentación.
-- **F2:** Web consumidora del API, con tableros de control y gestión documental.
-- **F3:** Móvil para visualización rápida y captura de evidencias en campo. **NO DEBE** duplicar la lógica del backend.
-
-*Justificación:* la separación por fases permite evolucionar los clientes sin reescribir el núcleo de dominio.
-
-## XVII. Uso Responsable de Inteligencia Artificial
-
-- **DEBE** existir revisión humana obligatoria de todo código o documentación generada con IA antes de incorporarse.
-- En cada entregable asistido por IA **DEBEN** declararse las herramientas utilizadas y el tipo de asistencia recibida.
-- **NO SE DEBEN** inventar registros, pruebas, aprobaciones de auditoría, fuentes ni resultados.
-- **NO SE DEBE** introducir información institucional confidencial, datos personales ni credenciales en servicios de IA sin autorización expresa.
-
-*Justificación:* preserva la honestidad académica y la validez probatoria del sistema.
-
----
-
-## Jerarquía Normativa y Gobernanza
-
-La jerarquía de precedencia es:
-
-**Constitución > Especificaciones (`specify`) > Planes (`plan`) > Tareas (`tasks`).**
-
-- `constitution.md` **DEBE** ser respetada por todos los demás artefactos y por las decisiones de implementación.
-- `clarify.md` **NO** autoriza a contradecir silenciosamente la Constitución; si una aclaración aprobada cambia un requisito, **DEBE** actualizarse la especificación y, cuando corresponda, el plan y las tareas.
-- Toda excepción arquitectónica **DEBE** ser explícita, justificada y aprobada, y **DEBE** quedar registrada.
-- Toda enmienda a esta Constitución **DEBE** documentarse, aprobarse por las personas responsables y acompañarse de un plan de migración cuando corresponda.
-- La Constitución **DEBE** versionarse con versionamiento semántico (`MAJOR.MINOR.PATCH`). Un cambio incompatible o de principio **DEBE** incrementar `MAJOR`; una adición de principio o sección **DEBE** incrementar `MINOR`; una aclaración o redacción **DEBE** incrementar `PATCH`.
-- Todo Pull Request **DEBE** verificar el cumplimiento de esta Constitución. La complejidad introducida **DEBE** justificarse.
-
-## Fuentes no disponibles (registro de ausencias)
-
-Al generar esta versión no existían en el repositorio las siguientes fuentes solicitadas por el prompt, por lo que su contenido no pudo aplicarse explícitamente y **DEBE** revisarse cuando se incorporen:
-
-- `references/backend/Guia_Didactica_Arquitectura_Backend_SOLID.pdf`
-- `docs/01-proyecto/descripcion-proyecto.md`
-- `docs/02-analisis/identificacion-actores.md`
-- `docs/02-analisis/mapa-actores.md`
-- `docs/02-analisis/fundamentos-sdd.md`
-- `docs/02-analisis/preguntas-clarificacion.md`
-- `docs/03-requisitos/requisitos-iniciales.md`
-
-Fuentes efectivamente utilizadas: `.spec/constitution.md`, `.spec/clarify.md`, `.spec/plan.md`, `.spec/tasks.md`, `README.md`, `docs/problem-definition.md`, `docs/control-questions.md`, `feature-map.md`.
-
-## Preguntas pendientes de clarificación
-
-- ¿Cuáles son los estados definitivos del ciclo de vida de una recomendación? El prompt sugiere "Pendiente, En Proceso, Cumplida, Vencida, Reabierta", pero `.spec/clarify.md` §1 lo deja abierto y **DEBE** confirmarse con la normativa CGE.
-- ¿Qué acciones concretas y con qué atribuciones tiene cada rol (Administrador, Responsable de Unidad, Validador, Auditor)? El detalle de permisos **DEBE** precisarse antes de F1.
-- ¿El acervo probatorio es completamente inmutable o se admite anulación con historial conservado? El principio VIII admite anulación controlada; **DEBE** confirmarse contra la normativa.
-- ¿Qué normativa específica de la CGE (además del Acuerdo 010-CG-2022) rige los estados, plazos y validaciones? **DEBE** recopilarse antes de especificar.
-- ¿Qué políticas institucionales aplican a la retención, consulta y eliminación de evidencias?
-- ¿Quién es el requirente formal que aprueba esta Constitución y las futuras enmiendas?
-
-**Version**: 1.0.0 | **Ratified**: 2026-10-21 | **Last Amended**: 2026-10-21
+**Versión**: 1.1.1 | **Ratificada**: 2026-10-20 | **Ultima modificacion**: 2026-10-20

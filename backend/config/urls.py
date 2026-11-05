@@ -1,19 +1,35 @@
-from django.conf import settings
-from django.conf.urls.static import static
-from django.contrib import admin
-from django.contrib.auth import views as auth_views
-from django.urls import include, path
+"""Rutas de SITRA-CGE.
 
-admin.site.site_header = "Seguimiento de Recomendaciones CGE - UNL"
-admin.site.site_title = "Recomendaciones CGE"
-admin.site.index_title = "Panel de Administración"
+Cada módulo expone sus recursos REST versionados bajo /api/v1/ desde su capa
+`presentation/urls.py`. Las rutas nombran recursos (sustantivos) y el método HTTP
+expresa la operación (Semana 3: preferir recursos frente a acciones arbitrarias).
+"""
+from django.urls import include, path
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
+from backend.core.api.health import HealthView
+from backend.core.api.middleware import handler404 as api_handler404
+from backend.core.api.middleware import handler500 as api_handler500
+from backend.core.web.views import dashboard
+
+API_V1 = "api/v1/"
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("login/", auth_views.LoginView.as_view(template_name="registration/login.html"), name="login"),
-    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
-    path("", include(("recomendaciones.urls", "recomendaciones"), namespace="recomendaciones")),
+    path("health/", HealthView.as_view(), name="health"),
+    path(API_V1, include("backend.modules.usuarios.presentation.urls")),
+    path(API_V1, include("backend.modules.informes_cge.presentation.urls")),
+    path(API_V1, include("backend.modules.recomendaciones.presentation.urls")),
+    path(API_V1, include("backend.modules.evidencias.presentation.urls")),
+    path(API_V1, include("backend.modules.reportes.presentation.urls")),
+    path(API_V1, include("backend.modules.notificaciones.presentation.urls")),
+    # Contrato OpenAPI generado desde el código y Swagger UI para probar los endpoints.
+    path("api/schema/", SpectacularAPIView.as_view(), name="openapi-schema"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="openapi-schema"), name="swagger-ui"),
+    path("", dashboard, name="dashboard"),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+handler404 = api_handler404
+handler500 = api_handler500
+
+# MEDIA_ROOT NO se publica como estático (ni siquiera con DEBUG): los PDF de evidencias e
+# informes solo se entregan por endpoints que exigen JWT y autorización por rol/unidad.

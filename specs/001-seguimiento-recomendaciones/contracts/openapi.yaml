@@ -1,0 +1,2945 @@
+openapi: 3.1.0
+info:
+  title: SITRA-CGE UNL API
+  version: 1.0.0
+  description: API del Sistema de Seguimiento de Recomendaciones de la Contraloría
+    General del Estado (CGE) para la Universidad Nacional de Loja. Toda respuesta
+    JSON usa la envoltura universal `success`, `message`, `data`, `errors`, `meta`.
+paths:
+  /api/v1/auditoria:
+    get:
+      operationId: consultarAuditoria
+      summary: Consultar el historial inmutable de auditoría (UAI, auditor CGE, RF-018)
+      parameters:
+      - in: query
+        name: entity
+        schema:
+          type: string
+          minLength: 1
+      - in: query
+        name: entity_id
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+      tags:
+      - Auditoría
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditoriaEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+  /api/v1/auth/login-sso:
+    post:
+      operationId: iniciarSesionSso
+      summary: Validar credencial institucional y emitir JWT
+      tags:
+      - Autenticación
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginSsoRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginSsoRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginSsoRequestRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+  /api/v1/evaluaciones-plazos:
+    post:
+      operationId: evaluarPlazos
+      description: Normalmente lo invoca una tarea programada; es idempotente (RF-021).
+      summary: 'Ejecutar la evaluación de plazos: alertas y vencimientos (DTI, RF-011,
+        RF-012)'
+      tags:
+      - Notificaciones
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EjecucionPlazosEnvelope'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+  /api/v1/evidencias/{evidence_id}:
+    patch:
+      operationId: anularEvidencia
+      description: 'Modificación parcial del estado: la evidencia y su historial se
+        conservan (CA-07.3).'
+      summary: Anular lógicamente una evidencia (UAI)
+      parameters:
+      - in: path
+        name: evidence_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Evidencias
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAnulacionEvidenciaRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAnulacionEvidenciaRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAnulacionEvidenciaRequest'
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenciaAnuladaEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
+            negocio incumplida.'
+  /api/v1/evidencias/{evidence_id}/archivo:
+    get:
+      operationId: descargarEvidencia
+      summary: Abrir o descargar el PDF de una evidencia
+      parameters:
+      - in: query
+        name: disposition
+        schema:
+          enum:
+          - inline
+          - attachment
+          type: string
+          default: inline
+          minLength: 1
+        description: |-
+          * `inline` - inline
+          * `attachment` - attachment
+      - in: path
+        name: evidence_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Evidencias
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          description: Contenido PDF.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+  /api/v1/evidencias/{evidence_id}/integridad:
+    get:
+      operationId: verificarIntegridadEvidencia
+      summary: Verificar el SHA-256 del archivo almacenado (UAI, auditor CGE)
+      parameters:
+      - in: path
+        name: evidence_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Evidencias
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegridadEnvelope'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+  /api/v1/informes:
+    get:
+      operationId: listarInformes
+      summary: Consultar informes de examen especial (UAI, Rectorado, auditor CGE)
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 25
+      tags:
+      - Informes CGE
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InformesEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+    post:
+      operationId: registrarInforme
+      summary: Registrar un informe CGE con su documento oficial (UAI, RF-005)
+      tags:
+      - Informes CGE
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InformeCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InformeCreateRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InformeEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
+            negocio incumplida.'
+        '413':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PAYLOAD_TOO_LARGE: el PDF supera el tamaño máximo.'
+  /api/v1/informes/{informe_id}:
+    get:
+      operationId: consultarInforme
+      summary: Consultar un informe CGE
+      parameters:
+      - in: path
+        name: informe_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Informes CGE
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InformeDetalleEnvelope'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+  /api/v1/informes/{informe_id}/documento:
+    get:
+      operationId: descargarDocumentoInforme
+      summary: Descargar el PDF oficial adjunto al informe
+      parameters:
+      - in: path
+        name: informe_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Informes CGE
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          description: Documento oficial.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+  /api/v1/notificaciones:
+    get:
+      operationId: consultarBandeja
+      summary: Consultar la bandeja de notificaciones del usuario autenticado
+      tags:
+      - Notificaciones
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BandejaEnvelope'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+  /api/v1/notificaciones/configuracion:
+    get:
+      operationId: consultarConfiguracionNotificaciones
+      summary: Consultar la configuración global de notificaciones
+      tags:
+      - Notificaciones
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfiguracionEnvelope'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+    put:
+      operationId: actualizarConfiguracionNotificaciones
+      summary: Actualizar la configuración global de notificaciones (DTI)
+      tags:
+      - Notificaciones
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfiguracionUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConfiguracionUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConfiguracionUpdateRequest'
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfiguracionActualizadaEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+  /api/v1/notificaciones/preferencias:
+    get:
+      operationId: consultarPreferencias
+      summary: Consultar preferencias de notificación
+      parameters:
+      - in: query
+        name: usuario_id
+        schema:
+          type: string
+        description: Solo DTI puede consultar a otro usuario.
+      tags:
+      - Notificaciones
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferenciasEnvelope'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+    put:
+      operationId: actualizarPreferencias
+      summary: Reemplazar preferencias de notificación
+      tags:
+      - Notificaciones
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreferenciasUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PreferenciasUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PreferenciasUpdateRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferenciasActualizadasEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+  /api/v1/recomendaciones:
+    get:
+      operationId: listarRecomendaciones
+      description: El ejecutor solo ve las recomendaciones de su unidad (RF-019).
+      summary: Consultar recomendaciones visibles para el usuario (paginado y filtrable)
+      parameters:
+      - in: query
+        name: due_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: due_before
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: due_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 25
+      - in: query
+        name: priority
+        schema:
+          enum:
+          - ALTA
+          - MEDIA
+          - BAJA
+          type: string
+          minLength: 1
+        description: |-
+          * `ALTA` - ALTA
+          * `MEDIA` - MEDIA
+          * `BAJA` - BAJA
+      - in: query
+        name: state
+        schema:
+          enum:
+          - PENDIENTE
+          - EN_PROCESO
+          - EN_VALIDACION
+          - REABIERTA
+          - CUMPLIDA
+          type: string
+          minLength: 1
+        description: |-
+          * `PENDIENTE` - Pendiente
+          * `EN_PROCESO` - En Proceso
+          * `EN_VALIDACION` - En Validación
+          * `REABIERTA` - Reabierta
+          * `CUMPLIDA` - Cumplida
+      - in: query
+        name: unit_id
+        schema:
+          type: string
+          minLength: 1
+      - in: query
+        name: vencida
+        schema:
+          type:
+          - boolean
+          - 'null'
+        description: 'true: solo vencidas; false: solo dentro de plazo.'
+      tags:
+      - Recomendaciones
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecomendacionesEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+    post:
+      operationId: registrarRecomendacion
+      description: La recomendación se crea en estado PENDIENTE.
+      summary: Registrar y asignar una recomendación (UAI, RF-006)
+      tags:
+      - Recomendaciones
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecomendacionCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecomendacionCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecomendacionCreateRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecomendacionEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
+            negocio incumplida.'
+  /api/v1/recomendaciones/{recommendation_id}:
+    get:
+      operationId: consultarRecomendacion
+      description: Una recomendación de otra unidad responde 404 sin revelar su existencia
+        (RF-019).
+      summary: Consultar una recomendación con sus evidencias
+      parameters:
+      - in: path
+        name: recommendation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Recomendaciones
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecomendacionDetalleEnvelope'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+    patch:
+      operationId: reabrirRecomendacion
+      description: 'Modificación parcial del estado: solo admite CUMPLIDA → REABIERTA
+        con motivo. El ejecutor la reanuda registrando un nuevo hito.'
+      summary: Reabrir una recomendación cumplida (UAI)
+      parameters:
+      - in: path
+        name: recommendation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Recomendaciones
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedReaperturaRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedReaperturaRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedReaperturaRequest'
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecomendacionReabiertaEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
+            negocio incumplida.'
+  /api/v1/recomendaciones/{recommendation_id}/dictamenes:
+    post:
+      operationId: emitirDictamen
+      description: Aprobado → CUMPLIDA (requiere revisión interna y PDF validado).
+        Rechazado → EN_PROCESO, con observaciones obligatorias.
+      summary: Emitir el dictamen UAI sobre una evidencia (RF-009, RF-010)
+      parameters:
+      - in: path
+        name: recommendation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Dictamen UAI
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DictamenCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DictamenCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DictamenCreateRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DictamenEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
+            negocio incumplida.'
+  /api/v1/recomendaciones/{recommendation_id}/evidencias:
+    post:
+      operationId: cargarEvidencia
+      description: 'El cuerpo es el PDF binario (`Content-Type: application/pdf`,
+        máximo 30 MB). Se calcula SHA-256 y la recomendación pasa a EN_VALIDACION.'
+      summary: Cargar una evidencia PDF (EJECUTOR, RF-008)
+      parameters:
+      - in: header
+        name: X-Evidence-Type
+        schema:
+          type: string
+          enum:
+          - BORRADOR
+          - FINAL
+        description: Por defecto BORRADOR
+      - in: header
+        name: X-Filename
+        schema:
+          type: string
+        description: Nombre del archivo .pdf
+        required: true
+      - in: path
+        name: recommendation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Evidencias
+      requestBody:
+        content:
+          application/pdf:
+            schema:
+              type: string
+              format: binary
+      security:
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenciaEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
+            negocio incumplida.'
+        '413':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PAYLOAD_TOO_LARGE: el PDF supera el tamaño máximo.'
+  /api/v1/recomendaciones/{recommendation_id}/plan-accion:
+    get:
+      operationId: listarHitos
+      summary: Consultar los hitos del plan de acción
+      parameters:
+      - in: path
+        name: recommendation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Plan de acción
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HitosEnvelope'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+    post:
+      operationId: registrarHito
+      description: 'El primer hito inicia la ejecución: PENDIENTE/REABIERTA → EN_PROCESO.
+        Dentro del plazo, la fecha no excede el plazo legal; con el plazo vencido,
+        debe ser hoy o posterior.'
+      summary: Registrar un hito del plan de acción (EJECUTOR, RF-007)
+      parameters:
+      - in: path
+        name: recommendation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Plan de acción
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HitoCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/HitoCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HitoCreateRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HitoEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
+            negocio incumplida.'
+  /api/v1/reportes/matriz-cge:
+    get:
+      operationId: exportarMatrizCge
+      description: 'Descarga binaria: no usa la envoltura JSON (excepción del contrato
+        universal).'
+      summary: Exportar la matriz institucional de cumplimiento (CSV UTF-8, RF-014)
+      tags:
+      - Reportes
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: Matriz CSV con BOM UTF-8.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+  /api/v1/reportes/tablero:
+    get:
+      operationId: consultarTablero
+      summary: 'Tablero ejecutivo: semáforo, cumplimiento y unidades en mora (RF-013)'
+      tags:
+      - Reportes
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TableroEnvelope'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+  /api/v1/unidades:
+    get:
+      operationId: listarUnidades
+      summary: Consultar el catálogo de unidades orgánicas (UAI, DTI)
+      tags:
+      - Usuarios y unidades
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnidadesEnvelope'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+    post:
+      operationId: registrarUnidad
+      summary: Registrar o renombrar una unidad orgánica (DTI)
+      tags:
+      - Usuarios y unidades
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnidadCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UnidadCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UnidadCreateRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnidadEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+  /api/v1/usuarios:
+    get:
+      operationId: listarUsuarios
+      summary: Consultar cuentas institucionales (DTI)
+      tags:
+      - Usuarios y unidades
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuariosEnvelope'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+  /api/v1/usuarios/{usuario_id}:
+    patch:
+      operationId: actualizarUsuario
+      summary: Asignar rol o cambiar la unidad de una cuenta (DTI, RF-002)
+      parameters:
+      - in: path
+        name: usuario_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Usuarios y unidades
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUsuarioUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUsuarioUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUsuarioUpdateRequest'
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+  /health/:
+    get:
+      operationId: verificarSalud
+      summary: Comprobar que el servicio está disponible
+      tags:
+      - Operación
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaludEnvelope'
+          description: ''
+components:
+  schemas:
+    AnulacionEvidenciaEstadoEnum:
+      enum:
+      - ANULADA
+      type: string
+      description: '* `ANULADA` - ANULADA'
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        request_id:
+          type: string
+          format: uuid
+        timestamp_utc:
+          type: string
+          format: date-time
+        usuario:
+          type:
+          - string
+          - 'null'
+          format: email
+        modulo:
+          type: string
+        accion:
+          type: string
+        entidad:
+          type: string
+        entidad_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        estado_anterior:
+          type:
+          - string
+          - 'null'
+        estado_nuevo:
+          type:
+          - string
+          - 'null'
+        resultado:
+          type: string
+        ip_origen:
+          type:
+          - string
+          - 'null'
+      required:
+      - accion
+      - entidad
+      - entidad_id
+      - estado_anterior
+      - estado_nuevo
+      - id
+      - ip_origen
+      - modulo
+      - request_id
+      - resultado
+      - timestamp_utc
+    AuditoriaEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLog'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    BandejaEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notificacion'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    CodeEnum:
+      enum:
+      - VALIDATION_ERROR
+      - AUTHENTICATION_REQUIRED
+      - PERMISSION_DENIED
+      - RESOURCE_NOT_FOUND
+      - METHOD_NOT_ALLOWED
+      - BUSINESS_RULE_VIOLATION
+      - CONFLICT
+      - PAYLOAD_TOO_LARGE
+      - UNSUPPORTED_MEDIA_TYPE
+      - INTERNAL_ERROR
+      type: string
+      description: |-
+        * `VALIDATION_ERROR` - VALIDATION_ERROR
+        * `AUTHENTICATION_REQUIRED` - AUTHENTICATION_REQUIRED
+        * `PERMISSION_DENIED` - PERMISSION_DENIED
+        * `RESOURCE_NOT_FOUND` - RESOURCE_NOT_FOUND
+        * `METHOD_NOT_ALLOWED` - METHOD_NOT_ALLOWED
+        * `BUSINESS_RULE_VIOLATION` - BUSINESS_RULE_VIOLATION
+        * `CONFLICT` - CONFLICT
+        * `PAYLOAD_TOO_LARGE` - PAYLOAD_TOO_LARGE
+        * `UNSUPPORTED_MEDIA_TYPE` - UNSUPPORTED_MEDIA_TYPE
+        * `INTERNAL_ERROR` - INTERNAL_ERROR
+    Configuracion:
+      type: object
+      properties:
+        umbral_dias:
+          type: integer
+        notificaciones_activas:
+          type: boolean
+        canal_interno_activo:
+          type: boolean
+        canal_email_activo:
+          type: boolean
+        destinatarios_vencimiento:
+          type: array
+          items:
+            type: string
+        destinatarios_mora:
+          type: array
+          items:
+            type: string
+        actualizado_en:
+          type: string
+          format: date-time
+      required:
+      - actualizado_en
+      - canal_email_activo
+      - canal_interno_activo
+      - destinatarios_mora
+      - destinatarios_vencimiento
+      - notificaciones_activas
+      - umbral_dias
+    ConfiguracionActualizadaEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Configuracion'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    ConfiguracionEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Configuracion'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    ConfiguracionUpdateRequest:
+      type: object
+      properties:
+        umbral_dias:
+          type: integer
+        notificaciones_activas:
+          type: boolean
+        canal_interno_activo:
+          type: boolean
+        canal_email_activo:
+          type: boolean
+        destinatarios_vencimiento:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        destinatarios_mora:
+          type: array
+          items:
+            type: string
+            minLength: 1
+    Dictamen:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        resultado:
+          $ref: '#/components/schemas/ResultadoEnum'
+        evidence_id:
+          type: string
+          format: uuid
+        evaluator_id:
+          type: string
+          format: uuid
+        observaciones:
+          type: string
+        fecha_dictamen:
+          type: string
+          format: date-time
+          readOnly: true
+        recomendacion:
+          $ref: '#/components/schemas/Recomendacion'
+      required:
+      - evaluator_id
+      - evidence_id
+      - fecha_dictamen
+      - id
+      - observaciones
+      - recomendacion
+      - resultado
+    DictamenCreateRequest:
+      type: object
+      properties:
+        evidence_id:
+          type: string
+          format: uuid
+        approved:
+          type: boolean
+        observaciones:
+          type: string
+          default: ''
+      required:
+      - approved
+      - evidence_id
+    DictamenEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Dictamen'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    EjecucionPlazos:
+      type: object
+      properties:
+        alertas_vencimiento:
+          type: object
+          additionalProperties: {}
+        mora:
+          type: object
+          additionalProperties: {}
+      required:
+      - alertas_vencimiento
+      - mora
+    EjecucionPlazosEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/EjecucionPlazos'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    ErrorDetail:
+      type: object
+      properties:
+        code:
+          $ref: '#/components/schemas/CodeEnum'
+        detail:
+          type: string
+        fields:
+          type: object
+          additionalProperties: {}
+          description: Errores por campo (solo VALIDATION_ERROR).
+      required:
+      - code
+      - detail
+    ErrorEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: false
+        message:
+          type: string
+        data:
+          oneOf:
+          - {}
+          - type: 'null'
+        errors:
+          $ref: '#/components/schemas/ErrorDetail'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - errors
+      - message
+      - meta
+    EstadoEvidenciaEnum:
+      enum:
+      - VIGENTE
+      - ANULADA
+      type: string
+      description: |-
+        * `VIGENTE` - Vigente
+        * `ANULADA` - Anulada
+    EstadoRecomendacionEnum:
+      enum:
+      - PENDIENTE
+      - EN_PROCESO
+      - EN_VALIDACION
+      - REABIERTA
+      - CUMPLIDA
+      type: string
+      description: |-
+        * `PENDIENTE` - Pendiente
+        * `EN_PROCESO` - En Proceso
+        * `EN_VALIDACION` - En Validación
+        * `REABIERTA` - Reabierta
+        * `CUMPLIDA` - Cumplida
+    Evidencia:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        recommendation_id:
+          type: string
+          format: uuid
+        filename:
+          type: string
+        mime_type:
+          type: string
+          maxLength: 100
+        size_bytes:
+          type: integer
+        sha256:
+          type: string
+        uploaded_at:
+          type: string
+          format: date-time
+        uploaded_by:
+          type: string
+          format: uuid
+        validated:
+          type: boolean
+        type:
+          $ref: '#/components/schemas/TipoEvidenciaEnum'
+        status:
+          $ref: '#/components/schemas/EstadoEvidenciaEnum'
+      required:
+      - filename
+      - id
+      - recommendation_id
+      - sha256
+      - size_bytes
+      - status
+      - type
+      - uploaded_at
+      - uploaded_by
+      - validated
+    EvidenciaAnuladaEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Evidencia'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    EvidenciaEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Evidencia'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    Hito:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        recommendation_id:
+          type: string
+          format: uuid
+        descripcion_hito:
+          type: string
+        fecha_compromiso:
+          type: string
+          format: date
+        completado:
+          type: boolean
+        created_by:
+          type: string
+          format: uuid
+      required:
+      - created_by
+      - descripcion_hito
+      - fecha_compromiso
+      - id
+      - recommendation_id
+    HitoCreateRequest:
+      type: object
+      properties:
+        descripcion_hito:
+          type: string
+          minLength: 1
+        fecha_compromiso:
+          type: string
+          format: date
+          description: No puede exceder el plazo legal (RF-007).
+      required:
+      - descripcion_hito
+      - fecha_compromiso
+    HitoEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Hito'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    HitosEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Hito'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    Informe:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        numero_informe:
+          type: string
+          maxLength: 100
+        periodo_auditado:
+          type: string
+          maxLength: 100
+        fecha_notificacion:
+          type: string
+          format: date
+        pdf_informe_url:
+          type: string
+          description: URL externa registrada o, si se adjuntó el PDF, el endpoint
+            autenticado que lo entrega.
+          readOnly: true
+        creado_en:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - creado_en
+      - fecha_notificacion
+      - id
+      - numero_informe
+      - pdf_informe_url
+      - periodo_auditado
+    InformeCreateRequest:
+      type: object
+      properties:
+        numero_informe:
+          type: string
+          minLength: 1
+          maxLength: 100
+        periodo_auditado:
+          type: string
+          minLength: 1
+          maxLength: 100
+        fecha_notificacion:
+          type: string
+          format: date
+        pdf_informe_url:
+          oneOf:
+          - type: string
+            format: uri
+            default: ''
+          - type: string
+            maxLength: 0
+        pdf_informe:
+          type: string
+          format: binary
+          description: Documento oficial en PDF (multipart/form-data). Alternativa
+            a pdf_informe_url.
+      required:
+      - fecha_notificacion
+      - numero_informe
+      - periodo_auditado
+    InformeDetalleEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Informe'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    InformeEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Informe'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    InformesEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Informe'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    Integridad:
+      type: object
+      properties:
+        evidence_id:
+          type: string
+          format: uuid
+        integra:
+          type: boolean
+          description: true si el SHA-256 del archivo coincide con el registrado.
+        hash_registrado:
+          type: string
+        hash_calculado:
+          type: string
+      required:
+      - evidence_id
+      - hash_calculado
+      - hash_registrado
+      - integra
+    IntegridadEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Integridad'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    LoginSsoRequestRequest:
+      type: object
+      properties:
+        credential:
+          type: string
+          minLength: 1
+          description: Credencial temporal emitida por el SSO institucional.
+      required:
+      - credential
+    Meta:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        pagination:
+          oneOf:
+          - $ref: '#/components/schemas/Pagination'
+          - type: 'null'
+      required:
+      - pagination
+      - request_id
+      - timestamp
+      - version
+    Notificacion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        status:
+          type: string
+        scheduled_at:
+          type: string
+          format: date-time
+        attempts:
+          type: integer
+        recommendation_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+      required:
+      - attempts
+      - id
+      - recommendation_id
+      - scheduled_at
+      - status
+      - type
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+        has_next:
+          type: boolean
+        has_previous:
+          type: boolean
+      required:
+      - has_next
+      - has_previous
+      - page
+      - page_size
+      - total
+      - total_pages
+    PatchedAnulacionEvidenciaRequest:
+      type: object
+      properties:
+        estado:
+          allOf:
+          - $ref: '#/components/schemas/AnulacionEvidenciaEstadoEnum'
+          description: |-
+            Único cambio admitido: anulación lógica (la evidencia nunca se elimina).
+
+            * `ANULADA` - ANULADA
+        motivo:
+          type: string
+          minLength: 1
+          maxLength: 500
+    PatchedReaperturaRequest:
+      type: object
+      properties:
+        estado:
+          allOf:
+          - $ref: '#/components/schemas/ReaperturaEstadoEnum'
+          description: |-
+            Único cambio de estado manual admitido: CUMPLIDA → REABIERTA.
+
+            * `REABIERTA` - REABIERTA
+        motivo:
+          type: string
+          minLength: 1
+          description: Hallazgo o razón de la reapertura.
+          maxLength: 1000
+    PatchedUsuarioUpdateRequest:
+      type: object
+      properties:
+        rol:
+          $ref: '#/components/schemas/RolInstitucionalEnum'
+        unidad_codigo:
+          type: string
+          minLength: 1
+          maxLength: 50
+    Preferencia:
+      type: object
+      properties:
+        id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        usuario_id:
+          type: string
+          format: uuid
+        tipo_alerta:
+          $ref: '#/components/schemas/TipoAlertaEnum'
+        notificar_interno:
+          type: boolean
+        notificar_email:
+          type: boolean
+        activo:
+          type: boolean
+        actualizado_en:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      required:
+      - activo
+      - actualizado_en
+      - id
+      - notificar_email
+      - notificar_interno
+      - tipo_alerta
+      - usuario_id
+    Preferencias:
+      type: object
+      properties:
+        usuario_id:
+          type: string
+          format: uuid
+        preferencias:
+          type: array
+          items:
+            $ref: '#/components/schemas/Preferencia'
+      required:
+      - preferencias
+      - usuario_id
+    PreferenciasActualizadasEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Preferencias'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    PreferenciasEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Preferencias'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    PreferenciasUpdateRequest:
+      type: object
+      properties:
+        usuario_id:
+          type: string
+          format: uuid
+          description: Solo DTI puede editar a otro usuario.
+        preferencias:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          description: Elementos con tipo_alerta y los indicadores notificar_interno,
+            notificar_email, activo.
+      required:
+      - preferencias
+    PrioridadEnum:
+      enum:
+      - ALTA
+      - MEDIA
+      - BAJA
+      type: string
+      description: |-
+        * `ALTA` - ALTA
+        * `MEDIA` - MEDIA
+        * `BAJA` - BAJA
+    ReaperturaEstadoEnum:
+      enum:
+      - REABIERTA
+      type: string
+      description: '* `REABIERTA` - REABIERTA'
+    Recomendacion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        report_id:
+          type: string
+          format: uuid
+        number:
+          type: string
+        description:
+          type: string
+        unit_id:
+          type: string
+        legal_days:
+          type: integer
+        due_date:
+          type: string
+          format: date
+        priority:
+          type: string
+        state:
+          $ref: '#/components/schemas/EstadoRecomendacionEnum'
+        vencida:
+          type: boolean
+          readOnly: true
+          description: Plazo legal vencido sin cumplimiento. Es un indicador, no un
+            estado del flujo.
+        overdue_registered_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      required:
+      - description
+      - due_date
+      - id
+      - legal_days
+      - number
+      - overdue_registered_at
+      - priority
+      - report_id
+      - state
+      - unit_id
+      - vencida
+    RecomendacionCreateRequest:
+      type: object
+      properties:
+        report_id:
+          type: string
+          format: uuid
+          description: Informe CGE del que proviene la recomendación.
+        number:
+          type: string
+          minLength: 1
+          maxLength: 50
+        description:
+          type: string
+          minLength: 1
+        unit_id:
+          type: string
+          minLength: 1
+          description: Código de la unidad ejecutora.
+          maxLength: 50
+        legal_days:
+          type: integer
+          minimum: 1
+          description: Plazo legal en días.
+        due_date:
+          type: string
+          format: date
+          description: Fecha de vencimiento legal (America/Guayaquil).
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PrioridadEnum'
+          default: MEDIA
+      required:
+      - description
+      - due_date
+      - legal_days
+      - number
+      - report_id
+      - unit_id
+    RecomendacionDetalle:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        report_id:
+          type: string
+          format: uuid
+        number:
+          type: string
+        description:
+          type: string
+        unit_id:
+          type: string
+        legal_days:
+          type: integer
+        due_date:
+          type: string
+          format: date
+        priority:
+          type: string
+        state:
+          $ref: '#/components/schemas/EstadoRecomendacionEnum'
+        vencida:
+          type: boolean
+          readOnly: true
+          description: Plazo legal vencido sin cumplimiento. Es un indicador, no un
+            estado del flujo.
+        overdue_registered_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        evidencias:
+          type: array
+          items:
+            $ref: '#/components/schemas/Evidencia'
+      required:
+      - description
+      - due_date
+      - evidencias
+      - id
+      - legal_days
+      - number
+      - overdue_registered_at
+      - priority
+      - report_id
+      - state
+      - unit_id
+      - vencida
+    RecomendacionDetalleEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/RecomendacionDetalle'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    RecomendacionEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Recomendacion'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    RecomendacionReabiertaEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Recomendacion'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    RecomendacionesEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recomendacion'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    ResultadoEnum:
+      enum:
+      - APROBADO
+      - RECHAZADO
+      type: string
+      description: |-
+        * `APROBADO` - Aprobado
+        * `RECHAZADO` - Rechazado
+    RolInstitucionalEnum:
+      enum:
+      - DTI
+      - UAI
+      - EJECUTOR
+      - RECTORADO
+      - CGE_AUDITOR
+      type: string
+      description: |-
+        * `DTI` - DTI
+        * `UAI` - UAI
+        * `EJECUTOR` - Ejecutor
+        * `RECTORADO` - Rectorado
+        * `CGE_AUDITOR` - Auditor CGE
+    Salud:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/SaludStatusEnum'
+      required:
+      - status
+    SaludEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Salud'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    SaludStatusEnum:
+      enum:
+      - ok
+      type: string
+      description: '* `ok` - ok'
+    SemaforoRiesgoEnum:
+      enum:
+      - VERDE
+      - AMARILLO
+      - ROJO
+      type: string
+      description: |-
+        * `VERDE` - VERDE
+        * `AMARILLO` - AMARILLO
+        * `ROJO` - ROJO
+    Sesion:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          $ref: '#/components/schemas/TokenTypeEnum'
+        expires_in:
+          type: integer
+          description: Segundos de validez del JWT.
+        user_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        role:
+          $ref: '#/components/schemas/RolInstitucionalEnum'
+        unit_id:
+          type:
+          - string
+          - 'null'
+      required:
+      - access_token
+      - display_name
+      - email
+      - expires_in
+      - role
+      - token_type
+      - unit_id
+      - user_id
+    SesionEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Sesion'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    Tablero:
+      type: object
+      properties:
+        total:
+          type: integer
+        cumplimiento_porcentaje:
+          type: number
+          format: double
+        semaforo_riesgo:
+          $ref: '#/components/schemas/SemaforoRiesgoEnum'
+        en_mora:
+          type: integer
+          description: Recomendaciones con el plazo legal vencido sin cumplir.
+        en_revision_interna:
+          type: integer
+          description: Recomendaciones en estado EN_VALIDACION.
+        por_estado:
+          type: object
+          additionalProperties:
+            type: integer
+        unidades_en_mora:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnidadEnMora'
+        fecha_corte:
+          type: string
+          format: date
+      required:
+      - cumplimiento_porcentaje
+      - en_mora
+      - en_revision_interna
+      - fecha_corte
+      - por_estado
+      - semaforo_riesgo
+      - total
+      - unidades_en_mora
+    TableroEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Tablero'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    TipoAlertaEnum:
+      enum:
+      - ALERTA_VENCIMIENTO
+      - EN_MORA
+      type: string
+      description: |-
+        * `ALERTA_VENCIMIENTO` - Alerta de vencimiento
+        * `EN_MORA` - Recomendación en mora
+    TipoEvidenciaEnum:
+      enum:
+      - BORRADOR
+      - FINAL
+      type: string
+      description: |-
+        * `BORRADOR` - Borrador
+        * `FINAL` - Final
+    TokenTypeEnum:
+      enum:
+      - Bearer
+      type: string
+      description: '* `Bearer` - Bearer'
+    Unidad:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        codigo:
+          type: string
+          maxLength: 50
+        nombre:
+          type: string
+          maxLength: 200
+      required:
+      - codigo
+      - id
+      - nombre
+    UnidadCreateRequest:
+      type: object
+      properties:
+        codigo:
+          type: string
+          minLength: 1
+          maxLength: 50
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 200
+      required:
+      - codigo
+      - nombre
+    UnidadEnMora:
+      type: object
+      properties:
+        unidad_codigo:
+          type: string
+        unidad_nombre:
+          type: string
+        vencidas:
+          type: integer
+        total:
+          type: integer
+      required:
+      - total
+      - unidad_codigo
+      - unidad_nombre
+      - vencidas
+    UnidadEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Unidad'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    UnidadesEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Unidad'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        correo_institucional:
+          type: string
+          format: email
+          maxLength: 320
+        nombres:
+          type: string
+          maxLength: 200
+        rol:
+          $ref: '#/components/schemas/RolInstitucionalEnum'
+        unidad_codigo:
+          type:
+          - string
+          - 'null'
+        activo:
+          type: boolean
+      required:
+      - correo_institucional
+      - id
+      - nombres
+      - rol
+    UsuarioEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Usuario'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    UsuariosEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Usuario'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT emitido por POST /api/v1/auth/login-sso (expira en 1 hora).
