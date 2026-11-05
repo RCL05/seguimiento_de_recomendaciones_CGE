@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     "backend.modules.reportes.apps.ReportesConfig",
     "backend.modules.notificaciones.apps.NotificacionesConfig",
     "rest_framework",
+    "drf_spectacular",
     "corsheaders",
 ]
 MIDDLEWARE = [
@@ -50,7 +51,59 @@ CORS_ALLOW_HEADERS = (
 CORS_EXPOSE_HEADERS = ("Location", "Content-Disposition")
 REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "backend.core.api.exception_handler.handle_exception",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "backend.core.auth.authentication.JWTBearerAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "backend.core.auth.permissions.IsAuthenticatedActor",
+    ],
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.FormParser",
+    ],
+    # Sin django.contrib.auth: el usuario es `Usuario`, resuelto por JWTBearerAuthentication.
+    "UNAUTHENTICATED_USER": None,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "SITRA-CGE UNL API",
+    "DESCRIPTION": (
+        "API del Sistema de Seguimiento de Recomendaciones de la Contraloría General "
+        "del Estado (CGE) para la Universidad Nacional de Loja. Toda respuesta JSON usa "
+        "la envoltura universal `success`, `message`, `data`, `errors`, `meta`."
+    ),
+    "VERSION": "1.0.0",
+    "OAS_VERSION": "3.1.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SERVE_AUTHENTICATION": [],
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SCHEMA_PATH_PREFIX": r"/api/v1",
+    "ENUM_NAME_OVERRIDES": {
+        "RolInstitucionalEnum": "backend.modules.usuarios.models.Usuario.Rol",
+        "EstadoRecomendacionEnum": "backend.modules.recomendaciones.models.Recomendacion.Estado",
+        "EstadoEvidenciaEnum": "backend.modules.recomendaciones.models.Evidencia.Estado",
+        "TipoEvidenciaEnum": "backend.modules.recomendaciones.models.Evidencia.Tipo",
+        "PrioridadEnum": "backend.modules.recomendaciones.presentation.serializers.PRIORIDADES",
+    },
+    "SWAGGER_UI_SETTINGS": {"persistAuthorization": True, "displayRequestDuration": True},
+}
+
+LANGUAGE_CODE = "es"
+USE_I18N = True
+
+# Plantillas: necesarias para Swagger UI (drf-spectacular) en /api/docs/.
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {"context_processors": ["django.template.context_processors.request"]},
+    }
+]
 DEFAULT_EXCEPTION_REPORTER_FILTER = "django.views.debug.SafeExceptionReporterFilter"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_TZ = True
@@ -70,7 +123,7 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "development.sqlite3",
+            "NAME": os.getenv("DJANGO_SQLITE_PATH") or BASE_DIR / "development.sqlite3",
         }
     }
 #prueba de conexion de comits en discord :)S

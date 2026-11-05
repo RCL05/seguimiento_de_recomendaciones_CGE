@@ -33,13 +33,17 @@ def handler500(request):
 
 
 class ApiErrorEnvelopeMiddleware:
-    """Normalizes framework and view-generated API error responses."""
+    """Envuelve 404/405/500 generados fuera de DRF (rutas inexistentes, errores del framework)."""
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
         response = self.get_response(request)
+        data = getattr(response, "data", None)
+        if isinstance(data, dict) and "success" in data:
+            # Ya viene con la envoltura universal desde DRF: conservar su mensaje específico.
+            return response
         if response.status_code in ERRORS:
             normalized = api_error_response(request, response.status_code)
             # RFC 9110 §15.5.6: un 405 DEBE indicar los métodos admitidos en Allow.

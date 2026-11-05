@@ -79,13 +79,16 @@ def test_json_mal_formado_responde_400_validation_error():
     [
         ("put", "/api/v1/recomendaciones/{rid}", {"GET", "HEAD"}),
         ("delete", "/api/v1/recomendaciones/{rid}", {"GET", "HEAD"}),
-        ("delete", "/api/v1/recomendaciones", {"GET", "POST"}),
-        ("post", "/api/v1/unidades", {"GET"}),
+        ("delete", "/api/v1/recomendaciones", {"GET", "HEAD", "POST"}),
+        ("put", "/api/v1/unidades", {"GET", "HEAD", "POST"}),
         ("get", "/api/v1/auth/login-sso", {"POST"}),
-        ("get", "/api/v1/reportes/matriz-cge", {"POST"}),
+        ("post", "/api/v1/reportes/matriz-cge", {"GET", "HEAD"}),
+        ("patch", "/api/v1/recomendaciones/{rid}/dictamenes", {"POST"}),
     ],
 )
 def test_metodo_no_admitido_responde_405_con_allow(method, path, allowed):
+    # DRF implementa OPTIONS en todos los recursos, por eso también aparece en Allow.
+    allowed = allowed | {"OPTIONS"}
     client, headers = Client(), _uai()
     recommendation_id = _create_recommendation(client, headers).json()["data"]["id"]
 

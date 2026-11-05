@@ -79,6 +79,25 @@ export function ExecutiveDashboardPage() {
           ))}
         </ul>
       )}
+
+      <h3>Unidades en mora</h3>
+      {dashboard.unidades_en_mora.length === 0 ? (
+        <p>Ninguna unidad tiene recomendaciones vencidas.</p>
+      ) : (
+        <ul aria-label="Unidades en mora">
+          {dashboard.unidades_en_mora.map((unidad) => (
+            <li key={unidad.unidad_codigo}>
+              <strong>
+                {unidad.unidad_codigo} — {unidad.unidad_nombre}
+              </strong>
+              <span>
+                {unidad.vencidas} vencida{unidad.vencidas === 1 ? "" : "s"} de {unidad.total}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="hint">Corte: {dashboard.fecha_corte}</p>
     </section>
   );
 }

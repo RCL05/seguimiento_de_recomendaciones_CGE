@@ -18,7 +18,18 @@ export type Recommendation = {
   unit_id: string;
   legal_days: number;
   due_date: string;
+  priority?: "ALTA" | "MEDIA" | "BAJA";
   state: string;
+};
+
+export type Dictamen = {
+  id: string;
+  resultado: "APROBADO" | "RECHAZADO";
+  evidence_id: string;
+  evaluator_id: string;
+  observaciones: string;
+  fecha_dictamen: string;
+  recomendacion: Recommendation;
 };
 
 export type Evidence = {
@@ -56,6 +67,8 @@ export type Dashboard = {
   en_mora: number;
   en_revision_interna: number;
   por_estado: Record<string, number>;
+  unidades_en_mora: { unidad_codigo: string; unidad_nombre: string; vencidas: number; total: number }[];
+  fecha_corte: string;
 };
 
 export type AuditLogEntry = {
@@ -293,14 +306,17 @@ export const api = {
     return response.blob();
   },
 
-  submitDictamen: (
+  submitDictamen: async (
     recommendationId: string,
     payload: { evidence_id: string; approved: boolean; observaciones?: string },
-  ) =>
-    request<Recommendation>(`/api/v1/recomendaciones/${recommendationId}/dictamen`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    }),
+  ): Promise<Recommendation> => {
+    // El dictamen es un recurso nuevo: POST /dictamenes -> 201 con la recomendación actualizada.
+    const dictamen = await request<Dictamen>(
+      `/api/v1/recomendaciones/${recommendationId}/dictamenes`,
+      { method: "POST", body: JSON.stringify(payload) },
+    );
+    return dictamen.recomendacion;
+  },
 
   getDashboard: () => request<Dashboard>("/api/v1/reportes/tablero"),
 
@@ -317,7 +333,7 @@ export const api = {
 
   downloadMatriz: async (): Promise<Blob> => {
     const response = await fetch(`${API_BASE}/api/v1/reportes/matriz-cge`, {
-      method: "POST",
+      method: "GET",
       headers: authHeaders(),
     });
     if (!response.ok) {

@@ -1,87 +1,155 @@
+"""Capa API del módulo de evidencias: carga PDF, anulación lógica, descarga e integridad."""
 from __future__ import annotations
 
-import json
-import uuid
+from uuid import UUID
 
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+from django.http import FileResponse
+from django.urls import reverse
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 
-from backend.core.api.exception_handler import ErrorCodes, handle_exception
-from backend.core.api.request_context import get_or_create_request_id
-from backend.core.api.response_envelope import error_response, success_response
-from backend.core.shared.domain_types import PermissionDenied, Role, User
-from backend.modules.evidencias.application.issue_dictamen import IssueDictamen
-from backend.modules.usuarios.models import Usuario
-
-
-def _get_actor_from_headers(request):
-    role = request.headers.get("X-Role") or request.headers.get("HTTP_X_ROLE")
-    unit_id = request.headers.get("X-Unit-Id") or request.headers.get("HTTP_X_UNIT_ID")
-    if not role:
-        raise PermissionDenied("Rol requerido en encabezados.")
-    try:
-        user_role = Role(role)
-    except Exception:
-        raise PermissionDenied("Rol inválido.")
-    return User(id=str(uuid.uuid4()), role=user_role, unit_id=unit_id)
-
-
-@csrf_exempt
-@require_http_methods(["PATCH"])
-def dictamen_view(request, recommendation_id):
-    try:
-        request_id = get_or_create_request_id(request)
-        actor_header = _get_actor_from_headers(request)
-        if actor_header.role != Role.UAI:
-            return error_response(
-                code=ErrorCodes.FORBIDDEN,
-                message="Solo UAI puede emitir dictámenes.",
-                status=403,
-            )
-
-        payload = json.loads(request.body or "{}")
-        evidence_id = payload.get("evidence_id")
-        approved = bool(payload.get("approved", False))
-        observations = payload.get("observations", "") or ""
-
-        if not evidence_id:
-            return error_response(
-                code=ErrorCodes.VALIDATION_ERROR,
-                message="evidence_id es obligatorio.",
-                status=400,
-            )
-
-        actor = Usuario.objects.filter(rol=Usuario.Rol.UAI).first()
-        if actor is None:
-            actor = Usuario.objects.first()
-
-        use_case = IssueDictamen()
-        dictamen = use_case.execute(
-            actor=actor,
-            request_id=request_id,
-            recommendation_id=uuid.UUID(str(recommendation_id)),
-            evidence_id=uuid.UUID(str(evidence_id)),
-            approved=approved,
-            observations=observations,
-            ip_address=request.META.get("REMOTE_ADDR"),
-        )
-        return success_response(
-            data={
-                "dictamen_id": str(dictamen.id),
-                "recomendacion_id": str(dictamen.recomendacion_id),
-                "resultado": dictamen.resultado,
-                "estado_recomendacion": dictamen.recomendacion.estado,
-            },
-            message="Dictamen emitido correctamente",
-            status=201,
-        )
-    except Exception as exc:
-        return handle_exception(exc)
-
-# Permite obtener el PDF enviado bajo cualquier clave estándar en request.FILES
-archivo_pdf = (
-    request.FILES.get('archivo') or 
-    request.FILES.get('file') or 
-    request.FILES.get('evidencia')
+from backend.core.api.base import ApiView, ok
+from backend.core.api.schema import envelope, errors
+from backend.core.auth.permissions import IsAuthenticatedActor, require_roles
+from backend.core.shared.domain_types import PayloadTooLarge, Role, ValidationError
+from backend.modules.evidencias.application.anular_evidencia import AnularEvidencia
+from backend.modules.evidencias.application.get_evidence_file import GetEvidenceFile
+from backend.modules.evidencias.application.verify_integrity import VerificarIntegridadEvidencia
+from backend.modules.evidencias.presentation.serializers import (
+    AnulacionEvidenciaSerializer,
+    ArchivoQuerySerializer,
+    IntegridadSerializer,
 )
+from backend.modules.recomendaciones.application.upload_evidencia import MAX_SIZE_BYTES, UploadEvidencia
+from backend.modules.recomendaciones.presentation.serializers import EvidenciaSerializer
 
+CHUNK_SIZE = 64 * 1024
+
+
+def _chunks(stream):
+    if stream is None:
+        return
+    while True:
+        chunk = stream.read(CHUNK_SIZE)
+        if not chunk:
+            return
+        yield chunk
+
+
+class EvidenciaUploadView(ApiView):
+    permission_classes = [
+        IsAuthenticatedActor,
+        require_roles(Role.EJECUTOR, message="Solo el rol EJECUTOR puede cargar evidencias."),
+    ]
+
+    @extend_schema(
+        tags=["Evidencias"],
+        operation_id="cargarEvidencia",
+        summary="Cargar una evidencia PDF (EJECUTOR, RF-008)",
+        description=(
+            "El cuerpo es el PDF binario (`Content-Type: application/pdf`, máximo 30 MB). "
+            "Se calcula SHA-256 y la recomendación pasa a EN_VALIDACION."
+        ),
+        request={"application/pdf": OpenApiTypes.BINARY},
+        parameters=[
+            OpenApiParameter("X-Filename", str, OpenApiParameter.HEADER, required=True, description="Nombre del archivo .pdf"),
+            OpenApiParameter(
+                "X-Evidence-Type", str, OpenApiParameter.HEADER, enum=["BORRADOR", "FINAL"], description="Por defecto BORRADOR"
+            ),
+        ],
+        responses={201: envelope("Evidencia", EvidenciaSerializer), **errors(400, 401, 403, 404, 409, 413)},
+    )
+    def post(self, request, recommendation_id: UUID):
+        content_length = request.headers.get("Content-Length")
+        if content_length is not None:
+            try:
+                size = int(content_length)
+            except ValueError as error:
+                raise ValidationError("Content-Length inválido.") from error
+            if size < 0:
+                raise ValidationError("Content-Length inválido.")
+            if size > MAX_SIZE_BYTES:
+                raise PayloadTooLarge("El PDF supera el tamaño máximo permitido.")
+        evidence = UploadEvidencia().execute(
+            actor=self.actor,
+            request_id=self.request_id,
+            recommendation_id=recommendation_id,
+            filename=request.headers.get("X-Filename", "evidence.pdf"),
+            content=_chunks(request.stream),
+            evidence_type=request.headers.get("X-Evidence-Type", "BORRADOR").upper(),
+            ip_address=self.client_ip,
+        )
+        return ok(
+            request,
+            EvidenciaSerializer(evidence).data,
+            "Evidencia cargada",
+            status=201,
+            location=reverse("evidencia-archivo", args=[evidence.id]),
+        )
+
+
+class EvidenciaDetailView(ApiView):
+    permission_classes = [
+        IsAuthenticatedActor,
+        require_roles(Role.UAI, message="Solo el rol UAI puede anular evidencias."),
+    ]
+
+    @extend_schema(
+        tags=["Evidencias"],
+        operation_id="anularEvidencia",
+        summary="Anular lógicamente una evidencia (UAI)",
+        description="Modificación parcial del estado: la evidencia y su historial se conservan (CA-07.3).",
+        request=AnulacionEvidenciaSerializer,
+        responses={200: envelope("EvidenciaAnulada", EvidenciaSerializer), **errors(400, 401, 403, 404, 409)},
+    )
+    def patch(self, request, evidence_id: UUID):
+        payload = AnulacionEvidenciaSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        evidence = AnularEvidencia().execute(
+            actor=self.actor,
+            request_id=self.request_id,
+            evidence_id=evidence_id,
+            reason=payload.validated_data["motivo"],
+            ip_address=self.client_ip,
+        )
+        return ok(request, EvidenciaSerializer(evidence).data, "Evidencia anulada")
+
+
+class EvidenciaArchivoView(ApiView):
+    @extend_schema(
+        tags=["Evidencias"],
+        operation_id="descargarEvidencia",
+        summary="Abrir o descargar el PDF de una evidencia",
+        parameters=[ArchivoQuerySerializer],
+        responses={
+            (200, "application/pdf"): OpenApiResponse(OpenApiTypes.BINARY, description="Contenido PDF."),
+            **errors(400, 401, 403, 404),
+        },
+    )
+    def get(self, request, evidence_id: UUID):
+        query = ArchivoQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        path, filename = GetEvidenceFile().execute(actor=self.actor, evidence_id=evidence_id)
+        return FileResponse(
+            path.open("rb"),
+            as_attachment=query.validated_data["disposition"] == "attachment",
+            filename=filename,
+            content_type="application/pdf",
+        )
+
+
+class EvidenciaIntegridadView(ApiView):
+    @extend_schema(
+        tags=["Evidencias"],
+        operation_id="verificarIntegridadEvidencia",
+        summary="Verificar el SHA-256 del archivo almacenado (UAI, auditor CGE)",
+        responses={200: envelope("Integridad", IntegridadSerializer), **errors(401, 403, 404)},
+    )
+    def get(self, request, evidence_id: UUID):
+        result = VerificarIntegridadEvidencia().execute(
+            actor=self.actor,
+            evidence_id=evidence_id,
+            request_id=self.request_id,
+        )
+        message = "La evidencia es íntegra." if result["integra"] else "ALERTA: el archivo no coincide con el hash registrado."
+        return ok(request, IntegridadSerializer(result).data, message)
