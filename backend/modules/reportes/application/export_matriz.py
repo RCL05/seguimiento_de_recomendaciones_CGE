@@ -5,6 +5,7 @@ import csv
 from io import StringIO
 
 from backend.core.shared.domain_types import PermissionDenied
+from backend.modules.recomendaciones.infrastructure.repositories import anotar_vencimiento
 from backend.modules.recomendaciones.models import Recomendacion
 from backend.modules.usuarios.models import Usuario
 
@@ -19,6 +20,8 @@ COLUMNAS = [
     "estado",
     "plazo_legal_dias",
     "fecha_vencimiento_legal",
+    "vencida",
+    "vencimiento_registrado_en",
 ]
 
 
@@ -28,9 +31,9 @@ def export_matriz_cge_csv(*, actor: Usuario) -> bytes:
     output = StringIO()
     writer = csv.writer(output, delimiter=",", lineterminator="\n")
     writer.writerow(COLUMNAS)
-    recomendaciones = Recomendacion.objects.select_related("informe", "unidad_responsable").order_by(
-        "informe__numero_informe", "numero_recomendacion"
-    )
+    recomendaciones = anotar_vencimiento(
+        Recomendacion.objects.select_related("informe", "unidad_responsable")
+    ).order_by("informe__numero_informe", "numero_recomendacion")
     for rec in recomendaciones:
         writer.writerow([
             rec.informe.numero_informe,
@@ -41,6 +44,8 @@ def export_matriz_cge_csv(*, actor: Usuario) -> bytes:
             rec.estado,
             rec.plazo_legal_dias,
             rec.fecha_vencimiento_legal.isoformat() if rec.fecha_vencimiento_legal else "",
+            "SI" if rec.vencida else "NO",
+            rec.vencimiento_registrado_en.date().isoformat() if rec.vencimiento_registrado_en else "",
         ])
     # BOM UTF-8 para que hojas de cálculo reconozcan la codificación.
     return output.getvalue().encode("utf-8-sig")

@@ -25,7 +25,6 @@ class Recomendacion(models.Model):
         PENDIENTE = "PENDIENTE", "Pendiente"
         EN_PROCESO = "EN_PROCESO", "En Proceso"
         EN_VALIDACION = "EN_VALIDACION", "En Validación"
-        VENCIDA = "VENCIDA", "Vencida"
         REABIERTA = "REABIERTA", "Reabierta"
         CUMPLIDA = "CUMPLIDA", "Cumplida"
 
@@ -42,6 +41,9 @@ class Recomendacion(models.Model):
     plazo_legal_dias = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     fecha_vencimiento_legal = models.DateField()
     estado = models.CharField(max_length=30, choices=Estado.choices, default=Estado.PENDIENTE)
+    # Cuándo el job de plazos registró y notificó el vencimiento (una sola vez por ciclo).
+    # El vencimiento en sí se calcula: ver domain/vencimiento.py.
+    vencimiento_registrado_en = models.DateTimeField(null=True, blank=True)
     creada_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:

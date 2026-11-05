@@ -9,7 +9,6 @@ paths:
   /api/v1/auditoria:
     get:
       operationId: consultarAuditoria
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Consultar el historial inmutable de auditoría (UAI, auditor CGE, RF-018)
       parameters:
       - in: query
@@ -62,7 +61,6 @@ paths:
   /api/v1/auth/login-sso:
     post:
       operationId: iniciarSesionSso
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Validar credencial institucional y emitir JWT
       tags:
       - Autenticación
@@ -199,7 +197,6 @@ paths:
   /api/v1/evidencias/{evidence_id}/archivo:
     get:
       operationId: descargarEvidencia
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Abrir o descargar el PDF de una evidencia
       parameters:
       - in: query
@@ -261,7 +258,6 @@ paths:
   /api/v1/evidencias/{evidence_id}/integridad:
     get:
       operationId: verificarIntegridadEvidencia
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Verificar el SHA-256 del archivo almacenado (UAI, auditor CGE)
       parameters:
       - in: path
@@ -304,7 +300,6 @@ paths:
   /api/v1/informes:
     get:
       operationId: listarInformes
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Consultar informes de examen especial (UAI, Rectorado, auditor CGE)
       parameters:
       - in: query
@@ -352,7 +347,6 @@ paths:
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
     post:
       operationId: registrarInforme
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Registrar un informe CGE con su documento oficial (UAI, RF-005)
       tags:
       - Informes CGE
@@ -409,7 +403,6 @@ paths:
   /api/v1/informes/{informe_id}:
     get:
       operationId: consultarInforme
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Consultar un informe CGE
       parameters:
       - in: path
@@ -449,10 +442,52 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
             (BOLA/IDOR).'
+  /api/v1/informes/{informe_id}/documento:
+    get:
+      operationId: descargarDocumentoInforme
+      summary: Descargar el PDF oficial adjunto al informe
+      parameters:
+      - in: path
+        name: informe_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Informes CGE
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          description: Documento oficial.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
   /api/v1/notificaciones:
     get:
       operationId: consultarBandeja
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Consultar la bandeja de notificaciones del usuario autenticado
       tags:
       - Notificaciones
@@ -475,7 +510,6 @@ paths:
   /api/v1/notificaciones/configuracion:
     get:
       operationId: consultarConfiguracionNotificaciones
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Consultar la configuración global de notificaciones
       tags:
       - Notificaciones
@@ -503,7 +537,6 @@ paths:
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
     put:
       operationId: actualizarConfiguracionNotificaciones
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Actualizar la configuración global de notificaciones (DTI)
       tags:
       - Notificaciones
@@ -549,7 +582,6 @@ paths:
   /api/v1/notificaciones/preferencias:
     get:
       operationId: consultarPreferencias
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Consultar preferencias de notificación
       parameters:
       - in: query
@@ -590,7 +622,6 @@ paths:
             (BOLA/IDOR).'
     put:
       operationId: actualizarPreferencias
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Reemplazar preferencias de notificación
       tags:
       - Notificaciones
@@ -695,7 +726,6 @@ paths:
           - PENDIENTE
           - EN_PROCESO
           - EN_VALIDACION
-          - VENCIDA
           - REABIERTA
           - CUMPLIDA
           type: string
@@ -704,7 +734,6 @@ paths:
           * `PENDIENTE` - Pendiente
           * `EN_PROCESO` - En Proceso
           * `EN_VALIDACION` - En Validación
-          * `VENCIDA` - Vencida
           * `REABIERTA` - Reabierta
           * `CUMPLIDA` - Cumplida
       - in: query
@@ -712,6 +741,13 @@ paths:
         schema:
           type: string
           minLength: 1
+      - in: query
+        name: vencida
+        schema:
+          type:
+          - boolean
+          - 'null'
+        description: 'true: solo vencidas; false: solo dentro de plazo.'
       tags:
       - Recomendaciones
       security:
@@ -839,6 +875,73 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
             (BOLA/IDOR).'
+    patch:
+      operationId: reabrirRecomendacion
+      description: 'Modificación parcial del estado: solo admite CUMPLIDA → REABIERTA
+        con motivo. El ejecutor la reanuda registrando un nuevo hito.'
+      summary: Reabrir una recomendación cumplida (UAI)
+      parameters:
+      - in: path
+        name: recommendation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Recomendaciones
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedReaperturaRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedReaperturaRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedReaperturaRequest'
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecomendacionReabiertaEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
+            negocio incumplida.'
   /api/v1/recomendaciones/{recommendation_id}/dictamenes:
     post:
       operationId: emitirDictamen
@@ -994,7 +1097,6 @@ paths:
   /api/v1/recomendaciones/{recommendation_id}/plan-accion:
     get:
       operationId: listarHitos
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Consultar los hitos del plan de acción
       parameters:
       - in: path
@@ -1036,8 +1138,9 @@ paths:
             (BOLA/IDOR).'
     post:
       operationId: registrarHito
-      description: 'El primer hito inicia la ejecución: PENDIENTE/VENCIDA/REABIERTA
-        → EN_PROCESO.'
+      description: 'El primer hito inicia la ejecución: PENDIENTE/REABIERTA → EN_PROCESO.
+        Dentro del plazo, la fecha no excede el plazo legal; con el plazo vencido,
+        debe ser hoy o posterior.'
       summary: Registrar un hito del plan de acción (EJECUTOR, RF-007)
       parameters:
       - in: path
@@ -1136,7 +1239,6 @@ paths:
   /api/v1/reportes/tablero:
     get:
       operationId: consultarTablero
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: 'Tablero ejecutivo: semáforo, cumplimiento y unidades en mora (RF-013)'
       tags:
       - Reportes
@@ -1165,7 +1267,6 @@ paths:
   /api/v1/unidades:
     get:
       operationId: listarUnidades
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Consultar el catálogo de unidades orgánicas (UAI, DTI)
       tags:
       - Usuarios y unidades
@@ -1193,7 +1294,6 @@ paths:
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
     post:
       operationId: registrarUnidad
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Registrar o renombrar una unidad orgánica (DTI)
       tags:
       - Usuarios y unidades
@@ -1240,7 +1340,6 @@ paths:
   /api/v1/usuarios:
     get:
       operationId: listarUsuarios
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Consultar cuentas institucionales (DTI)
       tags:
       - Usuarios y unidades
@@ -1269,7 +1368,6 @@ paths:
   /api/v1/usuarios/{usuario_id}:
     patch:
       operationId: actualizarUsuario
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Asignar rol o cambiar la unidad de una cuenta (DTI, RF-002)
       parameters:
       - in: path
@@ -1329,7 +1427,6 @@ paths:
   /health/:
     get:
       operationId: verificarSalud
-      description: 'Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.'
       summary: Comprobar que el servicio está disponible
       tags:
       - Operación
@@ -1342,6 +1439,11 @@ paths:
           description: ''
 components:
   schemas:
+    AnulacionEvidenciaEstadoEnum:
+      enum:
+      - ANULADA
+      type: string
+      description: '* `ANULADA` - ANULADA'
     AuditLog:
       type: object
       properties:
@@ -1685,11 +1787,6 @@ components:
       - errors
       - message
       - meta
-    EstadoEnum:
-      enum:
-      - ANULADA
-      type: string
-      description: '* `ANULADA` - ANULADA'
     EstadoEvidenciaEnum:
       enum:
       - VIGENTE
@@ -1703,7 +1800,6 @@ components:
       - PENDIENTE
       - EN_PROCESO
       - EN_VALIDACION
-      - VENCIDA
       - REABIERTA
       - CUMPLIDA
       type: string
@@ -1711,7 +1807,6 @@ components:
         * `PENDIENTE` - Pendiente
         * `EN_PROCESO` - En Proceso
         * `EN_VALIDACION` - En Validación
-        * `VENCIDA` - Vencida
         * `REABIERTA` - Reabierta
         * `CUMPLIDA` - Cumplida
     Evidencia:
@@ -1895,6 +1990,8 @@ components:
           format: date
         pdf_informe_url:
           type: string
+          description: URL externa registrada o, si se adjuntó el PDF, el endpoint
+            autenticado que lo entrega.
           readOnly: true
         creado_en:
           type: string
@@ -2120,7 +2217,7 @@ components:
       properties:
         estado:
           allOf:
-          - $ref: '#/components/schemas/EstadoEnum'
+          - $ref: '#/components/schemas/AnulacionEvidenciaEstadoEnum'
           description: |-
             Único cambio admitido: anulación lógica (la evidencia nunca se elimina).
 
@@ -2129,6 +2226,21 @@ components:
           type: string
           minLength: 1
           maxLength: 500
+    PatchedReaperturaRequest:
+      type: object
+      properties:
+        estado:
+          allOf:
+          - $ref: '#/components/schemas/ReaperturaEstadoEnum'
+          description: |-
+            Único cambio de estado manual admitido: CUMPLIDA → REABIERTA.
+
+            * `REABIERTA` - REABIERTA
+        motivo:
+          type: string
+          minLength: 1
+          description: Hallazgo o razón de la reapertura.
+          maxLength: 1000
     PatchedUsuarioUpdateRequest:
       type: object
       properties:
@@ -2249,6 +2361,11 @@ components:
         * `ALTA` - ALTA
         * `MEDIA` - MEDIA
         * `BAJA` - BAJA
+    ReaperturaEstadoEnum:
+      enum:
+      - REABIERTA
+      type: string
+      description: '* `REABIERTA` - REABIERTA'
     Recomendacion:
       type: object
       properties:
@@ -2274,16 +2391,28 @@ components:
           type: string
         state:
           $ref: '#/components/schemas/EstadoRecomendacionEnum'
+        vencida:
+          type: boolean
+          readOnly: true
+          description: Plazo legal vencido sin cumplimiento. Es un indicador, no un
+            estado del flujo.
+        overdue_registered_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
       required:
       - description
       - due_date
       - id
       - legal_days
       - number
+      - overdue_registered_at
       - priority
       - report_id
       - state
       - unit_id
+      - vencida
     RecomendacionCreateRequest:
       type: object
       properties:
@@ -2347,6 +2476,16 @@ components:
           type: string
         state:
           $ref: '#/components/schemas/EstadoRecomendacionEnum'
+        vencida:
+          type: boolean
+          readOnly: true
+          description: Plazo legal vencido sin cumplimiento. Es un indicador, no un
+            estado del flujo.
+        overdue_registered_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
         evidencias:
           type: array
           items:
@@ -2358,10 +2497,12 @@ components:
       - id
       - legal_days
       - number
+      - overdue_registered_at
       - priority
       - report_id
       - state
       - unit_id
+      - vencida
     RecomendacionDetalleEnvelope:
       type: object
       properties:
@@ -2383,6 +2524,26 @@ components:
       - message
       - meta
     RecomendacionEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Recomendacion'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          oneOf:
+          - {}
+          - type: 'null'
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    RecomendacionReabiertaEnvelope:
       type: object
       properties:
         data:
@@ -2553,7 +2714,7 @@ components:
           $ref: '#/components/schemas/SemaforoRiesgoEnum'
         en_mora:
           type: integer
-          description: Recomendaciones en estado VENCIDA.
+          description: Recomendaciones con el plazo legal vencido sin cumplir.
         en_revision_interna:
           type: integer
           description: Recomendaciones en estado EN_VALIDACION.

@@ -182,16 +182,18 @@ EN_VALIDACION
     └── Dictamen rechazado por UAI ────► EN_PROCESO
 ```
 
-Estados complementarios:
+Reapertura:
 
 ```text
-PENDIENTE / EN_PROCESO / EN_VALIDACION
-    └── Job de vencimientos ───────────► VENCIDA
-
-VENCIDA ── Reanudación por EJECUTOR ──► EN_PROCESO
-CUMPLIDA ─ Hallazgo y reapertura UAI ─► REABIERTA
-REABIERTA ─ Nuevo plan por EJECUTOR ──► EN_PROCESO
+CUMPLIDA ─ Hallazgo y reapertura UAI (PATCH, con motivo) ─► REABIERTA
+REABIERTA ─ Nuevo plan por EJECUTOR ──────────────────────► EN_PROCESO
 ```
+
+Vencimiento (indicador, no estado): una recomendación está **vencida** cuando no
+está `CUMPLIDA`, ya pasó su fecha de vencimiento legal y no tiene una evidencia
+entregada a tiempo pendiente de dictamen. El estado de cumplimiento no cambia:
+puede estar `EN_PROCESO` y vencida, y cumplirse tarde. El job de plazos registra
+y notifica el vencimiento una sola vez (`vencimiento_registrado_en`).
 
 Reglas:
 
@@ -201,8 +203,8 @@ Reglas:
 - `EN_VALIDACION`: la UAI revisa la evidencia; el Ejecutor no puede aprobar su
   propio cumplimiento.
 - `CUMPLIDA`: solo se alcanza con dictamen aprobado y evidencia validada.
-- `VENCIDA`: la tarea automática marca recomendaciones cuyo plazo expiró sin
-  cumplimiento aprobado.
+- Vencida: con el plazo legal vencido, los nuevos hitos deben tener fecha de hoy
+  en adelante; la API expone `vencida` y el filtro `?vencida=true|false`.
 - `REABIERTA`: la UAI puede reabrir una recomendación cumplida cuando exista
   un hallazgo que lo justifique.
 - Toda transición no definida por la máquina de estados debe rechazarse.

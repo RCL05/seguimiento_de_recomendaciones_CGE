@@ -77,8 +77,8 @@ def test_json_mal_formado_responde_400_validation_error():
 @pytest.mark.parametrize(
     ("method", "path", "allowed"),
     [
-        ("put", "/api/v1/recomendaciones/{rid}", {"GET", "HEAD"}),
-        ("delete", "/api/v1/recomendaciones/{rid}", {"GET", "HEAD"}),
+        ("put", "/api/v1/recomendaciones/{rid}", {"GET", "HEAD", "PATCH"}),
+        ("delete", "/api/v1/recomendaciones/{rid}", {"GET", "HEAD", "PATCH"}),
         ("delete", "/api/v1/recomendaciones", {"GET", "HEAD", "POST"}),
         ("put", "/api/v1/unidades", {"GET", "HEAD", "POST"}),
         ("get", "/api/v1/auth/login-sso", {"POST"}),

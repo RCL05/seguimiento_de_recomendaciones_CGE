@@ -4,8 +4,6 @@ Cada módulo expone sus recursos REST versionados bajo /api/v1/ desde su capa
 `presentation/urls.py`. Las rutas nombran recursos (sustantivos) y el método HTTP
 expresa la operación (Semana 3: preferir recursos frente a acciones arbitrarias).
 """
-from django.conf import settings
-from django.conf.urls.static import static
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
@@ -33,5 +31,5 @@ urlpatterns = [
 handler404 = api_handler404
 handler500 = api_handler500
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# MEDIA_ROOT NO se publica como estático (ni siquiera con DEBUG): los PDF de evidencias e
+# informes solo se entregan por endpoints que exigen JWT y autorización por rol/unidad.

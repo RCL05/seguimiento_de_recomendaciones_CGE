@@ -3,14 +3,20 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from django.http import FileResponse
 from django.urls import reverse
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 
 from backend.core.api.base import ApiView, ok, page_meta
 from backend.core.api.schema import envelope, errors
 from backend.core.auth.permissions import IsAuthenticatedActor, require_roles
 from backend.core.shared.domain_types import PayloadTooLarge, Role
-from backend.modules.informes_cge.application.consultar_informes import ListarInformes, ObtenerInforme
+from backend.modules.informes_cge.application.consultar_informes import (
+    ListarInformes,
+    ObtenerDocumentoInforme,
+    ObtenerInforme,
+)
 from backend.modules.informes_cge.application.register_informe import RegisterInforme
 from backend.modules.informes_cge.presentation.serializers import (
     InformeCreateSerializer,
@@ -80,6 +86,21 @@ class InformeListCreateView(ApiView):
             status=201,
             location=reverse("informe-detalle", args=[informe.id]),
         )
+
+
+class InformeDocumentoView(ApiView):
+    @extend_schema(
+        tags=["Informes CGE"],
+        operation_id="descargarDocumentoInforme",
+        summary="Descargar el PDF oficial adjunto al informe",
+        responses={
+            (200, "application/pdf"): OpenApiResponse(OpenApiTypes.BINARY, description="Documento oficial."),
+            **errors(401, 403, 404),
+        },
+    )
+    def get(self, request, informe_id: UUID):
+        handle, filename = ObtenerDocumentoInforme().execute(actor=self.actor, informe_id=informe_id)
+        return FileResponse(handle, filename=filename, content_type="application/pdf")
 
 
 class InformeDetailView(ApiView):

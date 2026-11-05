@@ -59,7 +59,7 @@ class QuickstartSmokeTests(TestCase):
                 "description": "Implementar controles internos.",
                 "unit_id": "DEP-A",
                 "legal_days": 30,
-                "due_date": "2026-02-14",
+                "due_date": "2027-02-14",
                 "priority": "ALTA",
             },
             "UAI",
@@ -72,7 +72,7 @@ class QuickstartSmokeTests(TestCase):
     def _start_execution(self, recommendation_id):
         plan = self._post(
             f"/api/v1/recomendaciones/{recommendation_id}/plan-accion",
-            {"descripcion_hito": "Documentar controles", "fecha_compromiso": "2026-01-30"},
+            {"descripcion_hito": "Documentar controles", "fecha_compromiso": "2027-01-30"},
             "EJECUTOR",
             "ejecutor-a",
             "DEP-A",

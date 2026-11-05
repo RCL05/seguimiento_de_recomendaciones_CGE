@@ -6,7 +6,8 @@ import { Toast } from "../../../components/Toast";
 import { useToast } from "../../../hooks/useToast";
 import { EvidenceUpload } from "../../evidencias/components/EvidenceUpload";
 
-const RESTARTABLE_STATES = new Set(["VENCIDA", "REABIERTA"]);
+// "Vencida" no es un estado: es un indicador (recommendation.vencida) y no bloquea el flujo.
+const RESTARTABLE_STATES = new Set(["REABIERTA"]);
 
 export function PlanAccionPage() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
@@ -94,6 +95,7 @@ export function PlanAccionPage() {
               {recommendations.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.number} · {item.state} · vence {item.due_date}
+                  {item.vencida ? " · VENCIDA" : ""}
                 </option>
               ))}
             </select>
@@ -103,8 +105,15 @@ export function PlanAccionPage() {
             <>
               <div className="recommendation-summary">
                 <span className={`state-badge state-${current.state.toLowerCase()}`}>{current.state}</span>
+                {current.vencida && <span className="state-badge state-vencida">Plazo vencido</span>}
                 <p>{current.description} · Unidad {current.unit_id}</p>
               </div>
+              {current.vencida && (
+                <p className="state-notice" role="status">
+                  El plazo legal venció el {current.due_date}. Puede continuar: los nuevos hitos deben tener
+                  fecha de hoy en adelante y el cumplimiento quedará registrado como tardío.
+                </p>
+              )}
 
               {underReview ? (
                 <p className="state-notice info" role="status">

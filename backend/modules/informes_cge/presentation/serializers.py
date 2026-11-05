@@ -1,3 +1,4 @@
+from django.urls import reverse
 from rest_framework import serializers
 
 from backend.modules.recomendaciones.models import InformeCGE
@@ -36,7 +37,10 @@ class InformeSerializer(serializers.ModelSerializer):
         fields = ["id", "numero_informe", "periodo_auditado", "fecha_notificacion", "pdf_informe_url", "creado_en"]
 
     def get_pdf_informe_url(self, informe) -> str:
-        return informe.pdf_informe.url if informe.pdf_informe else informe.pdf_informe_url
+        """URL externa registrada o, si se adjuntó el PDF, el endpoint autenticado que lo entrega."""
+        if informe.pdf_informe:
+            return reverse("informe-documento", args=[informe.id])
+        return informe.pdf_informe_url
 
 
 class PaginacionQuerySerializer(serializers.Serializer):

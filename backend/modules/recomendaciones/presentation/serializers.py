@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from backend.modules.recomendaciones.infrastructure.repositories import RecommendationRepository
 from backend.modules.recomendaciones.models import DictamenUAI, Evidencia, PlanAccion, Recomendacion
 
 PRIORIDADES = ["ALTA", "MEDIA", "BAJA"]
@@ -24,6 +25,12 @@ class RecomendacionQuerySerializer(serializers.Serializer):
     due_date = serializers.DateField(required=False)
     due_before = serializers.DateField(required=False)
     due_after = serializers.DateField(required=False)
+    vencida = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="true: solo vencidas; false: solo dentro de plazo.",
+    )
 
 
 class RecomendacionSerializer(serializers.ModelSerializer):
@@ -35,10 +42,32 @@ class RecomendacionSerializer(serializers.ModelSerializer):
     due_date = serializers.DateField(source="fecha_vencimiento_legal")
     priority = serializers.CharField(source="prioridad")
     state = serializers.ChoiceField(source="estado", choices=Recomendacion.Estado.choices)
+    vencida = serializers.SerializerMethodField(
+        help_text="Plazo legal vencido sin cumplimiento. Es un indicador, no un estado del flujo."
+    )
+    overdue_registered_at = serializers.DateTimeField(source="vencimiento_registrado_en", allow_null=True)
 
     class Meta:
         model = Recomendacion
-        fields = ["id", "report_id", "number", "description", "unit_id", "legal_days", "due_date", "priority", "state"]
+        fields = [
+            "id",
+            "report_id",
+            "number",
+            "description",
+            "unit_id",
+            "legal_days",
+            "due_date",
+            "priority",
+            "state",
+            "vencida",
+            "overdue_registered_at",
+        ]
+
+    def get_vencida(self, recommendation) -> bool:
+        annotated = getattr(recommendation, "vencida", None)
+        if annotated is not None:
+            return bool(annotated)
+        return RecommendationRepository.esta_vencida(recommendation.pk)
 
 
 class EvidenciaSerializer(serializers.ModelSerializer):
@@ -74,6 +103,14 @@ class RecomendacionDetalleSerializer(RecomendacionSerializer):
 
     class Meta(RecomendacionSerializer.Meta):
         fields = RecomendacionSerializer.Meta.fields + ["evidencias"]
+
+
+class ReaperturaSerializer(serializers.Serializer):
+    estado = serializers.ChoiceField(
+        choices=[Recomendacion.Estado.REABIERTA],
+        help_text="Único cambio de estado manual admitido: CUMPLIDA → REABIERTA.",
+    )
+    motivo = serializers.CharField(max_length=1000, help_text="Hallazgo o razón de la reapertura.")
 
 
 class HitoCreateSerializer(serializers.Serializer):

@@ -18,7 +18,9 @@ from backend.core.auth.permissions import IsAuthenticatedActor
 
 
 class ApiView(APIView):
-    """Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar."""
+    # Vista base: JWT Bearer obligatorio y 405 evaluado antes de autenticar.
+    # (Comentario y no docstring: drf-spectacular usaría la docstring heredada como
+    # descripción de cada operación del contrato OpenAPI.)
 
     authentication_classes = [JWTBearerAuthentication]
     permission_classes = [IsAuthenticatedActor]

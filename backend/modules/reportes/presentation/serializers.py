@@ -12,7 +12,7 @@ class TableroSerializer(serializers.Serializer):
     total = serializers.IntegerField()
     cumplimiento_porcentaje = serializers.FloatField()
     semaforo_riesgo = serializers.ChoiceField(choices=["VERDE", "AMARILLO", "ROJO"])
-    en_mora = serializers.IntegerField(help_text="Recomendaciones en estado VENCIDA.")
+    en_mora = serializers.IntegerField(help_text="Recomendaciones con el plazo legal vencido sin cumplir.")
     en_revision_interna = serializers.IntegerField(help_text="Recomendaciones en estado EN_VALIDACION.")
     por_estado = serializers.DictField(child=serializers.IntegerField())
     unidades_en_mora = UnidadEnMoraSerializer(many=True)

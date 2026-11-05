@@ -1,9 +1,11 @@
 """Endpoints base de la Semana 3 (APE 3): recursos REST, códigos HTTP y validaciones."""
 
 import json
+from datetime import timedelta
 
 import pytest
 from django.test import Client, override_settings
+from django.utils import timezone
 
 from backend.modules.recomendaciones.models import Recomendacion
 from tests.auth_helpers import authenticated_headers
@@ -199,11 +201,16 @@ def test_integridad_no_disponible_para_ejecutor(recomendacion_en_validacion, eje
 
 def test_tablero_lista_unidades_en_mora(recomendacion_en_validacion):
     rec_id, _, _ = recomendacion_en_validacion
-    Recomendacion.objects.filter(pk=rec_id).update(estado=Recomendacion.Estado.VENCIDA)
+    # Plazo vencido y la evidencia en revisión se entregó después del vencimiento.
+    Recomendacion.objects.filter(pk=rec_id).update(
+        estado=Recomendacion.Estado.EN_PROCESO,
+        fecha_vencimiento_legal=timezone.localdate() - timedelta(days=5),
+    )
     rectorado = authenticated_headers("RECTORADO", "rectorado-base", "RECTORADO")
     data = Client().get("/api/v1/reportes/tablero", **rectorado).json()["data"]
     assert data["en_mora"] == 1
     assert data["unidades_en_mora"][0]["unidad_codigo"] == "DEP-A"
+    assert "VENCIDA" not in data["por_estado"]
 
 
 def test_matriz_es_get_y_csv(recomendacion_en_validacion, uai):

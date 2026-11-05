@@ -7,8 +7,16 @@ from django.urls import URLPattern, URLResolver, get_resolver
 from drf_spectacular.generators import SchemaGenerator
 from drf_spectacular.validation import validate_schema
 
-CONTRACT = Path(__file__).resolve().parents[2] / "contracts" / "openapi.yaml"
-REGENERATE = "python backend/manage.py spectacular --validate --fail-on-warn --file backend/contracts/openapi.yaml"
+REPO = Path(__file__).resolve().parents[3]
+# Fuente oficial (backend) y copia enlazada desde los artefactos Spec Kit (plan, tasks, quickstart).
+CONTRACTS = [
+    REPO / "backend" / "contracts" / "openapi.yaml",
+    REPO / "specs" / "001-seguimiento-recomendaciones" / "contracts" / "openapi.yaml",
+]
+REGENERATE = (
+    "python backend/manage.py spectacular --validate --fail-on-warn --file backend/contracts/openapi.yaml\n"
+    "  copy backend/contracts/openapi.yaml specs/001-seguimiento-recomendaciones/contracts/openapi.yaml"
+)
 
 
 def test_contract_envoltorio_exitoso_y_error():
@@ -29,10 +37,11 @@ def generated_schema():
     return yaml.safe_load(yaml.safe_dump(schema, allow_unicode=True, sort_keys=False))
 
 
-def test_contrato_publicado_coincide_con_el_codigo(generated_schema):
-    published = yaml.safe_load(CONTRACT.read_text(encoding="utf-8"))
+@pytest.mark.parametrize("contract", CONTRACTS, ids=lambda path: str(path.relative_to(REPO)))
+def test_contrato_publicado_coincide_con_el_codigo(generated_schema, contract):
+    published = yaml.safe_load(contract.read_text(encoding="utf-8"))
     assert published == generated_schema, (
-        f"backend/contracts/openapi.yaml está desactualizado. Regenérelo con:\n  {REGENERATE}"
+        f"{contract.relative_to(REPO)} está desactualizado. Regenérelo con:\n  {REGENERATE}"
     )
 
 

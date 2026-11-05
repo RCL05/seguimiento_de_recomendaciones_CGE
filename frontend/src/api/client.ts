@@ -19,7 +19,10 @@ export type Recommendation = {
   legal_days: number;
   due_date: string;
   priority?: "ALTA" | "MEDIA" | "BAJA";
-  state: string;
+  state: "PENDIENTE" | "EN_PROCESO" | "EN_VALIDACION" | "REABIERTA" | "CUMPLIDA" | string;
+  /** Plazo legal vencido sin cumplir: indicador, no un estado del flujo. */
+  vencida?: boolean;
+  overdue_registered_at?: string | null;
 };
 
 export type Dictamen = {

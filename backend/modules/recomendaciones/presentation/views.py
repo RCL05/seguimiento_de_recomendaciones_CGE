@@ -15,6 +15,7 @@ from backend.modules.recomendaciones.application.create_recomendacion import Cre
 from backend.modules.recomendaciones.application.get_recomendacion import GetRecomendacion
 from backend.modules.recomendaciones.application.issue_dictamen import IssueDictamen
 from backend.modules.recomendaciones.application.list_recomendaciones import ListRecomendaciones
+from backend.modules.recomendaciones.application.reabrir_recomendacion import ReabrirRecomendacion
 from backend.modules.recomendaciones.presentation.serializers import (
     DictamenCreateSerializer,
     DictamenSerializer,
@@ -24,6 +25,7 @@ from backend.modules.recomendaciones.presentation.serializers import (
     RecomendacionDetalleSerializer,
     RecomendacionQuerySerializer,
     RecomendacionSerializer,
+    ReaperturaSerializer,
 )
 
 SOLO_UAI = require_roles(Role.UAI, message="Solo el rol UAI puede realizar esta operación.")
@@ -58,6 +60,7 @@ class RecomendacionListCreateView(ApiView):
             due_date=_iso(filters.get("due_date")),
             due_before=_iso(filters.get("due_before")),
             due_after=_iso(filters.get("due_after")),
+            overdue=filters.get("vencida"),
         )
         return ok(
             request,
@@ -100,6 +103,34 @@ class RecomendacionListCreateView(ApiView):
 
 
 class RecomendacionDetailView(ApiView):
+    def get_permissions(self):
+        if self.request.method == "PATCH":
+            return [IsAuthenticatedActor(), SOLO_UAI()]
+        return super().get_permissions()
+
+    @extend_schema(
+        tags=["Recomendaciones"],
+        operation_id="reabrirRecomendacion",
+        summary="Reabrir una recomendación cumplida (UAI)",
+        description=(
+            "Modificación parcial del estado: solo admite CUMPLIDA → REABIERTA con motivo. "
+            "El ejecutor la reanuda registrando un nuevo hito."
+        ),
+        request=ReaperturaSerializer,
+        responses={200: envelope("RecomendacionReabierta", RecomendacionSerializer), **errors(400, 401, 403, 404, 409)},
+    )
+    def patch(self, request, recommendation_id: UUID):
+        payload = ReaperturaSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        recommendation = ReabrirRecomendacion().execute(
+            actor=self.actor,
+            request_id=self.request_id,
+            recommendation_id=recommendation_id,
+            reason=payload.validated_data["motivo"],
+            ip_address=self.client_ip,
+        )
+        return ok(request, RecomendacionSerializer(recommendation).data, "Recomendación reabierta")
+
     @extend_schema(
         tags=["Recomendaciones"],
         operation_id="consultarRecomendacion",
@@ -143,7 +174,10 @@ class PlanAccionView(ApiView):
         tags=["Plan de acción"],
         operation_id="registrarHito",
         summary="Registrar un hito del plan de acción (EJECUTOR, RF-007)",
-        description="El primer hito inicia la ejecución: PENDIENTE/VENCIDA/REABIERTA → EN_PROCESO.",
+        description=(
+            "El primer hito inicia la ejecución: PENDIENTE/REABIERTA → EN_PROCESO. Dentro del plazo, "
+            "la fecha no excede el plazo legal; con el plazo vencido, debe ser hoy o posterior."
+        ),
         request=HitoCreateSerializer,
         responses={201: envelope("Hito", HitoSerializer), **errors(400, 401, 403, 404, 409)},
     )

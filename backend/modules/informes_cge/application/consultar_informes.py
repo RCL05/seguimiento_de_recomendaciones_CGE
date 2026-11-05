@@ -36,3 +36,15 @@ class ObtenerInforme:
         if informe is None:
             raise NotFoundError("El informe no existe.")
         return informe
+
+
+class ObtenerDocumentoInforme:
+    """Entrega el PDF oficial adjunto solo a roles autorizados (sin /media público)."""
+
+    def execute(self, *, actor: Usuario, informe_id: UUID):
+        informe = ObtenerInforme().execute(actor=actor, informe_id=informe_id)
+        if not informe.pdf_informe:
+            raise NotFoundError("El informe no tiene un documento PDF adjunto.")
+        if not informe.pdf_informe.storage.exists(informe.pdf_informe.name):
+            raise NotFoundError("El documento del informe no está disponible.")
+        return informe.pdf_informe.open("rb"), f"{informe.numero_informe}.pdf"
