@@ -14,7 +14,12 @@ if not SECRET_KEY:
 ROOT_URLCONF = "config.urls"
 ALLOWED_HOSTS = [host for host in os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",") if host]
 INSTALLED_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
     "backend.core.audit.apps.AuditConfig",
     "backend.modules.usuarios.apps.UsuariosConfig",
     "backend.modules.recomendaciones.apps.RecomendacionesConfig",
@@ -29,6 +34,12 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "backend.core.api.middleware.ApiErrorEnvelopeMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
 # CORS: orígenes explícitos por entorno (lista separada por comas). Sin valor, en
@@ -76,7 +87,7 @@ SPECTACULAR_SETTINGS = {
         "la envoltura universal `success`, `message`, `data`, `errors`, `meta`."
     ),
     "VERSION": "1.0.0",
-    "OAS_VERSION": "3.1.0",
+    "OAS_VERSION": "3.0.3",
     "SERVE_INCLUDE_SCHEMA": False,
     "SERVE_AUTHENTICATION": [],
     "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
@@ -101,11 +112,16 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [],
         "APP_DIRS": True,
-        "OPTIONS": {"context_processors": ["django.template.context_processors.request"]},
+        "OPTIONS": {"context_processors": [
+            "django.template.context_processors.request",
+            "django.contrib.auth.context_processors.auth",
+            "django.contrib.messages.context_processors.messages",
+        ]},
     }
 ]
 DEFAULT_EXCEPTION_REPORTER_FILTER = "django.views.debug.SafeExceptionReporterFilter"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+STATIC_URL = "/static/"
 USE_TZ = True
 TIME_ZONE = "America/Guayaquil"
 if os.getenv("POSTGRES_DB"):

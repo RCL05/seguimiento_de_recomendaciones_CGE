@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
-from drf_spectacular.utils import OpenApiResponse, inline_serializer
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse, inline_serializer
 from rest_framework import serializers
 
 
@@ -74,13 +74,27 @@ _ERROR_DESCRIPTIONS = {
     405: "METHOD_NOT_ALLOWED: ver la cabecera Allow.",
     409: "CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de negocio incumplida.",
     413: "PAYLOAD_TOO_LARGE: el PDF supera el tamaño máximo.",
+    500: "INTERNAL_ERROR: error inesperado procesando la solicitud.",
 }
 
 
 def errors(*statuses: int) -> dict[int, OpenApiResponse]:
     """Respuestas de error documentadas con la envoltura universal."""
+    statuses = tuple(dict.fromkeys((*statuses, 500)))
     return {
-        status: OpenApiResponse(ErrorEnvelopeSerializer, description=_ERROR_DESCRIPTIONS[status])
+        status: OpenApiResponse(
+            ErrorEnvelopeSerializer,
+            description=_ERROR_DESCRIPTIONS[status],
+            examples=[OpenApiExample(
+                "Error de servidor",
+                value={"success": False, "message": "Error interno del servidor", "data": None,
+                       "errors": {"code": "INTERNAL_ERROR", "detail": "No fue posible procesar la solicitud."},
+                       "meta": {"request_id": "4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001",
+                                "timestamp": "2026-11-05T12:00:00Z", "version": "1.0.0", "pagination": None}},
+                response_only=True,
+                status_codes=[str(status)],
+            )] if status == 500 else None,
+        )
         for status in statuses
     }
 

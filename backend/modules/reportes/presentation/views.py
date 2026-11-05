@@ -4,6 +4,9 @@ from __future__ import annotations
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiResponse, extend_schema
+from django.db.models import Count
+from django.utils import timezone
+from rest_framework import serializers
 
 from backend.core.api.base import ApiView, ok
 from backend.core.api.schema import envelope, errors
@@ -17,6 +20,39 @@ from backend.modules.reportes.presentation.serializers import (
     AuditoriaQuerySerializer,
     TableroSerializer,
 )
+from backend.modules.recomendaciones.infrastructure.repositories import anotar_vencimiento
+from backend.modules.recomendaciones.models import InformeCGE, Recomendacion
+
+
+class KpisSerializer(serializers.Serializer):
+    total_recomendaciones = serializers.IntegerField()
+    recomendaciones_por_estado = serializers.DictField(child=serializers.IntegerField())
+    tasa_cumplimiento_porcentaje = serializers.FloatField()
+    recomendaciones_vencidas_o_en_mora = serializers.IntegerField()
+    total_informes_cge = serializers.IntegerField()
+
+
+class KpisView(ApiView):
+    @extend_schema(
+        tags=["Dashboard"],
+        operation_id="consultarKpisDashboard",
+        summary="Consultar indicadores clave del sistema",
+        responses={200: envelope("KpisDashboard", KpisSerializer), **errors(401, 403, 500)},
+    )
+    def get(self, request):
+        counts = dict(Recomendacion.objects.values_list("estado").annotate(total=Count("id")))
+        total = sum(counts.values())
+        estados_requeridos = ("PENDIENTE", "EN_PROCESO", "EN_VALIDACION", "CUMPLIDA")
+        data = {
+            "total_recomendaciones": total,
+            "recomendaciones_por_estado": {estado: counts.get(estado, 0) for estado in estados_requeridos},
+            "tasa_cumplimiento_porcentaje": round(counts.get("CUMPLIDA", 0) * 100 / total, 2) if total else 0.0,
+            "recomendaciones_vencidas_o_en_mora": anotar_vencimiento(
+                Recomendacion.objects.all(), timezone.localdate()
+            ).filter(vencida=True).count(),
+            "total_informes_cge": InformeCGE.objects.count(),
+        }
+        return ok(request, KpisSerializer(data).data, "Indicadores del dashboard consultados")
 
 
 class TableroView(ApiView):
