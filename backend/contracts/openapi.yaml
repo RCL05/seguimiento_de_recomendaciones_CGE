@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
   title: SITRA-CGE UNL API
   version: 1.0.0
@@ -58,6 +58,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/auth/login-sso:
     post:
       operationId: iniciarSesionSso
@@ -96,6 +117,76 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
             expirado.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
+  /api/v1/dashboard/kpis:
+    get:
+      operationId: consultarKpisDashboard
+      summary: Consultar indicadores clave del sistema
+      tags:
+      - Dashboard
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpisDashboardEnvelope'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/evaluaciones-plazos:
     post:
       operationId: evaluarPlazos
@@ -126,6 +217,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/evidencias/{evidence_id}:
     patch:
       operationId: anularEvidencia
@@ -194,6 +306,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
             negocio incumplida.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/evidencias/{evidence_id}/archivo:
     get:
       operationId: descargarEvidencia
@@ -255,6 +388,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
             (BOLA/IDOR).'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/evidencias/{evidence_id}/integridad:
     get:
       operationId: verificarIntegridadEvidencia
@@ -297,6 +451,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
             (BOLA/IDOR).'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/informes:
     get:
       operationId: listarInformes
@@ -345,6 +520,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
     post:
       operationId: registrarInforme
       summary: Registrar un informe CGE con su documento oficial (UAI, RF-005)
@@ -400,6 +596,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PAYLOAD_TOO_LARGE: el PDF supera el tamaño máximo.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/informes/{informe_id}:
     get:
       operationId: consultarInforme
@@ -442,6 +659,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
             (BOLA/IDOR).'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/informes/{informe_id}/documento:
     get:
       operationId: descargarDocumentoInforme
@@ -485,6 +723,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
             (BOLA/IDOR).'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/notificaciones:
     get:
       operationId: consultarBandeja
@@ -507,6 +766,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
             expirado.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/notificaciones/configuracion:
     get:
       operationId: consultarConfiguracionNotificaciones
@@ -535,6 +815,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
     put:
       operationId: actualizarConfiguracionNotificaciones
       summary: Actualizar la configuración global de notificaciones (DTI)
@@ -579,6 +880,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/notificaciones/preferencias:
     get:
       operationId: consultarPreferencias
@@ -620,6 +942,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
             (BOLA/IDOR).'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
     put:
       operationId: actualizarPreferencias
       summary: Reemplazar preferencias de notificación
@@ -672,6 +1015,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
             (BOLA/IDOR).'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/recomendaciones:
     get:
       operationId: listarRecomendaciones
@@ -744,9 +1108,8 @@ paths:
       - in: query
         name: vencida
         schema:
-          type:
-          - boolean
-          - 'null'
+          type: boolean
+          nullable: true
         description: 'true: solo vencidas; false: solo dentro de plazo.'
       tags:
       - Recomendaciones
@@ -778,6 +1141,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
     post:
       operationId: registrarRecomendacion
       description: La recomendación se crea en estado PENDIENTE.
@@ -831,6 +1215,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
             negocio incumplida.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/recomendaciones/{recommendation_id}:
     get:
       operationId: consultarRecomendacion
@@ -875,6 +1280,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
             (BOLA/IDOR).'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
     patch:
       operationId: reabrirRecomendacion
       description: 'Modificación parcial del estado: solo admite CUMPLIDA → REABIERTA
@@ -942,6 +1368,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
             negocio incumplida.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/recomendaciones/{recommendation_id}/dictamenes:
     post:
       operationId: emitirDictamen
@@ -1011,6 +1458,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
             negocio incumplida.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/recomendaciones/{recommendation_id}/evidencias:
     post:
       operationId: cargarEvidencia
@@ -1094,6 +1562,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PAYLOAD_TOO_LARGE: el PDF supera el tamaño máximo.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/recomendaciones/{recommendation_id}/plan-accion:
     get:
       operationId: listarHitos
@@ -1136,6 +1625,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
             (BOLA/IDOR).'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
     post:
       operationId: registrarHito
       description: 'El primer hito inicia la ejecución: PENDIENTE/REABIERTA → EN_PROCESO.
@@ -1205,6 +1715,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
             negocio incumplida.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/reportes/matriz-cge:
     get:
       operationId: exportarMatrizCge
@@ -1236,6 +1767,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/reportes/tablero:
     get:
       operationId: consultarTablero
@@ -1264,6 +1816,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/unidades:
     get:
       operationId: listarUnidades
@@ -1292,6 +1865,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
     post:
       operationId: registrarUnidad
       summary: Registrar o renombrar una unidad orgánica (DTI)
@@ -1337,6 +1931,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/usuarios:
     get:
       operationId: listarUsuarios
@@ -1365,6 +1980,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/usuarios/{usuario_id}:
     patch:
       operationId: actualizarUsuario
@@ -1424,6 +2060,27 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
             (BOLA/IDOR).'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /health/:
     get:
       operationId: verificarSalud
@@ -1456,10 +2113,9 @@ components:
           type: string
           format: date-time
         usuario:
-          type:
-          - string
-          - 'null'
+          type: string
           format: email
+          nullable: true
         modulo:
           type: string
         accion:
@@ -1467,24 +2123,20 @@ components:
         entidad:
           type: string
         entidad_id:
-          type:
-          - string
-          - 'null'
+          type: string
           format: uuid
+          nullable: true
         estado_anterior:
-          type:
-          - string
-          - 'null'
+          type: string
+          nullable: true
         estado_nuevo:
-          type:
-          - string
-          - 'null'
+          type: string
+          nullable: true
         resultado:
           type: string
         ip_origen:
-          type:
-          - string
-          - 'null'
+          type: string
+          nullable: true
       required:
       - accion
       - entidad
@@ -1510,9 +2162,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -1532,9 +2182,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -1606,9 +2254,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -1626,9 +2272,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -1712,9 +2356,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -1744,9 +2386,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -1776,9 +2416,7 @@ components:
         message:
           type: string
         data:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         errors:
           $ref: '#/components/schemas/ErrorDetail'
         meta:
@@ -1862,9 +2500,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -1882,9 +2518,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -1941,9 +2575,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -1963,9 +2595,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2045,9 +2675,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2065,9 +2693,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2087,9 +2713,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2125,9 +2749,47 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
+    Kpis:
+      type: object
+      properties:
+        total_recomendaciones:
+          type: integer
+        recomendaciones_por_estado:
+          type: object
+          additionalProperties:
+            type: integer
+        tasa_cumplimiento_porcentaje:
+          type: number
+          format: double
+        recomendaciones_vencidas_o_en_mora:
+          type: integer
+        total_informes_cge:
+          type: integer
+      required:
+      - recomendaciones_por_estado
+      - recomendaciones_vencidas_o_en_mora
+      - tasa_cumplimiento_porcentaje
+      - total_informes_cge
+      - total_recomendaciones
+    KpisDashboardEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Kpis'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2155,9 +2817,9 @@ components:
         version:
           type: string
         pagination:
-          oneOf:
+          allOf:
           - $ref: '#/components/schemas/Pagination'
-          - type: 'null'
+          nullable: true
       required:
       - pagination
       - request_id
@@ -2179,10 +2841,9 @@ components:
         attempts:
           type: integer
         recommendation_id:
-          type:
-          - string
-          - 'null'
+          type: string
           format: uuid
+          nullable: true
       required:
       - attempts
       - id
@@ -2254,10 +2915,9 @@ components:
       type: object
       properties:
         id:
-          type:
-          - string
-          - 'null'
+          type: string
           format: uuid
+          nullable: true
         usuario_id:
           type: string
           format: uuid
@@ -2270,10 +2930,9 @@ components:
         activo:
           type: boolean
         actualizado_en:
-          type:
-          - string
-          - 'null'
+          type: string
           format: date-time
+          nullable: true
       required:
       - activo
       - actualizado_en
@@ -2306,9 +2965,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2326,9 +2983,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2397,10 +3052,9 @@ components:
           description: Plazo legal vencido sin cumplimiento. Es un indicador, no un
             estado del flujo.
         overdue_registered_at:
-          type:
-          - string
-          - 'null'
+          type: string
           format: date-time
+          nullable: true
       required:
       - description
       - due_date
@@ -2482,10 +3136,9 @@ components:
           description: Plazo legal vencido sin cumplimiento. Es un indicador, no un
             estado del flujo.
         overdue_registered_at:
-          type:
-          - string
-          - 'null'
+          type: string
           format: date-time
+          nullable: true
         evidencias:
           type: array
           items:
@@ -2514,9 +3167,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2534,9 +3185,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2554,9 +3203,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2576,9 +3223,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2625,9 +3270,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2670,9 +3313,8 @@ components:
         role:
           $ref: '#/components/schemas/RolInstitucionalEnum'
         unit_id:
-          type:
-          - string
-          - 'null'
+          type: string
+          nullable: true
       required:
       - access_token
       - display_name
@@ -2693,9 +3335,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2749,9 +3389,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2837,9 +3475,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2859,9 +3495,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2885,9 +3519,8 @@ components:
         rol:
           $ref: '#/components/schemas/RolInstitucionalEnum'
         unidad_codigo:
-          type:
-          - string
-          - 'null'
+          type: string
+          nullable: true
         activo:
           type: boolean
       required:
@@ -2906,9 +3539,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
@@ -2928,9 +3559,7 @@ components:
         message:
           type: string
         errors:
-          oneOf:
-          - {}
-          - type: 'null'
+          nullable: true
         meta:
           $ref: '#/components/schemas/Meta'
       required:
