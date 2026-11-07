@@ -4,7 +4,7 @@ import { api, clearSession, getSession, Role, Session } from "./api/client";
 import { Notice } from "./components/ui";
 import { NotificationSettingsPage } from "./features/administracion/pages/NotificationSettingsPage";
 import { AuditPage } from "./features/auditoria/pages/AuditPage";
-import { ExecutiveDashboardPage } from "./features/dashboard/pages/ExecutiveDashboardPage";
+import { DashboardKPIs } from "./features/dashboard/pages/DashboardKPIs";
 import { ReviewEvidencePage } from "./features/evidencias/pages/ReviewEvidencePage";
 import { PlanAccionPage } from "./features/planes/pages/PlanAccionPage";
 import { RegistroRecomendacionPage } from "./features/recomendaciones/pages/RegistroRecomendacionPage";
@@ -18,15 +18,10 @@ type AppRoute = {
 
 // Los roles de cada sección coinciden con los permisos que valida el backend.
 const routes: AppRoute[] = [
+  { path: "/tablero", label: "Dashboard de KPIs", roles: ["DTI", "UAI", "EJECUTOR", "RECTORADO", "CGE_AUDITOR"], page: <DashboardKPIs /> },
   { path: "/recomendaciones", label: "Recomendaciones", roles: ["UAI"], page: <RegistroRecomendacionPage /> },
   { path: "/evidencias/revisar", label: "Revisión de evidencias", roles: ["UAI"], page: <ReviewEvidencePage /> },
   { path: "/planes", label: "Mi bandeja", roles: ["EJECUTOR"], page: <PlanAccionPage /> },
-  {
-    path: "/tablero",
-    label: "Tablero ejecutivo",
-    roles: ["RECTORADO", "UAI", "CGE_AUDITOR"],
-    page: <ExecutiveDashboardPage />,
-  },
   { path: "/auditoria", label: "Auditoría y matriz", roles: ["UAI", "CGE_AUDITOR"], page: <AuditPage /> },
   {
     path: "/administracion/notificaciones",
@@ -242,6 +237,14 @@ export function App() {
             </a>
           ))}
         </nav>
+        <div className="external-links" aria-label="Documentación y arquitectura">
+          <a className="nav-link external-link" href="http://localhost:8000/api/docs/" target="_blank" rel="noreferrer">
+            Documentación API (Swagger)
+          </a>
+          <a className="nav-link external-link" href="http://localhost:8001/" target="_blank" rel="noreferrer">
+            Arquitectura C4
+          </a>
+        </div>
         <div className="user-card">
           <div>
             <strong>{session.displayName}</strong>

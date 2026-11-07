@@ -47,6 +47,7 @@ export function EvidenceUpload({
       setStatus("done");
       setHash(evidence.sha256);
       showToast(`Evidencia ${evidence.filename} cargada correctamente.`);
+      window.dispatchEvent(new Event("sitra:dashboard-refresh"));
       onUploaded?.(evidence);
     } catch (caught) {
       setStatus("error");

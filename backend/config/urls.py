@@ -4,6 +4,7 @@ Cada módulo expone sus recursos REST versionados bajo /api/v1/ desde su capa
 `presentation/urls.py`. Las rutas nombran recursos (sustantivos) y el método HTTP
 expresa la operación (Semana 3: preferir recursos frente a acciones arbitrarias).
 """
+from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
@@ -15,6 +16,7 @@ from backend.core.web.views import dashboard
 API_V1 = "api/v1/"
 
 urlpatterns = [
+    path("admin/", admin.site.urls),
     path("health/", HealthView.as_view(), name="health"),
     path(API_V1, include("backend.modules.usuarios.presentation.urls")),
     path(API_V1, include("backend.modules.informes_cge.presentation.urls")),
