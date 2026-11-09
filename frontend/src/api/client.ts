@@ -83,6 +83,14 @@ export type Dashboard = {
   fecha_corte: string;
 };
 
+export type DashboardKPIs = {
+  total_recomendaciones: number;
+  recomendaciones_por_estado: Record<string, number>;
+  tasa_cumplimiento_porcentaje: number;
+  recomendaciones_vencidas_o_en_mora: number;
+  total_informes_cge: number;
+};
+
 export type AuditLogEntry = {
   id: string;
   request_id: string;
@@ -335,6 +343,8 @@ export const api = {
   },
 
   getDashboard: () => request<Dashboard>("/api/v1/reportes/tablero"),
+
+  getDashboardKPIs: () => request<DashboardKPIs>("/api/v1/dashboard/kpis"),
 
   getAuditLog: (filters: { entity?: string; entity_id?: string; limit?: number } = {}) => {
     const params = new URLSearchParams();

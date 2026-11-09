@@ -79,6 +79,7 @@ export function ReviewEvidencePage() {
       setDetail(null);
       setEvidenceId("");
       formRef.current?.reset();
+      window.dispatchEvent(new Event("sitra:dashboard-refresh"));
       showToast(
         approved
           ? `Evidencia aprobada. La recomendación quedó en estado ${stateLabel(updated.state)}.`
