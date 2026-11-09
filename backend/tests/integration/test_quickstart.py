@@ -59,7 +59,7 @@ class QuickstartSmokeTests(TestCase):
                 "description": "Implementar controles internos.",
                 "unit_id": "DEP-A",
                 "legal_days": 30,
-                "due_date": "2026-02-14",
+                "due_date": "2027-02-14",
                 "priority": "ALTA",
             },
             "UAI",
@@ -72,7 +72,7 @@ class QuickstartSmokeTests(TestCase):
     def _start_execution(self, recommendation_id):
         plan = self._post(
             f"/api/v1/recomendaciones/{recommendation_id}/plan-accion",
-            {"descripcion_hito": "Documentar controles", "fecha_compromiso": "2026-01-30"},
+            {"descripcion_hito": "Documentar controles", "fecha_compromiso": "2027-01-30"},
             "EJECUTOR",
             "ejecutor-a",
             "DEP-A",
@@ -105,8 +105,8 @@ class QuickstartSmokeTests(TestCase):
         self.assertEqual(detail.json()["data"]["state"], "EN_VALIDACION")
         self.assertEqual(len(detail.json()["data"]["evidencias"]), 1)
 
-        dictamen = self.client.patch(
-            f"/api/v1/recomendaciones/{recommendation_id}/dictamen",
+        dictamen = self.client.post(
+            f"/api/v1/recomendaciones/{recommendation_id}/dictamenes",
             data=json.dumps(
                 {
                     "evidence_id": evidence["id"],
@@ -117,8 +117,9 @@ class QuickstartSmokeTests(TestCase):
             content_type="application/json",
             **authenticated_headers("UAI", "uai-quickstart", "UAI"),
         )
-        self.assertEqual(dictamen.status_code, 200, dictamen.content)
-        self.assertEqual(dictamen.json()["data"]["state"], "CUMPLIDA")
+        self.assertEqual(dictamen.status_code, 201, dictamen.content)
+        self.assertEqual(dictamen.json()["data"]["resultado"], "APROBADO")
+        self.assertEqual(dictamen.json()["data"]["recomendacion"]["state"], "CUMPLIDA")
 
         actions = list(
             AuditLog.objects.filter(entidad_id=recommendation_id).values_list(
@@ -133,8 +134,8 @@ class QuickstartSmokeTests(TestCase):
         self._start_execution(recommendation_id)
         first = self._upload(recommendation_id).json()["data"]
 
-        rejection = self.client.patch(
-            f"/api/v1/recomendaciones/{recommendation_id}/dictamen",
+        rejection = self.client.post(
+            f"/api/v1/recomendaciones/{recommendation_id}/dictamenes",
             data=json.dumps(
                 {
                     "evidence_id": first["id"],
@@ -145,8 +146,9 @@ class QuickstartSmokeTests(TestCase):
             content_type="application/json",
             **authenticated_headers("UAI", "uai-quickstart", "UAI"),
         )
-        self.assertEqual(rejection.status_code, 200, rejection.content)
-        self.assertEqual(rejection.json()["data"]["state"], "EN_PROCESO")
+        self.assertEqual(rejection.status_code, 201, rejection.content)
+        self.assertEqual(rejection.json()["data"]["resultado"], "RECHAZADO")
+        self.assertEqual(rejection.json()["data"]["recomendacion"]["state"], "EN_PROCESO")
 
         detail = self.client.get(
             f"/api/v1/recomendaciones/{recommendation_id}",
@@ -177,13 +179,13 @@ class QuickstartSmokeTests(TestCase):
         )
 
     def test_matriz_csv_restingida_por_rol(self):
-        forbidden = self.client.post(
+        forbidden = self.client.get(
             "/api/v1/reportes/matriz-cge",
             **authenticated_headers("EJECUTOR", "ejecutor-a", "DEP-A"),
         )
         self.assertEqual(forbidden.status_code, 403)
 
-        allowed = self.client.post(
+        allowed = self.client.get(
             "/api/v1/reportes/matriz-cge",
             **authenticated_headers("CGE_AUDITOR", "auditor-quickstart"),
         )

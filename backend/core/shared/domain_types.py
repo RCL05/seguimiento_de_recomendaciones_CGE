@@ -50,7 +50,6 @@ class RecommendationState(str, Enum):
     PENDIENTE = "PENDIENTE"
     EN_PROCESO = "EN_PROCESO"
     EN_VALIDACION = "EN_VALIDACION"
-    VENCIDA = "VENCIDA"
     REABIERTA = "REABIERTA"
     CUMPLIDA = "CUMPLIDA"
 

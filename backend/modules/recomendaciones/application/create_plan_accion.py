@@ -2,9 +2,10 @@
 
 Reglas de negocio:
 - Solo el ejecutor de la unidad responsable puede registrar hitos.
-- Una recomendación Pendiente, Vencida o Reabierta puede iniciar ejecución.
-- Una recomendación En Proceso puede recibir hitos adicionales.
-- La fecha de compromiso no puede exceder fecha_vencimiento_legal.
+- Una recomendación Pendiente o Reabierta inicia ejecución (pasa a En Proceso).
+- Una recomendación En Proceso puede recibir hitos adicionales (aunque esté vencida).
+- Dentro del plazo, el hito no excede fecha_vencimiento_legal; con el plazo
+  vencido, el hito se compromete desde hoy (domain/vencimiento.py).
 - La transición de inicio pasa por la máquina de estados.
 - Operación atómica con select_for_update.
 - Se audita dentro de la misma transacción.
@@ -15,6 +16,7 @@ from datetime import date
 from uuid import UUID
 
 from django.db import transaction
+from django.utils import timezone
 
 from backend.core.audit.repository import record_audit
 from backend.core.shared.domain_types import (
@@ -24,6 +26,7 @@ from backend.core.shared.domain_types import (
     ValidationError,
 )
 from backend.modules.recomendaciones.domain.state_machine import transition_state
+from backend.modules.recomendaciones.domain.vencimiento import fecha_compromiso_valida
 from backend.modules.recomendaciones.models import PlanAccion, Recomendacion
 from backend.modules.usuarios.models import Usuario
 
@@ -70,16 +73,18 @@ class CreatePlanAccion:
             raise ValidationError("La descripción del hito es obligatoria.")
         if not commitment_date:
             raise ValidationError("La fecha de compromiso es obligatoria.")
-        if commitment_date > rec.fecha_vencimiento_legal:
-            raise ValidationError(
-                "La fecha de compromiso no puede exceder el plazo legal de la recomendación."
-            )
+        motivo = fecha_compromiso_valida(
+            compromiso=commitment_date,
+            fecha_vencimiento=rec.fecha_vencimiento_legal,
+            hoy=timezone.localdate(),
+        )
+        if motivo:
+            raise ValidationError(motivo)
 
         # Transición de estado
         previous_state = rec.estado
         if rec.estado in {
             Recomendacion.Estado.PENDIENTE,
-            Recomendacion.Estado.VENCIDA,
             Recomendacion.Estado.REABIERTA,
         }:
             rec.estado = transition_state(rec.estado, RecommendationState.EN_PROCESO)

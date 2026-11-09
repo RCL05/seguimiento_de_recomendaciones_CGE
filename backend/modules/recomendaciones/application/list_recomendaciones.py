@@ -35,6 +35,7 @@ class ListRecomendaciones:
         due_date: str | None = None,
         due_before: str | None = None,
         due_after: str | None = None,
+        overdue: bool | None = None,
     ):
         if actor.rol not in ALLOWED_ROLES:
             raise PermissionDenied("No tiene permisos para consultar recomendaciones.")
@@ -76,6 +77,7 @@ class ListRecomendaciones:
             state=state,
             unit_code=unit_code,
             priority=priority,
+            overdue=overdue,
             **parsed_dates,
         )
 

@@ -1,36 +1,34 @@
 # SITRA-CGE UNL
 
-Sistema para la gestión, seguimiento y trazabilidad de las recomendaciones
-emitidas por la Contraloría General del Estado (CGE) para la Universidad
-Nacional de Loja (UNL).
+Sistema para registrar, asignar, dar seguimiento y mantener la trazabilidad de
+las recomendaciones emitidas por la Contraloría General del Estado (CGE) para
+la Universidad Nacional de Loja (UNL).
 
-## Alcance
+## Arquitectura resumida
 
-SITRA-CGE permite registrar informes y recomendaciones, asignar unidades
-responsables, gestionar planes de acción, adjuntar evidencias PDF, revisar
-dictámenes, consultar auditoría y exportar la matriz de cumplimiento.
+- **Backend:** Django 5, Django REST Framework, JWT y SQLite para desarrollo.
+- **Frontend:** React, TypeScript y Vite.
+- **Documentación:** Swagger UI en Django y servidor Quart para la documentación
+  Markdown y el diagrama de arquitectura C4.
+- **Evidencias:** archivos PDF almacenados en `backend/media/evidencias/`.
+- **Autenticación local:** tokens SSO simulados que devuelven un JWT de
+  desarrollo.
 
-- Backend: Django 5, API REST y SQLite para desarrollo local.
-- Frontend: React, TypeScript y Vite.
-- Autenticación local de desarrollo: credenciales SSO simuladas que emiten JWT.
-- Evidencias: archivos PDF almacenados en `backend/media/evidencias/`.
-
-La planificación y trazabilidad se encuentran en
-[`specs/001-seguimiento-recomendaciones/`](specs/001-seguimiento-recomendaciones/).
-La documentación complementaria está en [`docs/`](docs/).
+La documentación técnica ampliada se encuentra en [`docs/`](docs/) y la
+arquitectura en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 
 ## Requisitos previos
 
-- Python 3.10 o superior
-- Node.js 20 o superior y npm
+Instale las siguientes herramientas:
+
+- Python **3.10 o superior**
+- Node.js **18 o superior** y npm
 - Git
-- Visual Studio Code (opcional)
 
-## Puesta en marcha local
+Los comandos de esta guía se muestran para Windows PowerShell y bash. Todas las
+rutas relativas parten de la raíz del repositorio.
 
-Los comandos siguientes se ejecutan desde la raíz del repositorio. En Windows
-PowerShell se recomienda usar `py` para seleccionar Python; en macOS/Linux se
-puede usar `python3`.
+## Instalación y configuración del entorno
 
 ### 1. Clonar el repositorio
 
@@ -39,7 +37,7 @@ git clone https://github.com/RCL05/seguimiento_de_recomendaciones_CGE.git
 cd seguimiento_de_recomendaciones_CGE
 ```
 
-### 2. Crear y activar el entorno virtual
+### 2. Crear y activar `.venv` en la raíz
 
 Windows PowerShell:
 
@@ -48,7 +46,7 @@ py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Si PowerShell bloquea la activación para el usuario actual:
+Si PowerShell bloquea la activación:
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
@@ -62,251 +60,241 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-### 3. Instalar dependencias del backend
+Compruebe que el entorno está activo antes de continuar:
 
 ```bash
+python --version
 python -m pip install --upgrade pip
-python -m pip install -e "backend[test]"
 ```
 
-También puede instalarse el archivo de dependencias:
+### 3. Instalar dependencias del backend y documentación
 
 ```bash
 python -m pip install -r backend/requirements.txt
+python -m pip install django-cors-headers drf-spectacular quart markdown
 ```
 
-### 4. Configurar variables de entorno
+`django-cors-headers` y `drf-spectacular` también están declarados en los
+requisitos del backend; el segundo comando deja explícitas las dependencias
+necesarias para CORS, Swagger y el servidor Quart.
 
-Copie `backend/.env.example` como referencia y configure, como mínimo:
+### 4. Ejecutar migraciones Django
 
-```text
-DJANGO_DEBUG=true
-DJANGO_SECRET_KEY=clave-local-de-al-menos-32-caracteres
-JWT_SIGNING_KEY=clave-jwt-local-de-al-menos-32-caracteres
-DJANGO_MEDIA_ROOT=./media
-```
-
-En desarrollo, si `POSTGRES_DB` está vacío, Django utiliza
-`backend/development.sqlite3`. No incluya credenciales institucionales ni
-secretos reales en el repositorio.
-
-### 5. Ejecutar migraciones Django
+Ejecute ambos comandos desde `backend/`:
 
 ```bash
-python backend/manage.py migrate
+cd backend
+python manage.py makemigrations
+python manage.py migrate
+cd ..
 ```
 
-### 6. Crear datos iniciales
+`makemigrations` no debería generar cambios en un clon limpio. Si genera una
+migración porque se modificaron modelos localmente, revísela antes de
+confirmarla.
 
-El siguiente comando crea unidades base para los usuarios de prueba. Los
-usuarios se crean automáticamente al iniciar sesión con un token SSO de
-desarrollo.
+### 5. Poblar datos iniciales
+
+El script crea de forma idempotente las unidades `UAI`, `DEP-A`, `DTI` y
+`RECTORADO`, además de los usuarios de prueba. Ejecútelo desde `backend/`:
 
 ```bash
-python backend/manage.py shell -c "from backend.modules.usuarios.models import UnidadOrganica; [UnidadOrganica.objects.get_or_create(codigo=codigo, defaults={'nombre': nombre}) for codigo, nombre in [('UAI', 'Auditoría Interna'), ('DEP-A', 'Departamento A'), ('DTI', 'Dirección de Tecnologías de la Información'), ('RECTORADO', 'Rectorado')]]"
+cd backend
+python scripts/seed_initial_data.py
+cd ..
 ```
 
-### 7. Preparar el almacenamiento de evidencias
+Los usuarios se pueden volver a crear sin duplicados. El adaptador SSO de
+desarrollo también puede completar la identidad al iniciar sesión por primera
+vez.
 
-```bash
-mkdir -p backend/media/evidencias
-```
+### 6. Crear el almacenamiento de evidencias
 
-En Windows PowerShell:
+Windows PowerShell:
 
 ```powershell
 New-Item -ItemType Directory -Force backend\media\evidencias
 ```
 
-### 8. Iniciar el backend
+macOS/Linux:
 
 ```bash
-python backend/manage.py runserver 127.0.0.1:8000
+mkdir -p backend/media/evidencias
 ```
 
-Comprobación de salud:
-
-```text
-http://127.0.0.1:8000/health/
-```
-
-### 9. Instalar y ejecutar el frontend
-
-En otra terminal, desde la raíz:
+### 7. Instalar dependencias del frontend
 
 ```bash
 cd frontend
-npm ci
+npm install
+cd ..
+```
+
+## Guía de ejecución del sistema
+
+Inicie los tres procesos en **tres terminales independientes**. En cada
+terminal active `.venv` antes de ejecutar el comando Python.
+
+### Terminal 1: Backend Django — puerto 8000
+
+Desde la raíz del proyecto:
+
+```bash
+.\.venv\Scripts\Activate.ps1  # Windows PowerShell
+cd backend
+python manage.py runserver
+```
+
+En macOS/Linux, active con `source .venv/bin/activate` y use el mismo comando
+`python manage.py runserver`.
+
+### Terminal 2: Servidor Quart de documentación — puerto 8001
+
+**Debe ejecutarse estrictamente desde la raíz del proyecto**, no desde
+`backend/`, `frontend/` ni `docs_server/`:
+
+```bash
+.\.venv\Scripts\Activate.ps1  # Windows PowerShell
+python docs_server/app.py
+```
+
+El servidor busca los archivos Markdown en `docs/` relativo a la raíz del
+repositorio.
+
+### Terminal 3: Frontend React — puerto 5173
+
+```bash
+cd frontend
 npm run dev
 ```
 
-La aplicación estará disponible normalmente en
-`http://127.0.0.1:5173/`. Para apuntar a otro backend, configure
-`VITE_API_BASE` antes de iniciar Vite.
+## Puntos de acceso
 
-## Credenciales SSO de prueba
+| Servicio | URL |
+|---|---|
+| Frontend Web | [http://localhost:5173/](http://localhost:5173/) |
+| Swagger UI API Docs | [http://localhost:8000/api/docs/](http://localhost:8000/api/docs/) |
+| Servidor de Arquitectura C4 Quart | [http://localhost:8001/](http://localhost:8001/) |
+| Django Admin | [http://localhost:8000/admin/](http://localhost:8000/admin/) |
+| Health check | [http://localhost:8000/health/](http://localhost:8000/health/) |
 
-Con `DJANGO_DEBUG=true`, el backend reconoce estos tokens en
-`backend/modules/usuarios/infrastructure/sso_adapter.py`. Al autenticarse,
-el backend devuelve un JWT Bearer temporal de una hora; el token SSO no debe
-usarse como encabezado `Authorization`.
+## Credenciales y tokens SSO de prueba
 
-| Token SSO | Rol | Unidad | Permisos principales | Estado |
-|---|---|---|---|---|
-| `uai-sso-token` | `UAI` | `UAI` | Registrar informes y recomendaciones, consultar unidades, revisar/aprobar o rechazar evidencias, consultar auditoría y exportar matrices. | Disponible |
-| `ejecutor-sso-token` | `EJECUTOR` | `DEP-A` | Consultar recomendaciones de su unidad, registrar planes de acción y cargar evidencias PDF. | Disponible |
-| `dti-sso-token` | `DTI` | `DTI` | Administrar usuarios/unidades, configurar notificaciones y ejecutar jobs internos de vencimiento. | Disponible |
-| `rectorado-sso-token` | `RECTORADO` | `RECTORADO` | Consultar tablero ejecutivo y exportar matrices. | Disponible |
+Con `DJANGO_DEBUG=true` (valor predeterminado local), use estos tokens en la
+pantalla de inicio de sesión:
 
-Para probar el login:
+| Token SSO | Rol | Unidad | Uso |
+|---|---|---|---|
+| `uai-sso-token` | UAI — Auditor | UAI | Registrar recomendaciones, revisar evidencias, dictaminar y consultar auditoría |
+| `ejecutor-sso-token` | EJECUTOR | DEP-A | Gestionar planes de acción y cargar evidencias |
+| `dti-sso-token` | DTI — Admin | DTI | Administrar configuración y notificaciones |
+| `rectorado-sso-token` | RECTORADO — Autoridad | RECTORADO | Consultar indicadores y reportes institucionales |
 
-1. Abra la aplicación frontend.
-2. Introduzca uno de los tokens disponibles.
-3. Use el JWT devuelto por la aplicación para las peticiones protegidas.
+Estos tokens son únicamente para desarrollo. La aplicación los intercambia por
+un JWT temporal; no los envíe como encabezado `Authorization`.
 
-Una credencial SSO inválida responde `401 AUTHENTICATION_REQUIRED`.
-
-## Máquina de estados
+## Máquina de estados y secuencia de recomendaciones
 
 Flujo principal:
 
 ```text
 PENDIENTE
-    │ Registrar plan de acción
+    │ La UAI registra la recomendación
     ▼
 EN_PROCESO
-    │ Cargar evidencia PDF y notificar cumplimiento
+    │ El Ejecutor registra hitos y carga evidencia PDF
     ▼
 EN_VALIDACION
-    ├── Dictamen aprobado por UAI ─────► CUMPLIDA
-    └── Dictamen rechazado por UAI ────► EN_PROCESO
-```
-
-Estados complementarios:
-
-```text
-PENDIENTE / EN_PROCESO / EN_VALIDACION
-    └── Job de vencimientos ───────────► VENCIDA
-
-VENCIDA ── Reanudación por EJECUTOR ──► EN_PROCESO
-CUMPLIDA ─ Hallazgo y reapertura UAI ─► REABIERTA
-REABIERTA ─ Nuevo plan por EJECUTOR ──► EN_PROCESO
+    ├── UAI aprueba el dictamen ──► CUMPLIDA
+    └── UAI rechaza el dictamen ──► EN_PROCESO
 ```
 
 Reglas:
 
-- `PENDIENTE`: la UAI registra la recomendación; el Ejecutor debe crear el
-  plan de acción.
-- `EN_PROCESO`: el Ejecutor puede avanzar y adjuntar una evidencia PDF válida.
-- `EN_VALIDACION`: la UAI revisa la evidencia; el Ejecutor no puede aprobar su
-  propio cumplimiento.
-- `CUMPLIDA`: solo se alcanza con dictamen aprobado y evidencia validada.
-- `VENCIDA`: la tarea automática marca recomendaciones cuyo plazo expiró sin
-  cumplimiento aprobado.
-- `REABIERTA`: la UAI puede reabrir una recomendación cumplida cuando exista
-  un hallazgo que lo justifique.
-- Toda transición no definida por la máquina de estados debe rechazarse.
+1. **PENDIENTE:** la recomendación existe, pero el Ejecutor debe registrar el
+   plan de acción.
+2. **EN_PROCESO:** la unidad responsable puede registrar hitos y cargar
+   evidencia PDF válida.
+3. **EN_VALIDACION:** la evidencia espera revisión de la UAI; el Ejecutor no
+   puede aprobar su propio cumplimiento.
+4. **CUMPLIDA:** solo se alcanza con evidencia validada y dictamen aprobado por
+   la UAI.
+5. Una evidencia rechazada devuelve la recomendación a `EN_PROCESO`.
+6. La UAI puede reabrir una recomendación cumplida por un hallazgo justificado:
+   `CUMPLIDA -> REABIERTA -> EN_PROCESO`.
+7. El vencimiento es un indicador independiente del estado. Una recomendación
+   puede estar `EN_PROCESO` y vencida; el estado no cambia automáticamente.
+8. Toda transición no definida por estas reglas debe ser rechazada por la API.
 
-## Guía de usuario
+## Solución de problemas comunes
 
-### Auditor UAI
+### `ModuleNotFoundError: No module named 'corsheaders'`
 
-1. Inicie sesión con `uai-sso-token`.
-2. En **Recomendaciones**, complete el número del informe, período y fecha de
-   notificación.
-3. Adjunte el **Informe CGE** usando el selector de archivo PDF.
-4. Seleccione la **Unidad responsable** en el menú desplegable.
-5. Complete número, descripción, prioridad y fecha de vencimiento.
-6. Guarde el formulario. La recomendación se crea en `PENDIENTE` y la lista se
-   actualiza sin recargar la página.
-7. En **Revisión de evidencias**, seleccione una recomendación en
-   `EN_VALIDACION`.
-8. Abra o descargue la evidencia, revise su tipo, estado y hash SHA-256.
-9. Seleccione la evidencia y emita **Aprobar** o **Rechazar**. Al rechazar,
-   registre observaciones claras.
-10. Consulte **Auditoría** o exporte la matriz cuando necesite verificar la
-    trazabilidad o reportar resultados.
-
-### Ejecutor DEP-A
-
-1. Inicie sesión con `ejecutor-sso-token`.
-2. En **Planes de acción**, seleccione una recomendación de `DEP-A`.
-3. En estado `PENDIENTE`, registre la descripción del hito y la fecha de
-   compromiso.
-4. Cuando la recomendación esté `EN_PROCESO`, seleccione un archivo PDF de
-   evidencia de hasta 30 MB.
-5. Elija el tipo de evidencia, si la pantalla lo solicita, y espere el mensaje
-   de carga exitosa.
-6. La lista se actualiza automáticamente y la recomendación pasa a revisión
-   de la UAI.
-7. Si la recomendación está en `EN_VALIDACION`, `CUMPLIDA` o en otro estado no
-   editable, los controles aparecen deshabilitados con una explicación.
-8. Una evidencia rechazada permite corregir el avance cuando la recomendación
-   vuelva a `EN_PROCESO`.
-
-Las notificaciones de éxito o error se cierran automáticamente después de
-cuatro segundos; también pueden cerrarse con el botón **X**.
-
-## Comandos estándar de Git
-
-Consulte la rama actual y el estado de trabajo:
+El entorno virtual no tiene instaladas todas las dependencias o no está
+activo. Desde la raíz:
 
 ```bash
-git branch --show-current
-git status
+.\.venv\Scripts\Activate.ps1  # Windows PowerShell
+python -m pip install -r backend/requirements.txt
+python -m pip install django-cors-headers drf-spectacular quart markdown
 ```
 
-Crear o cambiar a una rama de trabajo:
+Reinicie el servidor Django después de instalar.
+
+### `ECONNREFUSED 127.0.0.1:8000` en Vite
+
+El frontend no puede conectarse al backend. Verifique que la Terminal 1 siga
+ejecutando `python manage.py runserver` dentro de `backend/` y que la URL
+`http://localhost:8000/health/` responda. Después recargue el frontend.
+
+### `Errno 2 No such file or directory` al iniciar Quart
+
+Quart se inició desde una carpeta incorrecta o no encuentra la documentación.
+Detenga el proceso y ejecútelo estrictamente desde la raíz:
 
 ```bash
-git switch -c feature/nombre-del-cambio
+python docs_server/app.py
 ```
 
-Añadir cambios:
+Compruebe que la ruta actual contiene las carpetas `docs/` y `docs_server/`.
+
+### `sqlite3.OperationalError: no such column`
+
+La base de datos no está alineada con los modelos actuales. Desde `backend/`:
 
 ```bash
-git add README.md
-git add .
+python manage.py makemigrations
+python manage.py migrate
 ```
 
-Revisar lo que se va a confirmar y crear el commit:
+Si el error persiste en una instalación local descartable, detenga Django,
+elimine únicamente `backend/development.sqlite3`, vuelva a ejecutar las
+migraciones y el script de datos iniciales. No haga esto con una base de datos
+que contenga información real.
 
-```bash
-git diff --cached
-git commit -m "docs: actualizar documentación oficial de SITRA-CGE"
-```
-
-Publicar la rama:
-
-```bash
-git push -u origin feature/nombre-del-cambio
-```
-
-Para una rama ya existente:
-
-```bash
-git switch feature/nombre-del-cambio
-git add .
-git commit -m "tipo: descripción breve del cambio"
-git push
-```
-
-Antes de fusionar a `develop` o `main`, abra un Pull Request y solicite la
-revisión de otra persona del equipo.
-
-## Pruebas y comandos de calidad
-
-Backend:
-
-```bash
-python -m pytest backend/tests -q
-```
+## Pruebas y calidad
 
 Frontend:
 
 ```bash
 cd frontend
-npm test -- --run
-npm run build
+npm test
 npm run lint
+npm run build
+```
+
+Backend:
+
+```bash
+cd backend
+python manage.py test
+```
+
+## Estructura principal
+
+```text
+backend/      API Django, modelos, migraciones y almacenamiento local
+frontend/     Aplicación React + TypeScript + Vite
+docs/         Documentación técnica, ADR y arquitectura
+docs_server/  Servidor Quart para visualizar Markdown
 ```

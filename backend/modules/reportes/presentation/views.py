@@ -1,59 +1,109 @@
+"""Capa API del módulo de reportes: tablero ejecutivo, matriz CGE y consulta de auditoría."""
 from __future__ import annotations
 
 from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiResponse, extend_schema
+from django.db.models import Count
+from django.utils import timezone
+from rest_framework import serializers
 
-from backend.core.api.exception_handler import ErrorCodes, handle_exception
-from backend.core.api.response_envelope import error_response, success_response
-from backend.core.shared.domain_types import PermissionDenied, Role, User
+from backend.core.api.base import ApiView, ok
+from backend.core.api.schema import envelope, errors
+from backend.core.audit.repository import query_audit_log
+from backend.core.auth.permissions import IsAuthenticatedActor, require_roles
+from backend.core.shared.domain_types import Role
 from backend.modules.reportes.application.export_matriz import export_matriz_cge_csv
 from backend.modules.reportes.application.get_dashboard import get_dashboard
+from backend.modules.reportes.presentation.serializers import (
+    AuditLogSerializer,
+    AuditoriaQuerySerializer,
+    TableroSerializer,
+)
+from backend.modules.recomendaciones.infrastructure.repositories import anotar_vencimiento
+from backend.modules.recomendaciones.models import InformeCGE, Recomendacion
 
 
-def _get_actor(request):
-    role = request.headers.get("X-Role") or request.headers.get("HTTP_X_ROLE")
-    unit_id = request.headers.get("X-Unit-Id") or request.headers.get("HTTP_X_UNIT_ID")
-    if not role:
-        raise PermissionDenied("Rol requerido en encabezados.")
-    try:
-        user_role = Role(role)
-    except Exception:
-        raise PermissionDenied("Rol inválido.")
-    return User(id="sys", role=user_role, unit_id=unit_id)
+class KpisSerializer(serializers.Serializer):
+    total_recomendaciones = serializers.IntegerField()
+    recomendaciones_por_estado = serializers.DictField(child=serializers.IntegerField())
+    tasa_cumplimiento_porcentaje = serializers.FloatField()
+    recomendaciones_vencidas_o_en_mora = serializers.IntegerField()
+    total_informes_cge = serializers.IntegerField()
 
 
-@csrf_exempt
-@require_http_methods(["GET"])
-def tablero_view(request):
-    try:
-        actor = _get_actor(request)
-        if actor.role not in (Role.RECTORADO, Role.DTI, Role.UAI, Role.CGE_AUDITOR):
-            return error_response(
-                code=ErrorCodes.FORBIDDEN,
-                message="Acceso exclusivo a RECTORADO y roles autorizados.",
-                status=403,
-            )
-        data = get_dashboard()
-        return success_response(data=data, message="Tablero consultado")
-    except Exception as exc:
-        return handle_exception(exc)
+class KpisView(ApiView):
+    @extend_schema(
+        tags=["Dashboard"],
+        operation_id="consultarKpisDashboard",
+        summary="Consultar indicadores clave del sistema",
+        responses={200: envelope("KpisDashboard", KpisSerializer), **errors(401, 403, 500)},
+    )
+    def get(self, request):
+        counts = dict(Recomendacion.objects.values_list("estado").annotate(total=Count("id")))
+        total = sum(counts.values())
+        estados_requeridos = ("PENDIENTE", "EN_PROCESO", "EN_VALIDACION", "CUMPLIDA")
+        data = {
+            "total_recomendaciones": total,
+            "recomendaciones_por_estado": {estado: counts.get(estado, 0) for estado in estados_requeridos},
+            "tasa_cumplimiento_porcentaje": round(counts.get("CUMPLIDA", 0) * 100 / total, 2) if total else 0.0,
+            "recomendaciones_vencidas_o_en_mora": anotar_vencimiento(
+                Recomendacion.objects.all(), timezone.localdate()
+            ).filter(vencida=True).count(),
+            "total_informes_cge": InformeCGE.objects.count(),
+        }
+        return ok(request, KpisSerializer(data).data, "Indicadores del dashboard consultados")
 
 
-@csrf_exempt
-@require_http_methods(["POST"])
-def matriz_cge_view(request):
-    try:
-        actor = _get_actor(request)
-        if actor.role not in (Role.UAI, Role.CGE_AUDITOR, Role.RECTORADO):
-            return error_response(
-                code=ErrorCodes.FORBIDDEN,
-                message="No tiene permisos para exportar la matriz CGE.",
-                status=403,
-            )
-        csv_bytes = export_matriz_cge_csv()
-        response = HttpResponse(csv_bytes, content_type="text/csv; charset=utf-8")
-        response["Content-Disposition"] = 'attachment; filename="matriz_cge.csv"'
+class TableroView(ApiView):
+    @extend_schema(
+        tags=["Reportes"],
+        operation_id="consultarTablero",
+        summary="Tablero ejecutivo: semáforo, cumplimiento y unidades en mora (RF-013)",
+        responses={200: envelope("Tablero", TableroSerializer), **errors(401, 403)},
+    )
+    def get(self, request):
+        data = get_dashboard(actor=self.actor)
+        return ok(request, TableroSerializer(data).data, "Resumen ejecutivo consultado")
+
+
+class MatrizCgeView(ApiView):
+    @extend_schema(
+        tags=["Reportes"],
+        operation_id="exportarMatrizCge",
+        summary="Exportar la matriz institucional de cumplimiento (CSV UTF-8, RF-014)",
+        description="Descarga binaria: no usa la envoltura JSON (excepción del contrato universal).",
+        responses={
+            (200, "text/csv"): OpenApiResponse(OpenApiTypes.BINARY, description="Matriz CSV con BOM UTF-8."),
+            **errors(401, 403),
+        },
+    )
+    def get(self, request):
+        content = export_matriz_cge_csv(actor=self.actor)
+        response = HttpResponse(content, content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="matriz-cge.csv"'
         return response
-    except Exception as exc:
-        return handle_exception(exc)
+
+
+class AuditoriaView(ApiView):
+    permission_classes = [
+        IsAuthenticatedActor,
+        require_roles(Role.UAI, Role.CGE_AUDITOR, message="No tiene permisos para consultar la auditoría."),
+    ]
+
+    @extend_schema(
+        tags=["Auditoría"],
+        operation_id="consultarAuditoria",
+        summary="Consultar el historial inmutable de auditoría (UAI, auditor CGE, RF-018)",
+        parameters=[AuditoriaQuerySerializer],
+        responses={200: envelope("Auditoria", AuditLogSerializer, many=True), **errors(400, 401, 403)},
+    )
+    def get(self, request):
+        query = AuditoriaQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        logs = query_audit_log(
+            entity=query.validated_data.get("entity"),
+            entity_id=query.validated_data.get("entity_id"),
+            limit=query.validated_data["limit"],
+        )
+        return ok(request, AuditLogSerializer(logs, many=True).data, "Historial de auditoría consultado")

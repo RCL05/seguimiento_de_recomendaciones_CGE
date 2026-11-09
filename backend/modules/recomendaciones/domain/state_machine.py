@@ -6,15 +6,14 @@ from backend.core.shared.domain_types import (
 )
 
 
+# El vencimiento no es un estado: ver domain/vencimiento.py.
 ALLOWED_TRANSITIONS = {
-    RecommendationState.PENDIENTE: {RecommendationState.EN_PROCESO, RecommendationState.VENCIDA},
-    RecommendationState.EN_PROCESO: {RecommendationState.EN_VALIDACION, RecommendationState.VENCIDA},
+    RecommendationState.PENDIENTE: {RecommendationState.EN_PROCESO},
+    RecommendationState.EN_PROCESO: {RecommendationState.EN_VALIDACION},
     RecommendationState.EN_VALIDACION: {
         RecommendationState.CUMPLIDA,
         RecommendationState.EN_PROCESO,
-        RecommendationState.VENCIDA,
     },
-    RecommendationState.VENCIDA: {RecommendationState.EN_PROCESO},
     RecommendationState.CUMPLIDA: {RecommendationState.REABIERTA},
     RecommendationState.REABIERTA: {RecommendationState.EN_PROCESO},
 }
