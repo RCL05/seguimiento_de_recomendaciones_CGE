@@ -124,6 +124,31 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 STATIC_URL = "/static/"
 USE_TZ = True
 TIME_ZONE = "America/Guayaquil"
+
+# Correo institucional (RF-011, RF-012). Sin EMAIL_HOST configurado, en desarrollo
+# los envíos se imprimen en consola para no bloquear las notificaciones internas.
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, ""))
+    except (TypeError, ValueError):
+        return default
+
+
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = _env_int("EMAIL_PORT", 587)
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "false").lower() == "true"
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() == "true" and not EMAIL_USE_SSL
+EMAIL_TIMEOUT = _env_int("EMAIL_TIMEOUT", 10)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "SITRA-CGE <no-reply@unl.edu.ec>")
+_configured_email_backend = os.getenv("EMAIL_BACKEND")
+if _configured_email_backend:
+    EMAIL_BACKEND = _configured_email_backend
+elif EMAIL_HOST or not DEBUG:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 if os.getenv("POSTGRES_DB"):
     DATABASES = {
         "default": {

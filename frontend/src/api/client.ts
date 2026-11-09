@@ -64,6 +64,15 @@ export type Unit = {
   nombre: string;
 };
 
+export type AdminUser = {
+  id: string;
+  correo_institucional: string;
+  nombres: string;
+  rol: Role;
+  unidad_codigo: string | null;
+  activo: boolean;
+};
+
 export type Report = {
   id: string;
   numero_informe: string;
@@ -263,6 +272,20 @@ export const api = {
   listRecommendations: () => request<Recommendation[]>("/api/v1/recomendaciones"),
 
   listUnits: () => request<Unit[]>("/api/v1/unidades"),
+
+  createUnit: (payload: { codigo: string; nombre: string }) =>
+    request<Unit>("/api/v1/unidades", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  listUsers: () => request<AdminUser[]>("/api/v1/usuarios"),
+
+  updateUser: (userId: string, payload: { rol?: Role; unidad_codigo?: string }) =>
+    request<AdminUser>(`/api/v1/usuarios/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
 
   getRecommendation: (id: string) => request<RecommendationDetail>(`/api/v1/recomendaciones/${id}`),
 

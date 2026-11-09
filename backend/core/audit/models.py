@@ -5,6 +5,23 @@ from django.db import models
 from backend.modules.usuarios.models import Usuario
 
 
+class ImmutableAuditLogQuerySet(models.QuerySet):
+    """Bloquea operaciones masivas que romperían la inmutabilidad de la bitácora."""
+
+    def update(self, **kwargs):
+        raise TypeError("Los registros de auditoría son inmutables y no pueden actualizarse.")
+
+    def delete(self):
+        raise TypeError("Los registros de auditoría son inmutables y no pueden eliminarse.")
+
+    def bulk_update(self, objs, fields, **kwargs):
+        raise TypeError("Los registros de auditoría son inmutables y no pueden actualizarse.")
+
+
+class ImmutableAuditLogManager(models.Manager.from_queryset(ImmutableAuditLogQuerySet)):
+    pass
+
+
 class AuditLog(models.Model):
     """Registro inmutable de toda operación mutativa del sistema.
 
@@ -29,6 +46,8 @@ class AuditLog(models.Model):
     estado_nuevo = models.CharField(max_length=50, null=True, blank=True)
     resultado = models.CharField(max_length=30, default="OK")
     detalles_json = models.JSONField(default=dict)
+
+    objects = ImmutableAuditLogManager()
 
     class Meta:
         db_table = "audit_logs"
