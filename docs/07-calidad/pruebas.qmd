@@ -1,0 +1,16 @@
+---
+title: "Inventario de pruebas"
+description: "Listar cada archivo de prueba, su cantidad y lo que verifica."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Listar cada archivo de prueba, su cantidad y lo que verifica.
+
+Fuente única: [`DOCUMENTACION/07_CALIDAD/PRUEBAS.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/07_CALIDAD/PRUEBAS.md).
+:::
+
+{{< include ../../DOCUMENTACION/07_CALIDAD/PRUEBAS.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Resultados](../07-calidad/resultados.qmd)

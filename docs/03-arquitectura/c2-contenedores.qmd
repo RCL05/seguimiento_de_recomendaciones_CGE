@@ -1,0 +1,17 @@
+---
+title: "C4 · Nivel 2: contenedores"
+description: "Mostrar las unidades desplegables y sus protocolos de comunicación."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Mostrar las unidades desplegables y sus protocolos de comunicación.
+
+Fuente única: [`DOCUMENTACION/03_ARQUITECTURA/C2_CONTENEDORES.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/03_ARQUITECTURA/C2_CONTENEDORES.md).
+:::
+
+{{< include ../../DOCUMENTACION/03_ARQUITECTURA/C2_CONTENEDORES.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [C3 Componentes](../03-arquitectura/c3-componentes.qmd)
+- [Despliegue](../08-despliegue/despliegue.qmd)

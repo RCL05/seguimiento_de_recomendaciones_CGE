@@ -79,6 +79,7 @@ def _subir(rec_id, ejecutor):
         data=PDF,
         content_type="application/pdf",
         HTTP_X_FILENAME="evidencia.pdf",
+        HTTP_X_EVIDENCE_TYPE="FINAL",
         **ejecutor,
     )
 

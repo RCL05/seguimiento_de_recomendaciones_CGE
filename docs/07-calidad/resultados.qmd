@@ -1,0 +1,16 @@
+---
+title: "Resultados"
+description: "Registrar los comandos ejecutados y sus resultados reales."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Registrar los comandos ejecutados y sus resultados reales.
+
+Fuente única: [`DOCUMENTACION/07_CALIDAD/RESULTADOS.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/07_CALIDAD/RESULTADOS.md).
+:::
+
+{{< include ../../DOCUMENTACION/07_CALIDAD/RESULTADOS.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Matriz de verificación](../07-calidad/matriz-verificacion.qmd)

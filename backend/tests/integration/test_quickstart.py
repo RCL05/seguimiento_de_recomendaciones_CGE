@@ -86,6 +86,7 @@ class QuickstartSmokeTests(TestCase):
             data=content,
             content_type="application/pdf",
             HTTP_X_FILENAME="evidencia.pdf",
+            HTTP_X_EVIDENCE_TYPE="FINAL",
             **authenticated_headers("EJECUTOR", "ejecutor-a", "DEP-A"),
         )
 

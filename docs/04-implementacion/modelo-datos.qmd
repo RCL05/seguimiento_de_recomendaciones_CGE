@@ -1,0 +1,16 @@
+---
+title: "Modelo de datos"
+description: "Documentar entidades, relaciones, restricciones y migraciones a partir de los modelos Django."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Documentar entidades, relaciones, restricciones y migraciones a partir de los modelos Django.
+
+Fuente única: [`DOCUMENTACION/04_IMPLEMENTACION/MODELO_DATOS.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/04_IMPLEMENTACION/MODELO_DATOS.md).
+:::
+
+{{< include ../../DOCUMENTACION/04_IMPLEMENTACION/MODELO_DATOS.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Diagrama de clases](../03-arquitectura/c4-uml.qmd)

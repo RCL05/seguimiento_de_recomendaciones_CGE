@@ -18,9 +18,10 @@ evidencias y controles de seguridad para SITRA-CGE UNL.
 
 | Variable | Obligatoria | Ejemplo | Uso |
 | --- | --- | --- | --- |
-| `DJANGO_SECRET_KEY` | Sí en producción | `cambiar-en-gestor-de-secretos` | Firma criptográfica de Django. |
-| `DJANGO_DEBUG` | Sí | `false` | Desactiva trazas y páginas de error detalladas. |
-| `DJANGO_ALLOWED_HOSTS` | Sí en producción | `sitra.unl.edu.ec` | Hosts permitidos, separados por coma. |
+| `DJANGO_SECRET_KEY` | Sí en producción | `cambiar-en-gestor-de-secretos` | Firma criptográfica de Django. Obligatoria cuando `DEBUG=false`. |
+| `DJANGO_DEBUG` | No | `false` | Por defecto `false`; actívelo solo en desarrollo. Desactiva trazas y páginas de error detalladas. |
+| `DJANGO_ALLOWED_HOSTS` | No | `localhost,127.0.0.1` | Hosts permitidos, separados por coma. Por defecto solo local. |
+| `DJANGO_LOG_LEVEL` | No | `INFO` | Nivel del logger raíz hacia consola. |
 | `DJANGO_MEDIA_ROOT` | No | `/var/lib/sitra/media` | Ruta local de evidencias. |
 | `POSTGRES_DB` | Sí en producción | `sitra_cge` | Activa el backend PostgreSQL. |
 | `POSTGRES_USER` | No | `sitra_app` | Usuario de base de datos. |
@@ -41,6 +42,8 @@ evidencias y controles de seguridad para SITRA-CGE UNL.
 | `EMAIL_BACKEND` | No | `django.core.mail.backends.smtp.EmailBackend` | Fuerza el backend de correo. |
 | `DEFAULT_FROM_EMAIL` | No | `SITRA-CGE <no-reply@unl.edu.ec>` | Remitente visible. |
 | `SCHEDULER_INTERVAL_SECONDS` | No | `3600` | Frecuencia del servicio `scheduler`. |
+| `GUNICORN_WORKERS` | No | `3` | Procesos Gunicorn del contenedor `backend`. |
+| `GUNICORN_TIMEOUT` | No | `60` | Timeout por petición en Gunicorn (segundos). |
 | `EVIDENCE_STORAGE_BACKEND` | No | `s3` | `local` o `s3`. |
 | `EVIDENCE_S3_BUCKET` | Sí con S3 | `sitra-evidencias` | Bucket privado de PDFs. |
 | `EVIDENCE_S3_ENDPOINT` | No | `https://s3.unl.edu.ec` | Endpoint compatible S3. |
@@ -61,23 +64,25 @@ Flujo esperado:
    firma; devuelve `correo`, `nombres`, `rol` y `unidad_codigo`.
 4. El backend crea o actualiza `Usuario` y `UnidadOrganica`, y responde la
    identidad junto con el rol efectivo.
-5. Cada petición posterior usa `X-User-ID`, `X-Role` y `X-Unit-ID` emitidos por
-   la sesión autenticada.
+5. Cada petición posterior usa `Authorization: Bearer <JWT>`; el backend valida
+   la firma, el emisor, la audiencia y la expiración antes de resolver el actor.
 
 Roles válidos: `DTI`, `UAI`, `EJECUTOR`, `RECTORADO`, `CGE_AUDITOR`. Un rol no
 reconocido responde `400 VALIDATION_ERROR`.
 
-Estado actual: `SsoAdapter` es un simulador para pruebas con los tokens
-`valid-sso-token` y `dti-sso-token`; `login_sso` ya consume el diccionario
-(`correo`, `nombres`, `rol`, `unidad_codigo`). Antes de producción debe
-reemplazarse por la validación OIDC real.
+Estado actual: `SsoAdapter` acepta tokens simulados (`valid-sso-token`,
+`dti-sso-token`, etc.) **solo cuando `DEBUG=true`**; fuera de depuración usa la
+introspección SSO configurada. `login_sso` consume el diccionario (`correo`,
+`nombres`, `rol`, `unidad_codigo`) y emite un JWT temporal. Antes de producción
+debe configurarse la validación OIDC real.
 
 ## 4. SMTP y notificaciones
 
 - El canal interno siempre está disponible; el canal correo requiere
   `EMAIL_*` configurado y `canal_email_activo=true`.
-- Los envíos usan TLS, timeout de 10 segundos y máximo de 3 reintentos con
-  espera exponencial.
+- Los envíos usan TLS y timeout de 10 segundos. Las notificaciones `PENDIENTE`
+  o `FALLIDA` se reintentan en cada ejecución del programador hasta un máximo de
+  3 intentos; al agotarse quedan `FALLIDA` sin volver a procesarse.
 - Las alertas se programan de forma idempotente por
   `(destinatario, tipo, recomendación, ventana)`.
 - La configuración institucional (`GET/PUT /api/v1/notificaciones/configuracion`)
@@ -123,9 +128,15 @@ npm ci
 npm run build
 ```
 
+El contenedor `backend` aplica las migraciones y arranca con
+`gunicorn config.wsgi:application` (workers y timeout configurables con
+`GUNICORN_WORKERS` y `GUNICORN_TIMEOUT`). En despliegues sin Docker, ejecute el
+mismo comando detrás de un proxy TLS.
+
 Checklist de producción:
 
-- [ ] `DJANGO_DEBUG=false` y `DJANGO_ALLOWED_HOSTS` restringido.
+- [x] `DJANGO_DEBUG=false` por defecto y `DJANGO_ALLOWED_HOSTS` restringido.
+- [x] Gunicorn en el contenedor; falta colocarlo detrás de un proxy TLS.
 - [ ] HTTPS obligatorio y HSTS habilitado en el proxy.
 - [ ] `DJANGO_SECRET_KEY` y credenciales en gestor de secretos.
 - [ ] PostgreSQL con backups cifrados y restauración probada.

@@ -20,3 +20,8 @@ Thumbs.db
 .vscode/
 # Archivos cargados (evidencias e informes PDF): nunca se versionan
 backend/media/
+
+# Portal Quarto (salidas generadas)
+docs/_site/
+docs/.quarto/
+docs/assets/diagrams/src/

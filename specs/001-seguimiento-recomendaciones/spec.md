@@ -69,7 +69,7 @@ Decisiones del equipo durante la implementación. Están pendientes de validar c
 - ¿La CGE admite prórrogas formales de plazo? ¿Quién las aprueba? (CL-06)
 - ¿El catálogo de estados y las columnas de la matriz coinciden con el Acuerdo No. 010-CG-2022? Debe verificarse con la UAI.
 - ¿Qué mecanismo SSO proporcionará la DTI en producción?
-- ¿Cómo se reasigna una recomendación si cambia la estructura orgánica? (RF-003, sin implementar)
+- RF-003 resuelto: la UAI reasigna con motivo obligatorio mediante `POST /api/v1/recomendaciones/{id}/reasignacion` y el historial queda en `AuditLog`.
 
 ## Escenarios de Usuario y Pruebas
 

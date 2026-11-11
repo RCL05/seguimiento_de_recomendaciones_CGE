@@ -1,0 +1,16 @@
+---
+title: "Integraciones"
+description: "Describir el mecanismo real de cada integración externa e interna y su comportamiento ante fallos."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Describir el mecanismo real de cada integración externa e interna y su comportamiento ante fallos.
+
+Fuente única: [`DOCUMENTACION/05_API/INTEGRACIONES.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/05_API/INTEGRACIONES.md).
+:::
+
+{{< include ../../DOCUMENTACION/05_API/INTEGRACIONES.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Configuración](../08-despliegue/configuracion.qmd)

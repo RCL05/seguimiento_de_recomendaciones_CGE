@@ -1,0 +1,17 @@
+---
+title: "Análisis de procesos"
+description: "Modelar con BPMN 2.0 los procesos que explican el funcionamiento del sistema y el ciclo de vida de una recomendación."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Modelar con BPMN 2.0 los procesos que explican el funcionamiento del sistema y el ciclo de vida de una recomendación.
+
+Fuente única: [`DOCUMENTACION/02_PROCESOS/ANALISIS_PROCESOS.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/02_PROCESOS/ANALISIS_PROCESOS.md).
+:::
+
+{{< include ../../DOCUMENTACION/02_PROCESOS/ANALISIS_PROCESOS.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Reglas de negocio](../01-general/requisitos.qmd)
+- [Secuencia del dictamen](../03-arquitectura/c4-uml.qmd)

@@ -16,11 +16,15 @@ from backend.modules.recomendaciones.application.get_recomendacion import GetRec
 from backend.modules.recomendaciones.application.issue_dictamen import IssueDictamen
 from backend.modules.recomendaciones.application.list_recomendaciones import ListRecomendaciones
 from backend.modules.recomendaciones.application.reabrir_recomendacion import ReabrirRecomendacion
+from backend.modules.recomendaciones.application.reasignar_recomendacion import (
+    ReasignarRecomendacion,
+)
 from backend.modules.recomendaciones.presentation.serializers import (
     DictamenCreateSerializer,
     DictamenSerializer,
     HitoCreateSerializer,
     HitoSerializer,
+    ReasignacionSerializer,
     RecomendacionCreateSerializer,
     RecomendacionDetalleSerializer,
     RecomendacionQuerySerializer,
@@ -146,6 +150,34 @@ class RecomendacionDetailView(ApiView):
             ip_address=self.client_ip,
         )
         return ok(request, RecomendacionDetalleSerializer(recommendation).data, "Recomendación consultada")
+
+
+class ReasignacionView(ApiView):
+    permission_classes = [IsAuthenticatedActor, SOLO_UAI]
+
+    @extend_schema(
+        tags=["Recomendaciones"],
+        operation_id="reasignarRecomendacion",
+        summary="Reasignar una recomendación a otra unidad (UAI, RF-003)",
+        description=(
+            "Conserva la bitácora anterior y registra en auditoría la unidad de origen, "
+            "la unidad destino y el motivo del cambio."
+        ),
+        request=ReasignacionSerializer,
+        responses={200: envelope("RecomendacionReasignada", RecomendacionSerializer), **errors(400, 401, 403, 404)},
+    )
+    def post(self, request, recommendation_id: UUID):
+        payload = ReasignacionSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        recommendation = ReasignarRecomendacion().execute(
+            actor=self.actor,
+            request_id=self.request_id,
+            recommendation_id=recommendation_id,
+            unit_id=payload.validated_data["unit_id"],
+            reason=payload.validated_data["motivo"],
+            ip_address=self.client_ip,
+        )
+        return ok(request, RecomendacionSerializer(recommendation).data, "Recomendación reasignada")
 
 
 class PlanAccionView(ApiView):

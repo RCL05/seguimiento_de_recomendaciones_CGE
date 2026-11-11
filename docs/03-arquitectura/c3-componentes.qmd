@@ -1,0 +1,17 @@
+---
+title: "C4 · Nivel 3: componentes"
+description: "Descomponer la API y la SPA en sus componentes y dependencias reales."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Descomponer la API y la SPA en sus componentes y dependencias reales.
+
+Fuente única: [`DOCUMENTACION/03_ARQUITECTURA/C3_COMPONENTES.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/03_ARQUITECTURA/C3_COMPONENTES.md).
+:::
+
+{{< include ../../DOCUMENTACION/03_ARQUITECTURA/C3_COMPONENTES.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [C4 Código](../03-arquitectura/c4-uml.qmd)
+- [Componentes](../04-implementacion/componentes.qmd)

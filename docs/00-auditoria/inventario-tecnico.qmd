@@ -1,0 +1,17 @@
+---
+title: "Inventario técnico"
+description: "Identificar las tecnologías, módulos, persistencia, integraciones e infraestructura realmente presentes en el repositorio."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Identificar las tecnologías, módulos, persistencia, integraciones e infraestructura realmente presentes en el repositorio.
+
+Fuente única: [`DOCUMENTACION/00_AUDITORIA/INVENTARIO_TECNICO.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/00_AUDITORIA/INVENTARIO_TECNICO.md).
+:::
+
+{{< include ../../DOCUMENTACION/00_AUDITORIA/INVENTARIO_TECNICO.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Tecnologías](../04-implementacion/tecnologias.qmd)
+- [Estructura del código](../04-implementacion/estructura.qmd)

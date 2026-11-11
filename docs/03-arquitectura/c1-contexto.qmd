@@ -1,0 +1,16 @@
+---
+title: "C4 · Nivel 1: contexto"
+description: "Mostrar el sistema, sus usuarios y los sistemas externos con los que interactúa."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Mostrar el sistema, sus usuarios y los sistemas externos con los que interactúa.
+
+Fuente única: [`DOCUMENTACION/03_ARQUITECTURA/C1_CONTEXTO.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/03_ARQUITECTURA/C1_CONTEXTO.md).
+:::
+
+{{< include ../../DOCUMENTACION/03_ARQUITECTURA/C1_CONTEXTO.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [C2 Contenedores](../03-arquitectura/c2-contenedores.qmd)

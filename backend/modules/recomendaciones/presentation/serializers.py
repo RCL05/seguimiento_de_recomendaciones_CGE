@@ -113,6 +113,11 @@ class ReaperturaSerializer(serializers.Serializer):
     motivo = serializers.CharField(max_length=1000, help_text="Hallazgo o razón de la reapertura.")
 
 
+class ReasignacionSerializer(serializers.Serializer):
+    unit_id = serializers.CharField(max_length=50, help_text="Código de la unidad destino.")
+    motivo = serializers.CharField(max_length=1000, help_text="Motivo de la reasignación.")
+
+
 class HitoCreateSerializer(serializers.Serializer):
     descripcion_hito = serializers.CharField()
     fecha_compromiso = serializers.DateField(help_text="No puede exceder el plazo legal (RF-007).")
