@@ -55,9 +55,18 @@ def _crear_recomendacion(uai, numero="R-REASIG"):
     ).json()["data"]["id"]
 
 
+def _patch(path, payload, headers):
+    return Client().patch(
+        path,
+        data=json.dumps(payload),
+        content_type="application/json",
+        **headers,
+    )
+
+
 def _reasignar(rec_id, headers, unit_id="DEP-B", motivo="Cambio de estructura orgánica."):
-    return _post(
-        f"/api/v1/recomendaciones/{rec_id}/reasignacion",
+    return _patch(
+        f"/api/v1/recomendaciones/{rec_id}",
         {"unit_id": unit_id, "motivo": motivo},
         headers,
     )
@@ -107,4 +116,29 @@ def test_reasignacion_valida_motivo_unidad_y_misma_unidad(uai):
 
 def test_reasignacion_de_recomendacion_inexistente_responde_404(uai):
     response = _reasignar(uuid4(), uai)
+    assert response.status_code == 404
+
+
+def test_reasignacion_y_reapertura_no_se_combinan_en_un_mismo_patch(uai):
+    rec_id = _crear_recomendacion(uai)
+
+    ambos = _patch(
+        f"/api/v1/recomendaciones/{rec_id}",
+        {"estado": "REABIERTA", "unit_id": "DEP-B", "motivo": "Mezcla."},
+        uai,
+    )
+    ninguno = _patch(f"/api/v1/recomendaciones/{rec_id}", {"motivo": "Sin cambio."}, uai)
+
+    assert ambos.status_code == 400
+    assert ninguno.status_code == 400
+    assert not AuditLog.objects.filter(entidad_id=rec_id, accion="REASSIGN").exists()
+
+
+def test_la_ruta_con_accion_reasignacion_ya_no_existe(uai):
+    rec_id = _crear_recomendacion(uai)
+    response = _post(
+        f"/api/v1/recomendaciones/{rec_id}/reasignacion",
+        {"unit_id": "DEP-B", "motivo": "Ruta anterior."},
+        uai,
+    )
     assert response.status_code == 404

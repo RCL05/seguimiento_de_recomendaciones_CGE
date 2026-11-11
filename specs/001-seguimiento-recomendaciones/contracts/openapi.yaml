@@ -1305,10 +1305,12 @@ paths:
                   summary: Error de servidor
           description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
     patch:
-      operationId: reabrirRecomendacion
-      description: 'Modificación parcial del estado: solo admite CUMPLIDA → REABIERTA
-        con motivo. El ejecutor la reanuda registrando un nuevo hito.'
-      summary: Reabrir una recomendación cumplida (UAI)
+      operationId: modificarRecomendacion
+      description: 'Modificación parcial con motivo obligatorio. Se envía `estado:
+        REABIERTA` para reabrir una recomendación cumplida (solo CUMPLIDA → REABIERTA),
+        o `unit_id` para reasignarla a otra unidad. La reasignación conserva el estado
+        y registra en auditoría la unidad anterior, la nueva y el motivo.'
+      summary: Reabrir o reasignar una recomendación (UAI, RF-023 y RF-003)
       parameters:
       - in: path
         name: recommendation_id
@@ -1322,13 +1324,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedReaperturaRequest'
+              $ref: '#/components/schemas/PatchedRecomendacionPatchRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedReaperturaRequest'
+              $ref: '#/components/schemas/PatchedRecomendacionPatchRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedReaperturaRequest'
+              $ref: '#/components/schemas/PatchedRecomendacionPatchRequest'
       security:
       - bearerAuth: []
       responses:
@@ -1336,7 +1338,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RecomendacionReabiertaEnvelope'
+                $ref: '#/components/schemas/RecomendacionModificadaEnvelope'
           description: ''
         '400':
           content:
@@ -1718,89 +1720,6 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de
             negocio incumplida.'
-        '500':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                ErrorDeServidor:
-                  value:
-                    success: false
-                    message: Error interno del servidor
-                    data: null
-                    errors:
-                      code: INTERNAL_ERROR
-                      detail: No fue posible procesar la solicitud.
-                    meta:
-                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
-                      timestamp: '2026-11-05T12:00:00Z'
-                      version: 1.0.0
-                      pagination: null
-                  summary: Error de servidor
-          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
-  /api/v1/recomendaciones/{recommendation_id}/reasignacion:
-    post:
-      operationId: reasignarRecomendacion
-      description: Conserva la bitácora anterior y registra en auditoría la unidad
-        de origen, la unidad destino y el motivo del cambio.
-      summary: Reasignar una recomendación a otra unidad (UAI, RF-003)
-      parameters:
-      - in: path
-        name: recommendation_id
-        schema:
-          type: string
-          format: uuid
-        required: true
-      tags:
-      - Recomendaciones
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ReasignacionRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ReasignacionRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ReasignacionRequest'
-        required: true
-      security:
-      - bearerAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecomendacionReasignadaEnvelope'
-          description: ''
-        '400':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
-            expirado.'
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
-            (BOLA/IDOR).'
         '500':
           content:
             application/json:
@@ -2973,20 +2892,29 @@ components:
           type: string
           minLength: 1
           maxLength: 500
-    PatchedReaperturaRequest:
+    PatchedRecomendacionPatchRequest:
       type: object
+      description: |-
+        Modificación parcial de una recomendación: reapertura (RF-023) o reasignación (RF-003).
+
+        Se envía `estado: REABIERTA` o `unit_id`, nunca ambos; `motivo` es obligatorio.
       properties:
         estado:
           allOf:
-          - $ref: '#/components/schemas/ReaperturaEstadoEnum'
+          - $ref: '#/components/schemas/RecomendacionPatchEstadoEnum'
           description: |-
-            Único cambio de estado manual admitido: CUMPLIDA → REABIERTA.
+            Reapertura: único cambio de estado manual admitido, CUMPLIDA → REABIERTA.
 
             * `REABIERTA` - REABIERTA
+        unit_id:
+          type: string
+          minLength: 1
+          description: 'Reasignación: código de la unidad destino.'
+          maxLength: 50
         motivo:
           type: string
           minLength: 1
-          description: Hallazgo o razón de la reapertura.
+          description: Razón de la reapertura o de la reasignación.
           maxLength: 1000
     PatchedUsuarioUpdateRequest:
       type: object
@@ -3102,27 +3030,6 @@ components:
         * `ALTA` - ALTA
         * `MEDIA` - MEDIA
         * `BAJA` - BAJA
-    ReaperturaEstadoEnum:
-      enum:
-      - REABIERTA
-      type: string
-      description: '* `REABIERTA` - REABIERTA'
-    ReasignacionRequest:
-      type: object
-      properties:
-        unit_id:
-          type: string
-          minLength: 1
-          description: Código de la unidad destino.
-          maxLength: 50
-        motivo:
-          type: string
-          minLength: 1
-          description: Motivo de la reasignación.
-          maxLength: 1000
-      required:
-      - motivo
-      - unit_id
     Recomendacion:
       type: object
       properties:
@@ -3294,7 +3201,7 @@ components:
       - data
       - message
       - meta
-    RecomendacionReabiertaEnvelope:
+    RecomendacionModificadaEnvelope:
       type: object
       properties:
         data:
@@ -3312,24 +3219,11 @@ components:
       - data
       - message
       - meta
-    RecomendacionReasignadaEnvelope:
-      type: object
-      properties:
-        data:
-          $ref: '#/components/schemas/Recomendacion'
-        success:
-          type: boolean
-          default: true
-        message:
-          type: string
-        errors:
-          nullable: true
-        meta:
-          $ref: '#/components/schemas/Meta'
-      required:
-      - data
-      - message
-      - meta
+    RecomendacionPatchEstadoEnum:
+      enum:
+      - REABIERTA
+      type: string
+      description: '* `REABIERTA` - REABIERTA'
     RecomendacionesEnvelope:
       type: object
       properties:

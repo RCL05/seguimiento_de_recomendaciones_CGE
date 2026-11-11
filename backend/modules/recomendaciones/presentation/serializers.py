@@ -105,17 +105,30 @@ class RecomendacionDetalleSerializer(RecomendacionSerializer):
         fields = RecomendacionSerializer.Meta.fields + ["evidencias"]
 
 
-class ReaperturaSerializer(serializers.Serializer):
+class RecomendacionPatchSerializer(serializers.Serializer):
+    """Modificación parcial de una recomendación: reapertura (RF-023) o reasignación (RF-003).
+
+    Se envía `estado: REABIERTA` o `unit_id`, nunca ambos; `motivo` es obligatorio.
+    """
+
     estado = serializers.ChoiceField(
         choices=[Recomendacion.Estado.REABIERTA],
-        help_text="Único cambio de estado manual admitido: CUMPLIDA → REABIERTA.",
+        required=False,
+        help_text="Reapertura: único cambio de estado manual admitido, CUMPLIDA → REABIERTA.",
     )
-    motivo = serializers.CharField(max_length=1000, help_text="Hallazgo o razón de la reapertura.")
+    unit_id = serializers.CharField(
+        max_length=50,
+        required=False,
+        help_text="Reasignación: código de la unidad destino.",
+    )
+    motivo = serializers.CharField(max_length=1000, help_text="Razón de la reapertura o de la reasignación.")
 
-
-class ReasignacionSerializer(serializers.Serializer):
-    unit_id = serializers.CharField(max_length=50, help_text="Código de la unidad destino.")
-    motivo = serializers.CharField(max_length=1000, help_text="Motivo de la reasignación.")
+    def validate(self, attrs):
+        if ("estado" in attrs) == ("unit_id" in attrs):
+            raise serializers.ValidationError(
+                {"estado": ["Envíe solo uno: 'estado' para reabrir o 'unit_id' para reasignar."]}
+            )
+        return attrs
 
 
 class HitoCreateSerializer(serializers.Serializer):

@@ -3,7 +3,6 @@ from django.urls import path
 from backend.modules.recomendaciones.presentation.views import (
     DictamenView,
     PlanAccionView,
-    ReasignacionView,
     RecomendacionDetailView,
     RecomendacionListCreateView,
 )
@@ -14,11 +13,6 @@ urlpatterns = [
         "recomendaciones/<uuid:recommendation_id>",
         RecomendacionDetailView.as_view(),
         name="recomendacion-detalle",
-    ),
-    path(
-        "recomendaciones/<uuid:recommendation_id>/reasignacion",
-        ReasignacionView.as_view(),
-        name="reasignacion",
     ),
     path(
         "recomendaciones/<uuid:recommendation_id>/plan-accion",

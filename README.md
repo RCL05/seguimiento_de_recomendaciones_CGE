@@ -263,7 +263,7 @@ Reglas:
 7. El vencimiento es un indicador independiente del estado. Una recomendación
    puede estar `EN_PROCESO` y vencida; el estado no cambia automáticamente.
 8. La UAI puede reasignar una recomendación a otra unidad responsable
-   (`POST /api/v1/recomendaciones/{id}/reasignacion`); el cambio exige motivo y
+   (`PATCH /api/v1/recomendaciones/{id}` con `unit_id`); el cambio exige motivo y
    conserva la bitácora anterior con unidad de origen y destino.
 9. Toda transición no definida por estas reglas debe ser rechazada por la API.
 

@@ -17,8 +17,7 @@ Generado a partir de `backend/contracts/openapi.yaml` (32 operaciones) y contras
 | GET | `/recomendaciones` | `listarRecomendaciones` | EJECUTOR (solo su unidad), UAI, RECTORADO, CGE_AUDITOR | 200, 400, 401, 403 |
 | POST | `/recomendaciones` | `registrarRecomendacion` | UAI | 201, 400, 401, 403, 409 |
 | GET | `/recomendaciones/{recommendation_id}` | `consultarRecomendacion` | EJECUTOR (su unidad; si no, 404), UAI, RECTORADO, CGE_AUDITOR | 200, 401, 403, 404 |
-| PATCH | `/recomendaciones/{recommendation_id}` | `reabrirRecomendacion` | UAI | 200, 400, 401, 403, 404, 409 |
-| POST | `/recomendaciones/{recommendation_id}/reasignacion` | `reasignarRecomendacion` | UAI | 200, 400, 401, 403, 404 |
+| PATCH | `/recomendaciones/{recommendation_id}` | `modificarRecomendacion` | UAI | 200, 400, 401, 403, 404, 409 |
 | GET | `/recomendaciones/{recommendation_id}/plan-accion` | `listarHitos` | Mismos que `consultarRecomendacion` (EJECUTOR de su unidad, UAI, RECTORADO, CGE_AUDITOR) | 200, 401, 403, 404 |
 | POST | `/recomendaciones/{recommendation_id}/plan-accion` | `registrarHito` | EJECUTOR (su unidad) | 201, 400, 401, 403, 404, 409 |
 | POST | `/recomendaciones/{recommendation_id}/evidencias` | `cargarEvidencia` | EJECUTOR (su unidad) | 201, 400, 401, 403, 404, 409, 413 |
@@ -47,7 +46,8 @@ Todas las operaciones protegidas documentan además `500` y el esquema `bearerAu
 | `registrarInforme` | `numero_informe` (≤ 100), `periodo_auditado` (≤ 100), `fecha_notificacion` (fecha), `pdf_informe_url` (URL opcional) o `pdf_informe` (archivo, `multipart/form-data`) | Número único; PDF ≤ 30 MB |
 | `registrarRecomendacion` | `report_id` (UUID), `number` (≤ 50), `description`, `unit_id` (código de unidad), `legal_days` (≥ 1), `due_date` (fecha), `priority` (`ALTA`/`MEDIA`/`BAJA`, por defecto `MEDIA`) | Informe y unidad existentes; `(informe, número)` único |
 | `listarRecomendaciones` | `page`, `page_size`, `state`, `unit_id`, `priority`, `due_date`, `due_before`, `due_after`, `vencida` | Ejecutor limitado a su unidad |
-| `reabrirRecomendacion` | `{"estado": "REABIERTA", "motivo": "…"}` (motivo ≤ 1000) | Solo desde `CUMPLIDA` |
+| `modificarRecomendacion` (reapertura) | `{"estado": "REABIERTA", "motivo": "…"}` (motivo ≤ 1000) | Solo desde `CUMPLIDA` |
+| `modificarRecomendacion` (reasignación) | `{"unit_id": "DEP-B", "motivo": "…"}` (motivo ≤ 1000) | La unidad existe y es distinta de la actual; el estado no cambia |
 | `registrarHito` | `descripcion_hito`, `fecha_compromiso` | Estado `PENDIENTE`, `REABIERTA` o `EN_PROCESO`; fecha según RN-07 |
 | `cargarEvidencia` | Cuerpo binario PDF; cabeceras `X-Filename` (obligatoria) y `X-Evidence-Type` (`BORRADOR`/`FINAL`) | Estado `EN_PROCESO`; extensión `.pdf`; firma `%PDF-`; `Content-Length` y tamaño real ≤ 30 MB |
 | `emitirDictamen` | `evidence_id` (UUID), `approved` (bool), `observaciones` | Estado `EN_VALIDACION`; evidencia vigente de la recomendación; observaciones obligatorias si `approved=false` |
