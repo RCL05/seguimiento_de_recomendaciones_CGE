@@ -333,9 +333,11 @@ dependencia y comprobar que sus permisos se actualizan sin perder auditoría.
 - **RNF-004 - Contrato**: Las respuestas exitosas DEBEN mantener `errors=null`; las
   fallidas DEBEN mantener `data=null` y un código 4xx/5xx.
 - **RNF-005 - Rendimiento**: Al menos el 95% de las consultas ordinarias del tablero
-  DEBE mostrar resultados en menos de 3 segundos bajo la carga institucional definida.
-- **RNF-006 - Exportación**: El 95% de las solicitudes de matriz dentro del volumen
-  institucional acordado DEBE completarse en menos de 5 segundos.
+  DEBE responder en menos de 3 segundos. La carga institucional de prueba queda
+  pendiente de definir con la UAI.
+- **RNF-006 - Exportación**: Al menos el 95% de las solicitudes de exportación de matriz
+  DEBE completarse en menos de 5 segundos. El volumen de datos de prueba queda
+  pendiente de definir con la UAI.
 - **RNF-007 - Disponibilidad**: Un fallo de correo DEBE registrarse y reintentarse sin
   revertir transacciones de negocio confirmadas; la alerta dentro del sistema debe
   permanecer disponible aunque el correo no se entregue.
