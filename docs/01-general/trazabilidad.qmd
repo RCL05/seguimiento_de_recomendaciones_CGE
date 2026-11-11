@@ -1,0 +1,17 @@
+---
+title: "Matriz de trazabilidad"
+description: "Relacionar cada requisito con su funcionalidad, componente, implementación, prueba y evidencia."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Relacionar cada requisito con su funcionalidad, componente, implementación, prueba y evidencia.
+
+Fuente única: [`DOCUMENTACION/01_GENERAL/MATRIZ_TRAZABILIDAD.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/01_GENERAL/MATRIZ_TRAZABILIDAD.md).
+:::
+
+{{< include ../../DOCUMENTACION/01_GENERAL/MATRIZ_TRAZABILIDAD.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Requisitos](../01-general/requisitos.qmd)
+- [Pruebas](../07-calidad/pruebas.qmd)

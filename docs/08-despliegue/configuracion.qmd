@@ -1,0 +1,16 @@
+---
+title: "Configuración"
+description: "Documentar las variables de entorno, indicando cuáles lee realmente el código, y la configuración funcional."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Documentar las variables de entorno, indicando cuáles lee realmente el código, y la configuración funcional.
+
+Fuente única: [`DOCUMENTACION/08_DESPLIEGUE/CONFIGURACION.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/08_DESPLIEGUE/CONFIGURACION.md).
+:::
+
+{{< include ../../DOCUMENTACION/08_DESPLIEGUE/CONFIGURACION.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Integraciones](../05-api/integraciones.qmd)

@@ -1,0 +1,168 @@
+project:
+  type: website
+  output-dir: _site
+  # Solo se renderizan las páginas del portal; los .md históricos de docs/ (ADR,
+  # manuales) siguen siendo servidos por docs_server/app.py y no se procesan aquí.
+  render:
+    - index.qmd
+    - "00-auditoria/*.qmd"
+    - "01-general/*.qmd"
+    - "02-procesos/*.qmd"
+    - "03-arquitectura/*.qmd"
+    - "04-implementacion/*.qmd"
+    - "05-api/*.qmd"
+    - "06-seguridad/*.qmd"
+    - "07-calidad/*.qmd"
+    - "08-despliegue/*.qmd"
+    - "09-operacion/*.qmd"
+    - "10-referencias/*.qmd"
+    - "11-publicacion/*.qmd"
+    - "12-cierre/*.qmd"
+  # Copia las fuentes editables de diagramas (DOCUMENTACION/**/DIAGRAMAS) al sitio.
+  pre-render: assets/scripts/sync-diagrams.ts
+  resources:
+    - assets/diagrams/src/*
+
+lang: es
+
+website:
+  title: "SITRA-CGE UNL"
+  description: "Documentación técnica del Sistema de seguimiento de recomendaciones de la Contraloría General del Estado para la Universidad Nacional de Loja."
+  site-url: "https://rcl05.github.io/seguimiento_de_recomendaciones_CGE/"
+  repo-url: "https://github.com/RCL05/seguimiento_de_recomendaciones_CGE"
+  repo-subdir: docs
+  repo-actions: [source, issue]
+  page-navigation: true
+  back-to-top-navigation: true
+  bread-crumbs: true
+  search:
+    location: navbar
+    type: overlay
+  navbar:
+    background: primary
+    left:
+      - text: "Inicio"
+        href: index.qmd
+      - text: "Requisitos"
+        href: 01-general/requisitos.qmd
+      - text: "Arquitectura"
+        href: 03-arquitectura/arquitectura-general.qmd
+      - text: "API"
+        href: 05-api/endpoints.qmd
+      - text: "Informe final"
+        href: 12-cierre/informe-final.qmd
+    right:
+      - icon: github
+        href: "https://github.com/RCL05/seguimiento_de_recomendaciones_CGE"
+        aria-label: "Repositorio en GitHub"
+  sidebar:
+    style: docked
+    search: false
+    collapse-level: 1
+    contents:
+      - href: index.qmd
+        text: "Presentación"
+      - section: "0. Auditoría"
+        contents:
+          - 00-auditoria/control-maestro.qmd
+          - 00-auditoria/inventario-tecnico.qmd
+          - 00-auditoria/auditoria-documental.qmd
+          - 00-auditoria/matriz-cumplimiento.qmd
+      - section: "1. General"
+        contents:
+          - 01-general/introduccion.qmd
+          - 01-general/problema-justificacion.qmd
+          - 01-general/objetivos-alcance.qmd
+          - 01-general/actores.qmd
+          - 01-general/requisitos.qmd
+          - 01-general/trazabilidad.qmd
+      - section: "2. Procesos"
+        contents:
+          - 02-procesos/procesos.qmd
+      - section: "3. Arquitectura"
+        contents:
+          - 03-arquitectura/arquitectura-general.qmd
+          - 03-arquitectura/c1-contexto.qmd
+          - 03-arquitectura/c2-contenedores.qmd
+          - 03-arquitectura/c3-componentes.qmd
+          - 03-arquitectura/c4-uml.qmd
+          - 03-arquitectura/adr.qmd
+      - section: "4. Implementación"
+        contents:
+          - 04-implementacion/tecnologias.qmd
+          - 04-implementacion/estructura.qmd
+          - 04-implementacion/componentes.qmd
+          - 04-implementacion/modelo-datos.qmd
+      - section: "5. API e integraciones"
+        contents:
+          - 05-api/api-general.qmd
+          - 05-api/endpoints.qmd
+          - 05-api/contratos.qmd
+          - 05-api/integraciones.qmd
+      - section: "6. Seguridad"
+        contents:
+          - 06-seguridad/autenticacion.qmd
+          - 06-seguridad/autorizacion.qmd
+          - 06-seguridad/riesgos-controles.qmd
+          - 06-seguridad/proteccion-datos.qmd
+      - section: "7. Calidad"
+        contents:
+          - 07-calidad/estrategia-pruebas.qmd
+          - 07-calidad/pruebas.qmd
+          - 07-calidad/resultados.qmd
+          - 07-calidad/matriz-verificacion.qmd
+      - section: "8. Instalación y despliegue"
+        contents:
+          - 08-despliegue/requisitos.qmd
+          - 08-despliegue/instalacion.qmd
+          - 08-despliegue/configuracion.qmd
+          - 08-despliegue/ejecucion.qmd
+          - 08-despliegue/despliegue.qmd
+          - 08-despliegue/problemas-frecuentes.qmd
+      - section: "9. Operación"
+        contents:
+          - 09-operacion/operacion-mantenimiento.qmd
+      - section: "10. Referencias"
+        contents:
+          - 10-referencias/referencias.qmd
+      - section: "11. Publicación"
+        contents:
+          - 11-publicacion/github-pages.qmd
+      - section: "12. Cierre"
+        contents:
+          - 12-cierre/informe-final.qmd
+  page-footer:
+    left: "SITRA-CGE UNL · Universidad Nacional de Loja"
+    right: "Construido con [Quarto](https://quarto.org/)"
+
+bibliography: ../DOCUMENTACION/10_REFERENCIAS/references.bib
+link-citations: true
+
+crossref:
+  fig-title: "Figura"
+  tbl-title: "Tabla"
+  fig-prefix: "Figura"
+  tbl-prefix: "Tabla"
+
+format:
+  html:
+    theme:
+      light: [cosmo, assets/styles/custom.scss]
+      dark: [darkly, assets/styles/custom.scss]
+    toc: true
+    toc-depth: 3
+    toc-title: "En esta página"
+    number-sections: true
+    number-depth: 3
+    anchor-sections: true
+    smooth-scroll: true
+    code-copy: true
+    code-overflow: wrap
+    link-external-newwindow: true
+    mermaid:
+      theme: neutral
+    include-after-body: assets/scripts/bpmn-viewer.html
+    other-links:
+      - text: "Repositorio"
+        href: "https://github.com/RCL05/seguimiento_de_recomendaciones_CGE"
+        icon: github

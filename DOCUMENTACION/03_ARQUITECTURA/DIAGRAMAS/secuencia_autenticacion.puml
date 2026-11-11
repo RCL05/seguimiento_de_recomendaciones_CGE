@@ -1,0 +1,28 @@
+@startuml secuencia_autenticacion
+' SITRA-CGE UNL — POST /api/v1/auth/login-sso y uso posterior del JWT.
+' Derivado de usuarios/presentation/views.py::LoginSsoView, usuarios/application/login_sso.py,
+' usuarios/infrastructure/sso_adapter.py y core/auth/authentication.py.
+autonumber
+actor Usuario as U
+participant SPA
+participant "LoginSsoView" as L
+participant "SsoAdapter" as S
+participant "SSO UNL\n(introspección)" as IdP
+database "Base de datos" as DB
+
+U -> SPA : Ingresa credencial institucional
+SPA -> L : POST /api/v1/auth/login-sso {credential}
+L -> S : authenticate(token=credential)
+alt DJANGO_DEBUG=true y token de desarrollo
+  S -> S : identidad fija (uai / ejecutor / dti / rectorado)
+else
+  S -> IdP : POST SSO_INTROSPECTION_URL\nBasic SSO_CLIENT_ID:SSO_CLIENT_SECRET
+  IdP --> S : {active, email, role, unidad}
+end
+S -> DB : crear/actualizar Usuario y UnidadOrganica
+S -> S : JWT HS256 (iss=sitra-cge, aud=sitra-cge-api, exp=3600 s)
+L --> SPA : 200 {access_token, token_type, expires_in, user_id, role, unit_id}
+note over SPA : sessionStorage
+SPA -> L : … peticiones con Authorization: Bearer <JWT>
+note right : JWTBearerAuthentication revalida\nrol y unidad contra la cuenta activa;\nsi cambiaron → 401
+@enduml

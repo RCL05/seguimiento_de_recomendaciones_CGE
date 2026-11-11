@@ -54,15 +54,39 @@ class LoginSsoUseCase:
 
 
 class IniciarSesionSso:
-    """Valida la credencial SSO, sincroniza la cuenta y emite el JWT de sesión (RF-001)."""
+    """Valida la credencial SSO, sincroniza la cuenta y emite el JWT de sesión (RF-001).
+
+    Los intentos fallidos también se auditan, sin guardar la credencial recibida.
+    """
 
     def __init__(self, sso: SsoAdapter | None = None):
         self.sso = sso or SsoAdapter()
 
+    @staticmethod
+    def _audit_failure(request_id, ip_address: str | None, reason: str, user: Usuario | None = None) -> None:
+        record_audit(
+            request_id=request_id or uuid4(),
+            user=user,
+            action="LOGIN_SSO_FALLIDO",
+            entity="usuario",
+            entity_id=user.id if user else None,
+            details={"motivo": reason},
+            ip_address=ip_address,
+            modulo="usuarios",
+        )
+
     def execute(self, *, credential: str, request_id=None, ip_address: str | None = None) -> dict:
         identity = self.sso.authenticate(token=credential)
         if not identity:
+            self._audit_failure(request_id, ip_address, "Credencial SSO inválida.")
             raise AuthenticationRequired("La credencial SSO no es válida.")
+
+        inactive = Usuario.objects.filter(
+            correo_institucional=identity["correo"], activo=False
+        ).first()
+        if inactive is not None:
+            self._audit_failure(request_id, ip_address, "Identidad deshabilitada.", user=inactive)
+            raise AuthenticationRequired("La identidad no está habilitada en el sistema.")
 
         with transaction.atomic():
             actor, _ = Usuario.objects.get_or_create(

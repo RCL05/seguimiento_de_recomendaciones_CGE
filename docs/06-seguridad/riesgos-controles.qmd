@@ -1,0 +1,17 @@
+---
+title: "Riesgos y controles"
+description: "Relacionar los riesgos (OWASP) con los controles existentes y las recomendaciones."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Relacionar los riesgos (OWASP) con los controles existentes y las recomendaciones.
+
+Fuente única: [`DOCUMENTACION/06_SEGURIDAD/RIESGOS_Y_CONTROLES.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/06_SEGURIDAD/RIESGOS_Y_CONTROLES.md).
+:::
+
+{{< include ../../DOCUMENTACION/06_SEGURIDAD/RIESGOS_Y_CONTROLES.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Protección de datos](../06-seguridad/proteccion-datos.qmd)
+- [ADR](../03-arquitectura/adr.qmd)

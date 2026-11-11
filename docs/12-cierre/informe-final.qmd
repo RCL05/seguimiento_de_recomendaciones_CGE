@@ -1,0 +1,16 @@
+---
+title: "Informe final"
+description: "Resumir el trabajo realizado, la validación, el estado de publicación y los pendientes."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Resumir el trabajo realizado, la validación, el estado de publicación y los pendientes.
+
+Fuente única: [`DOCUMENTACION/12_CIERRE/INFORME_FINAL.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/12_CIERRE/INFORME_FINAL.md).
+:::
+
+{{< include ../../DOCUMENTACION/12_CIERRE/INFORME_FINAL.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Control maestro](../00-auditoria/control-maestro.qmd)

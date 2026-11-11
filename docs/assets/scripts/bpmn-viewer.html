@@ -1,0 +1,40 @@
+<!-- Visor BPMN: dibuja cada div .bpmn-diagram con atributo data-src desde su fuente BPMN 2.0. -->
+<script>
+(function () {
+  var nodes = document.querySelectorAll(".bpmn-diagram[data-src]");
+  if (!nodes.length) return;
+  var BASE = "https://unpkg.com/bpmn-js@17.11.1/dist/";
+  var css = document.createElement("link");
+  css.rel = "stylesheet";
+  css.href = BASE + "assets/bpmn-js.css";
+  document.head.appendChild(css);
+  var script = document.createElement("script");
+  script.src = BASE + "bpmn-navigated-viewer.production.min.js";
+  script.onload = function () {
+    nodes.forEach(function (node) {
+      var caption = document.createElement("div");
+      caption.className = "bpmn-caption";
+      while (node.firstChild) caption.appendChild(node.firstChild);
+      var canvas = document.createElement("div");
+      canvas.className = "bpmn-canvas";
+      canvas.setAttribute("role", "img");
+      canvas.setAttribute("aria-label", caption.textContent.trim());
+      node.appendChild(canvas);
+      node.appendChild(caption);
+      var viewer = new window.BpmnJS({ container: canvas });
+      fetch(node.getAttribute("data-src"))
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.text();
+        })
+        .then(function (xml) { return viewer.importXML(xml); })
+        .then(function () { viewer.get("canvas").zoom("fit-viewport"); })
+        .catch(function (err) {
+          canvas.style.height = "auto";
+          canvas.textContent = "No se pudo cargar el diagrama (" + err.message + "). Descargue la fuente desde el enlace inferior.";
+        });
+    });
+  };
+  document.head.appendChild(script);
+})();
+</script>

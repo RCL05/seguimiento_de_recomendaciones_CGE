@@ -1,0 +1,17 @@
+---
+title: "Arquitectura general"
+description: "Describir el estilo arquitectónico, las capas, los componentes y la comunicación entre ellos."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Describir el estilo arquitectónico, las capas, los componentes y la comunicación entre ellos.
+
+Fuente única: [`DOCUMENTACION/03_ARQUITECTURA/ARQUITECTURA_GENERAL.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/03_ARQUITECTURA/ARQUITECTURA_GENERAL.md).
+:::
+
+{{< include ../../DOCUMENTACION/03_ARQUITECTURA/ARQUITECTURA_GENERAL.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [C1 Contexto](../03-arquitectura/c1-contexto.qmd)
+- [ADR](../03-arquitectura/adr.qmd)

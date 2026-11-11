@@ -71,7 +71,11 @@ def handle_exception(exception, context=None):
 
     if isinstance(exception, DomainError):
         payload, status = error_response(exception, request_id)
-        return Response(payload, status=status)
+        response = Response(payload, status=status)
+        if status == 401:
+            # RFC 9110 §11.6.1: toda respuesta 401 indica cómo autenticarse.
+            response["WWW-Authenticate"] = 'Bearer realm="sitra-cge"'
+        return response
 
     if isinstance(exception, Http404):
         exception = drf.NotFound()

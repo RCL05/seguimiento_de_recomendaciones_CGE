@@ -69,7 +69,7 @@ Decisiones del equipo durante la implementación. Están pendientes de validar c
 - ¿La CGE admite prórrogas formales de plazo? ¿Quién las aprueba? (CL-06)
 - ¿El catálogo de estados y las columnas de la matriz coinciden con el Acuerdo No. 010-CG-2022? Debe verificarse con la UAI.
 - ¿Qué mecanismo SSO proporcionará la DTI en producción?
-- ¿Cómo se reasigna una recomendación si cambia la estructura orgánica? (RF-003, sin implementar)
+- RF-003 resuelto: la UAI reasigna con motivo obligatorio mediante `PATCH /api/v1/recomendaciones/{id}` con `unit_id`, y el historial queda en `AuditLog`. Decisión del equipo: la reasigna la UAI, no la DTI, porque es quien registra y asigna las recomendaciones.
 
 ## Escenarios de Usuario y Pruebas
 
@@ -253,9 +253,9 @@ dependencia y comprobar que sus permisos se actualizan sin perder auditoría.
 - **RF-002 [DTI - RBAC]**: El sistema DEBE permitir al administrador DTI asignar y
   revocar los roles `DTI`, `UAI`, `EJECUTOR`, `RECTORADO` y `CGE_AUDITOR`, manteniendo
   segregación de funciones.
-- **RF-003 [DTI - Estructura orgánica]**: Si cambia la estructura administrativa,
-  el sistema DEBE permitir reasignar una recomendación a otra unidad conservando el
-  historial y la bitácora anterior.
+- **RF-003 [UAI - Estructura orgánica]**: Si cambia la estructura administrativa,
+  el sistema DEBE permitir a la UAI reasignar una recomendación a otra unidad con un
+  motivo obligatorio, conservando el historial y la bitácora anterior.
 - **RF-004 [DTI - SMTP]**: Mientras las notificaciones estén activas, el sistema
   DEBE registrar alertas dentro del sistema y gestionar su entrega por correo
   electrónico institucional respetando la configuración y límites del servicio.

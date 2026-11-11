@@ -1,0 +1,16 @@
+---
+title: "Estructura del código"
+description: "Explicar la organización de directorios, módulos y convenciones."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Explicar la organización de directorios, módulos y convenciones.
+
+Fuente única: [`DOCUMENTACION/04_IMPLEMENTACION/ESTRUCTURA.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/04_IMPLEMENTACION/ESTRUCTURA.md).
+:::
+
+{{< include ../../DOCUMENTACION/04_IMPLEMENTACION/ESTRUCTURA.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Componentes](../04-implementacion/componentes.qmd)

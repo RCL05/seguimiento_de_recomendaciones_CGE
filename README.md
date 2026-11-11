@@ -6,7 +6,8 @@ la Universidad Nacional de Loja (UNL).
 
 ## Arquitectura resumida
 
-- **Backend:** Django 5, Django REST Framework, JWT y SQLite para desarrollo.
+- **Backend:** Django 5, Django REST Framework, JWT y SQLite para desarrollo;
+  Gunicorn en el contenedor de producción.
 - **Frontend:** React, TypeScript y Vite.
 - **Documentación:** Swagger UI en Django y servidor Quart para la documentación
   Markdown y el diagrama de arquitectura C4.
@@ -130,10 +131,34 @@ npm install
 cd ..
 ```
 
+### 8. Configurar variables de entorno locales
+
+El backend aplica una configuración segura por defecto: `DJANGO_DEBUG=false` y
+`DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1`. Para desarrollo active el modo
+depuración y defina una clave local en la terminal:
+
+Windows PowerShell:
+
+```powershell
+$env:DJANGO_DEBUG="true"
+$env:DJANGO_SECRET_KEY="development-only-change-me-0123456789"
+```
+
+macOS/Linux:
+
+```bash
+export DJANGO_DEBUG=true
+export DJANGO_SECRET_KEY=development-only-change-me-0123456789
+```
+
+`backend/.env.example` documenta el resto de variables (PostgreSQL, SMTP, SSO).
+Sin `DJANGO_SECRET_KEY`, el backend se niega a arrancar cuando `DEBUG=false`.
+
 ## Guía de ejecución del sistema
 
 Inicie los tres procesos en **tres terminales independientes**. En cada
-terminal active `.venv` antes de ejecutar el comando Python.
+terminal active `.venv` y defina las variables de entorno del paso 8 antes de
+ejecutar el comando Python.
 
 ### Terminal 1: Backend Django — puerto 8000
 
@@ -193,8 +218,8 @@ manual equivalente es `POST /api/v1/evaluaciones-plazos` (solo DTI).
 
 ## Credenciales y tokens SSO de prueba
 
-Con `DJANGO_DEBUG=true` (valor predeterminado local), use estos tokens en la
-pantalla de inicio de sesión:
+Con `DJANGO_DEBUG=true` activado explícitamente en el entorno, use estos tokens
+en la pantalla de inicio de sesión:
 
 | Token SSO | Rol | Unidad | Uso |
 |---|---|---|---|
@@ -237,7 +262,10 @@ Reglas:
    `CUMPLIDA -> REABIERTA -> EN_PROCESO`.
 7. El vencimiento es un indicador independiente del estado. Una recomendación
    puede estar `EN_PROCESO` y vencida; el estado no cambia automáticamente.
-8. Toda transición no definida por estas reglas debe ser rechazada por la API.
+8. La UAI puede reasignar una recomendación a otra unidad responsable
+   (`PATCH /api/v1/recomendaciones/{id}` con `unit_id`); el cambio exige motivo y
+   conserva la bitácora anterior con unidad de origen y destino.
+9. Toda transición no definida por estas reglas debe ser rechazada por la API.
 
 ## Solución de problemas comunes
 

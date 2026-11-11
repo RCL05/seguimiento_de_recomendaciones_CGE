@@ -1,0 +1,16 @@
+---
+title: "Operación y mantenimiento"
+description: "Distinguir los mecanismos operativos implementados de las recomendaciones y fijar tareas de mantenimiento."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Distinguir los mecanismos operativos implementados de las recomendaciones y fijar tareas de mantenimiento.
+
+Fuente única: [`DOCUMENTACION/09_OPERACION/OPERACION_Y_MANTENIMIENTO.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/09_OPERACION/OPERACION_Y_MANTENIMIENTO.md).
+:::
+
+{{< include ../../DOCUMENTACION/09_OPERACION/OPERACION_Y_MANTENIMIENTO.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Despliegue](../08-despliegue/despliegue.qmd)
