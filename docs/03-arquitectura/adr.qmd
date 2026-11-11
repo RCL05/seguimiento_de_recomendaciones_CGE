@@ -1,0 +1,16 @@
+---
+title: "Decisiones arquitectónicas (ADR)"
+description: "Contrastar las decisiones históricas con el código y registrar las recomendaciones de la auditoría."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Contrastar las decisiones históricas con el código y registrar las recomendaciones de la auditoría.
+
+Fuente única: [`DOCUMENTACION/03_ARQUITECTURA/ADR.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/03_ARQUITECTURA/ADR.md).
+:::
+
+{{< include ../../DOCUMENTACION/03_ARQUITECTURA/ADR.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Arquitectura general](../03-arquitectura/arquitectura-general.qmd)

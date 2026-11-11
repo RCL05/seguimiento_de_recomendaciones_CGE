@@ -1,0 +1,16 @@
+---
+title: "Autorización"
+description: "Documentar el modelo RBAC y por objeto con la matriz rol × operación verificada."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Documentar el modelo RBAC y por objeto con la matriz rol × operación verificada.
+
+Fuente única: [`DOCUMENTACION/06_SEGURIDAD/AUTORIZACION.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/06_SEGURIDAD/AUTORIZACION.md).
+:::
+
+{{< include ../../DOCUMENTACION/06_SEGURIDAD/AUTORIZACION.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Endpoints](../05-api/endpoints.qmd)

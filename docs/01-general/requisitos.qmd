@@ -1,0 +1,17 @@
+---
+title: "Requisitos"
+description: "Resumir historias, requisitos funcionales y no funcionales, restricciones y reglas de negocio con su estado de implementación verificado."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Resumir historias, requisitos funcionales y no funcionales, restricciones y reglas de negocio con su estado de implementación verificado.
+
+Fuente única: [`DOCUMENTACION/01_GENERAL/REQUISITOS.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/01_GENERAL/REQUISITOS.md).
+:::
+
+{{< include ../../DOCUMENTACION/01_GENERAL/REQUISITOS.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Trazabilidad](../01-general/trazabilidad.qmd)
+- [Matriz de verificación](../07-calidad/matriz-verificacion.qmd)

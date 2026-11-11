@@ -10,7 +10,10 @@ dependencies = [
     "Django==5.2.18",
     "PyJWT>=2.10,<3.0",
     "djangorestframework>=3.15,<4.0",
+    "django-cors-headers>=4.4,<5.0",
+    "drf-spectacular>=0.28,<1.0",
     "psycopg[binary]>=3.2,<4.0",
+    "gunicorn>=23,<24",
 ]
 
 [project.optional-dependencies]
@@ -19,7 +22,7 @@ test = ["pytest>=8.0", "pytest-django>=4.9", "PyJWT>=2.10,<3.0"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = [".", ".."]
-DJANGO_SETTINGS_MODULE = "config.settings"
+DJANGO_SETTINGS_MODULE = "config.test_settings"
 python_files = ["test_*.py"]
 
 [tool.setuptools.packages.find]

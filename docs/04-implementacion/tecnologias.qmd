@@ -1,0 +1,16 @@
+---
+title: "Tecnologías"
+description: "Documentar las tecnologías reales, sus versiones verificadas y su función."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Documentar las tecnologías reales, sus versiones verificadas y su función.
+
+Fuente única: [`DOCUMENTACION/04_IMPLEMENTACION/TECNOLOGIAS.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/04_IMPLEMENTACION/TECNOLOGIAS.md).
+:::
+
+{{< include ../../DOCUMENTACION/04_IMPLEMENTACION/TECNOLOGIAS.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Inventario técnico](../00-auditoria/inventario-tecnico.qmd)

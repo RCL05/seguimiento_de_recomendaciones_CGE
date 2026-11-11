@@ -4,10 +4,45 @@
 
 **Creado**: 2026-10-19
 
-**Estado**: Borrador
+**Actualizado**: 2026-11-05
+
+**Estado**: En revisión (pendiente de validar con el docente)
 
 **Entrada**: Descripción del usuario: Prompt funcional para especificar SITRA-CGE
 UNL, sus actores, requisitos EARS, reglas de dominio, seguridad y escenarios BDD.
+
+## Contexto del problema
+
+La Universidad Nacional de Loja (UNL) recibe de la Contraloría General del Estado (CGE)
+informes con recomendaciones de cumplimiento obligatorio. Hoy su seguimiento es manual
+y disperso, lo que dificulta saber qué está pendiente, quién responde, qué evidencia
+existe y si la Unidad de Auditoría Interna (UAI) la aprobó. El riesgo principal es dar
+por cumplida una recomendación que normativamente sigue pendiente o rechazada.
+
+**Objetivo del incremento (Unidad 1)**: registrar recomendaciones con responsable y
+plazo, respaldar el cumplimiento con evidencias PDF, validarlo mediante dictamen UAI y
+mantener una trazabilidad consultable.
+
+### Actores
+
+| Actor | Rol en el sistema | Necesidad principal |
+| --- | --- | --- |
+| Unidad de Auditoría Interna | `UAI` | Registrar informes y recomendaciones, y dictaminar el cumplimiento |
+| Responsable de unidad | `EJECUTOR` | Planificar acciones y presentar evidencias de su unidad |
+| Máxima autoridad | `RECTORADO` | Conocer el riesgo institucional y las unidades en mora |
+| Auditor externo | `CGE_AUDITOR` | Consultar historial e integridad y obtener la matriz |
+| Administrador | `DTI` | Gestionar cuentas, roles, unidades y notificaciones |
+| Contraloría General del Estado | Externo | Recibir la matriz de cumplimiento |
+| SSO institucional y correo | Servicios externos | Autenticar usuarios y entregar alertas |
+
+### Alcance y restricciones
+
+- **Incluye**: informes, recomendaciones, plan de acción, evidencias PDF, dictamen UAI,
+  vencimientos y alertas, tablero, matriz CSV, auditoría y administración básica.
+- **Excluye**: lo indicado en la sección "Fuera de alcance".
+- **Restricciones**: evidencias solo en PDF de hasta 30 MB; fechas de negocio en
+  `America/Guayaquil` y auditoría en UTC; la interpretación legal corresponde a las
+  instancias competentes de la UNL y de la CGE.
 
 ## Clarifications
 
@@ -18,6 +53,23 @@ UNL, sus actores, requisitos EARS, reglas de dominio, seguridad y escenarios BDD
 - Q: ¿Cuál debe ser el tamaño máximo permitido para cada evidencia PDF en la primera versión? → A: 30 MB.
 - Q: ¿Qué zona horaria debe utilizarse para calcular vencimientos, alertas y fechas legales de las recomendaciones? → A: America/Guayaquil (UTC-5) para negocio y UTC para auditoría.
 - Q: ¿Qué respuesta debe recibir un ejecutor cuando solicita una recomendación perteneciente a otra dependencia? → A: HTTP 404 sin revelar la existencia del recurso y con registro interno del intento.
+
+### Session 2026-11-05
+
+Decisiones del equipo durante la implementación. Están pendientes de validar con el docente.
+
+- Q: ¿"Vencida" es un estado del flujo? → A: No. Es un indicador calculado: la recomendación conserva su estado de cumplimiento y puede cumplirse tarde. Se descartaron la prórroga formal y mantener el estado con ajustes parciales.
+- Q: ¿Una evidencia entregada a tiempo y aún sin dictamen cuenta como vencida? → A: No. La demora en la revisión de la UAI no se imputa al ejecutor.
+- Q: ¿Cómo se registran hitos si el plazo legal ya venció? → A: El plazo legal no se modifica y el hito debe tener fecha de hoy en adelante.
+- Q: ¿Cuáles son los estados del flujo? → A: `Pendiente`, `En Proceso`, `En Validación`, `Cumplida` y `Reabierta`. Se simplificó el catálogo inicial: `En Planificación` y `En Ejecución` se unieron en `En Proceso`; `En Revisión Interna` pasó a `En Validación`, y `Rechazada/Corrección` se reemplazó por el regreso a `En Proceso`.
+- Q: ¿Se puede reabrir una recomendación cumplida? → A: Sí, solo la UAI y con motivo obligatorio. El ejecutor la reanuda con un nuevo hito.
+
+### Preguntas pendientes
+
+- ¿La CGE admite prórrogas formales de plazo? ¿Quién las aprueba? (CL-06)
+- ¿El catálogo de estados y las columnas de la matriz coinciden con el Acuerdo No. 010-CG-2022? Debe verificarse con la UAI.
+- ¿Qué mecanismo SSO proporcionará la DTI en producción?
+- RF-003 resuelto: la UAI reasigna con motivo obligatorio mediante `PATCH /api/v1/recomendaciones/{id}` con `unit_id`, y el historial queda en `AuditLog`. Decisión del equipo: la reasigna la UAI, no la DTI, porque es quien registra y asigna las recomendaciones.
 
 ## Escenarios de Usuario y Pruebas
 
@@ -59,13 +111,14 @@ un PDF y consultar su huella de integridad y estado de revisión.
 
 **Escenarios de aceptación**:
 
-1. **Dado** que una recomendación está en `En Planificación`, **cuando** el ejecutor
-   registra uno o más hitos con fechas que no exceden el plazo legal, **entonces** el
-   sistema guarda el plan y permite avanzar a `En Ejecución`.
-2. **Dado** que una recomendación está asignada al ejecutor y en `En Ejecución`,
+1. **Dado** que una recomendación está en `Pendiente`, **cuando** el ejecutor registra
+   un hito con fecha que no excede el plazo legal, **entonces** el sistema guarda el
+   plan y la recomendación pasa a `En Proceso`; mientras siga en ese estado puede
+   agregar más hitos.
+2. **Dado** que una recomendación está asignada al ejecutor y en `En Proceso`,
    **cuando** carga un PDF válido, **entonces** el sistema conserva el archivo,
    calcula su hash SHA-256, registra la operación y envía la recomendación a
-   `En Revisión Interna`.
+   `En Validación`.
 3. **Dado** que el ejecutor intenta cargar un archivo que no es PDF, supera el tamaño
    permitido o no coincide con su contenido declarado, **cuando** envía el archivo,
    **entonces** el sistema lo rechaza si supera 30 MB, y no cambia el estado ni crea evidencia válida.
@@ -83,15 +136,18 @@ observaciones y comprobar la transición y la bitácora resultantes.
 
 **Escenarios de aceptación**:
 
-1. **Dado** que una recomendación está en `En Revisión Interna` y tiene un PDF válido,
+1. **Dado** que una recomendación está en `En Validación` y tiene un PDF válido,
    **cuando** la UAI aprueba la evidencia, **entonces** el sistema permite `Cumplida`
    solo si también se ha cumplido el historial de transición requerido.
 2. **Dado** que la UAI considera insuficiente una evidencia, **cuando** la rechaza con
-   observaciones, **entonces** el sistema cambia a `Rechazada/Corrección`, conserva
-   el archivo y la revisión anterior, y notifica al ejecutor.
-3. **Dado** que una recomendación está en `En Ejecución` con un PDF aún no evaluado,
-   **cuando** cualquier usuario intenta cambiarla directamente a `Cumplida`,
-   **entonces** el sistema mantiene el estado y devuelve HTTP 409.
+   observaciones, **entonces** el sistema devuelve la recomendación a `En Proceso` y
+   conserva el archivo y la revisión anterior.
+3. **Dado** que una recomendación no está en `En Validación`, **cuando** la UAI intenta
+   emitir un dictamen, **entonces** el sistema mantiene el estado y devuelve HTTP 409.
+4. **Dado** que la UAI rechaza una evidencia sin observaciones, **cuando** envía el
+   dictamen, **entonces** el sistema devuelve HTTP 400 y no cambia el estado.
+5. **Dado** que una recomendación está en `Cumplida`, **cuando** la UAI la reabre con un
+   motivo, **entonces** pasa a `Reabierta` y el ejecutor puede reanudarla con un hito.
 
 ### Historia de Usuario 4 - Supervisar riesgos y vencimientos (Prioridad: P2)
 
@@ -110,14 +166,20 @@ los permisos del usuario.
 1. **Dado** que existen recomendaciones con diferentes estados y plazos, **cuando**
    la máxima autoridad consulta el tablero, **entonces** observa el porcentaje global
    de cumplimiento, un semáforo de riesgo y las unidades en mora.
-2. **Dado** que una recomendación llega a su vencimiento sin evidencia aprobada,
-   **cuando** se ejecuta la evaluación de plazos, **entonces** el sistema la marca
-   `En Mora` y notifica dentro del sistema y por correo electrónico a la unidad
-   responsable, la UAI y la máxima autoridad.
+2. **Dado** que una recomendación supera su fecha de vencimiento sin cumplirse,
+   **cuando** se ejecuta la evaluación de plazos, **entonces** el sistema registra el
+   vencimiento sin cambiar su estado y notifica una sola vez, dentro del sistema y por
+   correo electrónico, a la unidad responsable, la UAI y la máxima autoridad.
 3. **Dado** que faltan 15 días o menos y no existe evidencia presentada que satisfaga
    las condiciones configuradas, **cuando** se evalúan los plazos, **entonces** el
    sistema genera una alerta dentro del sistema y por correo electrónico sin
    confundir evidencia presentada con validada.
+4. **Dado** que el ejecutor entregó una evidencia a tiempo y sigue sin dictamen,
+   **cuando** pasa la fecha de vencimiento, **entonces** la recomendación no se
+   considera vencida y la UAI puede dictaminar.
+5. **Dado** que una recomendación está vencida, **cuando** el ejecutor registra un hito
+   con fecha anterior a hoy, **entonces** el sistema devuelve HTTP 400; con fecha de hoy
+   en adelante, lo registra sin modificar el plazo legal.
 
 ### Historia de Usuario 5 - Auditar y exportar el cumplimiento (Prioridad: P2)
 
@@ -191,9 +253,9 @@ dependencia y comprobar que sus permisos se actualizan sin perder auditoría.
 - **RF-002 [DTI - RBAC]**: El sistema DEBE permitir al administrador DTI asignar y
   revocar los roles `DTI`, `UAI`, `EJECUTOR`, `RECTORADO` y `CGE_AUDITOR`, manteniendo
   segregación de funciones.
-- **RF-003 [DTI - Estructura orgánica]**: Si cambia la estructura administrativa,
-  el sistema DEBE permitir reasignar una recomendación a otra unidad conservando el
-  historial y la bitácora anterior.
+- **RF-003 [UAI - Estructura orgánica]**: Si cambia la estructura administrativa,
+  el sistema DEBE permitir a la UAI reasignar una recomendación a otra unidad con un
+  motivo obligatorio, conservando el historial y la bitácora anterior.
 - **RF-004 [DTI - SMTP]**: Mientras las notificaciones estén activas, el sistema
   DEBE registrar alertas dentro del sistema y gestionar su entrega por correo
   electrónico institucional respetando la configuración y límites del servicio.
@@ -202,23 +264,26 @@ dependencia y comprobar que sus permisos se actualizan sin perder auditoría.
   documento oficial.
 - **RF-006 [UAI - Recomendación]**: Cuando la UAI cree una recomendación, el sistema
   DEBE exigir plazo legal, prioridad y unidad ejecutora e inicializarla en `Pendiente`.
-- **RF-007 [Ejecutor - Plan]**: Cuando la recomendación esté en `En Planificación`,
-  el sistema DEBE permitir un plan con N hitos y fechas que no excedan el plazo legal.
+- **RF-007 [Ejecutor - Plan]**: Cuando la recomendación esté en `Pendiente`, `Reabierta`
+  o `En Proceso`, el sistema DEBE permitir un plan con N hitos. Dentro del plazo, las
+  fechas NO DEBEN exceder el plazo legal; con el plazo vencido, DEBEN ser de hoy en
+  adelante.
 - **RF-008 [Ejecutor - PDF]**: Cuando el ejecutor cargue un medio de verificación,
   el sistema DEBE validar que sea PDF, verificar que no supere 30 MB, comprobar su
   contenido, almacenarlo y calcular SHA-256.
 - **RF-009 [UAI - Estados]**: El sistema DEBE gestionar el flujo `Pendiente`,
-  `En Planificación`, `En Ejecución`, `En Revisión Interna`, `Cumplida`,
-  `Rechazada/Corrección` y `En Mora`, con transiciones y roles explícitos.
+  `En Proceso`, `En Validación`, `Cumplida` y `Reabierta`, con transiciones y roles
+  explícitos, y rechazar con HTTP 409 toda transición no definida.
 - **RF-010 [UAI - Dictamen]**: Cuando la UAI considere insuficiente una evidencia, el
-  sistema DEBE registrar observaciones, cambiar a `Rechazada/Corrección` y conservar
-  los archivos y revisiones previas.
+  sistema DEBE exigir observaciones, devolver la recomendación a `En Proceso` y
+  conservar los archivos y revisiones previas.
 - **RF-011 [Sistema - Alertas]**: Cuando falten 15 días o menos para el vencimiento
   y no exista evidencia presentada que cumpla las condiciones, el sistema DEBE
   notificar al ejecutor y a la UAI.
-- **RF-012 [Sistema - Mora]**: Si vence el plazo sin evidencia aprobada, el sistema
-  DEBE cambiar a `En Mora` únicamente al cumplirse las condiciones temporales y de
-  negocio, y notificar a la máxima autoridad.
+- **RF-012 [Sistema - Vencimiento]**: Si vence el plazo sin cumplimiento y sin una
+  evidencia entregada a tiempo pendiente de dictamen, el sistema DEBE marcar la
+  recomendación como vencida sin cambiar su estado, y notificar una sola vez a la unidad
+  responsable, la UAI y la máxima autoridad.
 - **RF-013 [Rectorado - Tablero]**: Mientras la máxima autoridad consulte el tablero,
   el sistema DEBE presentar semáforo de riesgo, porcentaje global y unidades en mora.
 - **RF-014 [UAI/CGE - Matriz]**: Cuando un usuario autorizado solicite la matriz,
@@ -229,8 +294,9 @@ dependencia y comprobar que sus permisos se actualizan sin perder auditoría.
   ISO-8601 UTC, salvo las excepciones HTTP definidas.
 - **RF-016 [Todos - Errores]**: El sistema DEBE clasificar errores como
   `VALIDATION_ERROR`, `AUTHENTICATION_REQUIRED`, `PERMISSION_DENIED`,
-  `RESOURCE_NOT_FOUND`, `BUSINESS_RULE_VIOLATION`, `CONFLICT` o `INTERNAL_ERROR`,
-  sin exponer detalles internos.
+  `RESOURCE_NOT_FOUND`, `METHOD_NOT_ALLOWED`, `BUSINESS_RULE_VIOLATION`, `CONFLICT`,
+  `PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE` o `INTERNAL_ERROR`, sin exponer
+  detalles internos.
 - **RF-017 [Todos - Auditoría]**: El sistema DEBE registrar toda operación mutativa
   con usuario, fecha UTC, IP disponible, `request_id`, entidad, identificador,
   operación, estado anterior, estado nuevo y resultado.
@@ -249,6 +315,11 @@ dependencia y comprobar que sus permisos se actualizan sin perder auditoría.
 - **RF-022 [OpenAPI]**: Si el proyecto adopta el contrato OpenAPI, la especificación
   DEBE mantenerse sincronizada con el comportamiento publicado y verificarse
   automáticamente.
+- **RF-023 [UAI - Reapertura]**: Cuando la UAI reabra una recomendación `Cumplida`, el
+  sistema DEBE exigir un motivo, cambiarla a `Reabierta` y registrar la operación.
+- **RF-024 [Archivos protegidos]**: El sistema DEBE entregar evidencias y documentos
+  oficiales solo por operaciones autenticadas y autorizadas, y NO DEBE publicarlos como
+  archivos estáticos.
 
 ### Requisitos no funcionales
 
@@ -262,9 +333,11 @@ dependencia y comprobar que sus permisos se actualizan sin perder auditoría.
 - **RNF-004 - Contrato**: Las respuestas exitosas DEBEN mantener `errors=null`; las
   fallidas DEBEN mantener `data=null` y un código 4xx/5xx.
 - **RNF-005 - Rendimiento**: Al menos el 95% de las consultas ordinarias del tablero
-  DEBE mostrar resultados en menos de 3 segundos bajo la carga institucional definida.
-- **RNF-006 - Exportación**: El 95% de las solicitudes de matriz dentro del volumen
-  institucional acordado DEBE completarse en menos de 5 segundos.
+  DEBE responder en menos de 3 segundos. La carga institucional de prueba queda
+  pendiente de definir con la UAI.
+- **RNF-006 - Exportación**: Al menos el 95% de las solicitudes de exportación de matriz
+  DEBE completarse en menos de 5 segundos. El volumen de datos de prueba queda
+  pendiente de definir con la UAI.
 - **RNF-007 - Disponibilidad**: Un fallo de correo DEBE registrarse y reintentarse sin
   revertir transacciones de negocio confirmadas; la alerta dentro del sistema debe
   permanecer disponible aunque el correo no se entregue.
@@ -272,18 +345,27 @@ dependencia y comprobar que sus permisos se actualizan sin perder auditoría.
   credenciales, tokens, contraseñas, trazas, SQL ni datos no autorizados.
 - **RNF-009 - Requisitos**: Los requisitos DEBEN usar sintaxis EARS y cada uno DEBE
   tener por lo menos un escenario BDD `Given / When / Then`.
+- **RNF-010 - Interoperabilidad**: La API DEBE publicar un contrato OpenAPI 3.0.3 válido y
+  la matriz DEBE exportarse en CSV UTF-8 legible por hojas de cálculo.
+- **RNF-011 - Usabilidad**: Cada rol DEBE ver únicamente sus secciones y acceder a su
+  tarea principal desde el menú lateral; se verifica con SC-009.
+- **RNF-012 - Accesibilidad**: Los campos DEBEN tener etiqueta visible, las acciones
+  DEBEN poder usarse con teclado y el estado NO DEBE comunicarse solo con color.
+- **RNF-013 - Mantenibilidad**: Toda regla de dominio DEBE tener pruebas automatizadas y
+  la capa API NO DEBE contener reglas de negocio.
 
 ### Catálogo de estados
 
 | Estado | Entrada permitida | Condición mínima |
 | --- | --- | --- |
 | Pendiente | Registro inicial | Recomendación registrada con plazo y responsable |
-| En Planificación | Inicio de planificación | Unidad responsable y plan en elaboración |
-| En Ejecución | Plan aprobado | Hitos y fechas dentro del plazo |
-| En Revisión Interna | Evidencia presentada | Evidencia disponible para dictamen UAI |
+| En Proceso | Primer hito, dictamen desfavorable o reanudación | Al menos un hito; observaciones si hubo rechazo |
+| En Validación | Evidencia presentada | Evidencia disponible para dictamen UAI |
 | Cumplida | Dictamen favorable UAI | Revisión previa y PDF validado |
-| Rechazada/Corrección | Dictamen desfavorable UAI | Observaciones registradas y archivo conservado |
-| En Mora | Vencimiento aplicable | Plazo vencido sin evidencia aprobada |
+| Reabierta | Reapertura por la UAI | Recomendación cumplida y motivo registrado |
+
+**Vencida** no pertenece a este catálogo: es un indicador calculado que acompaña al
+estado (ver RF-012).
 
 Las transiciones, autorizaciones y eventos DEBEN validarse en el dominio y auditarse
 transaccionalmente.
@@ -303,21 +385,42 @@ transaccionalmente.
     "pagination": {
       "page": 1,
       "page_size": 10,
-      "total_items": 100,
-      "total_pages": 10
+      "total": 100,
+      "total_pages": 10,
+      "has_next": true,
+      "has_previous": false
     }
   }
 }
 ```
 
+### Contratos preliminares
+
+Relación entre requisitos y operaciones del backend bajo `/api/v1`. El contrato detallado
+está en [contracts/openapi.yaml](./contracts/openapi.yaml).
+
+| Requisito | Recurso | Operación | Entrada principal | Resultado | Códigos |
+| --- | --- | --- | --- | --- | --- |
+| RF-001 | Sesión | `POST /auth/login-sso` | Credencial SSO | JWT Bearer | 200, 400, 401 |
+| RF-005 | Informe | `POST /informes` | Número, período, fecha, PDF o URL | Informe creado | 201, 400, 401, 403, 409, 413 |
+| RF-006 | Recomendación | `POST /recomendaciones` | Informe, número, unidad, plazo, prioridad | Recomendación `Pendiente` | 201, 400, 401, 403, 409 |
+| RF-019 | Recomendación | `GET /recomendaciones/{id}` | Identificador | Detalle con evidencias | 200, 401, 403, 404 |
+| RF-007 | Hito | `POST /recomendaciones/{id}/plan-accion` | Descripción y fecha | Hito registrado | 201, 400, 401, 403, 404, 409 |
+| RF-008 | Evidencia | `POST /recomendaciones/{id}/evidencias` | PDF binario | Evidencia con SHA-256 | 201, 400, 401, 403, 404, 409, 413 |
+| RF-009, RF-010 | Dictamen | `POST /recomendaciones/{id}/dictamenes` | Evidencia, resultado, observaciones | Dictamen y nuevo estado | 201, 400, 401, 403, 404, 409 |
+| RF-023 | Recomendación | `PATCH /recomendaciones/{id}` | Estado `REABIERTA` y motivo | Recomendación reabierta | 200, 400, 401, 403, 404, 409 |
+| RF-013 | Tablero | `GET /reportes/tablero` | Ninguna | Indicadores y unidades en mora | 200, 401, 403 |
+| RF-014 | Matriz | `GET /reportes/matriz-cge` | Ninguna | Archivo CSV UTF-8 | 200, 401, 403 |
+| RF-018 | Auditoría | `GET /auditoria` | Filtros opcionales | Eventos de auditoría | 200, 400, 401, 403 |
+
 ### Escenarios críticos BDD adicionales
 
 #### Escenario 1: Salto ilegal a `Cumplida`
 
-- **Given** una recomendación en `En Ejecución` con un PDF cargado pero no evaluado,
-- **When** se solicita cambiarla directamente a `Cumplida`,
-- **Then** el sistema mantiene `En Ejecución`, devuelve HTTP 409 y explica que
-  requiere revisión previa de la UAI.
+- **Given** una recomendación que no está en `En Validación`,
+- **When** se solicita emitir un dictamen para llevarla a `Cumplida`,
+- **Then** el sistema mantiene su estado, devuelve HTTP 409 y explica que no está lista
+  para dictamen.
 
 #### Escenario 2: Protección contra BOLA/IDOR
 
@@ -329,10 +432,10 @@ transaccionalmente.
 
 #### Escenario 3: Carga válida de evidencia
 
-- **Given** una recomendación asignada al ejecutor en `En Ejecución`,
+- **Given** una recomendación asignada al ejecutor en `En Proceso`,
 - **When** carga `evidencia_01.pdf` válido,
 - **Then** el sistema lo conserva, calcula SHA-256, registra auditoría, cambia a
-  `En Revisión Interna` y devuelve HTTP 201 con la envoltura universal.
+  `En Validación` y devuelve HTTP 201 con la envoltura universal.
 
 ## Entidades principales
 
@@ -370,8 +473,8 @@ transaccionalmente.
   5 segundos dentro del volumen institucional acordado.
 - **SC-007**: El 100% de las evidencias modificadas después de su almacenamiento
   produce una discrepancia detectable al verificar su hash.
-- **SC-008**: El 100% de los vencimientos aplicables sin evidencia aprobada se marca
-  `En Mora` y notifica a los roles definidos sin duplicar mensajes por reintento.
+- **SC-008**: El 100% de los vencimientos aplicables se marca como vencido y notifica a
+  los roles definidos sin duplicar mensajes por reintento.
 - **SC-009**: Al menos el 90% de los usuarios representativos completa su tarea
   principal sin asistencia en una evaluación de aceptación.
 - **SC-010**: Toda versión publicada conserva trazabilidad desde requisito hasta

@@ -18,7 +18,30 @@ export type Recommendation = {
   unit_id: string;
   legal_days: number;
   due_date: string;
-  state: string;
+  priority?: "ALTA" | "MEDIA" | "BAJA";
+  state: "PENDIENTE" | "EN_PROCESO" | "EN_VALIDACION" | "REABIERTA" | "CUMPLIDA" | string;
+  /** Plazo legal vencido sin cumplir: indicador, no un estado del flujo. */
+  vencida?: boolean;
+  overdue_registered_at?: string | null;
+};
+
+export type Milestone = {
+  id: string;
+  recommendation_id: string;
+  descripcion_hito: string;
+  fecha_compromiso: string;
+  completado: boolean;
+  created_by: string;
+};
+
+export type Dictamen = {
+  id: string;
+  resultado: "APROBADO" | "RECHAZADO";
+  evidence_id: string;
+  evaluator_id: string;
+  observaciones: string;
+  fecha_dictamen: string;
+  recomendacion: Recommendation;
 };
 
 export type Evidence = {
@@ -41,6 +64,15 @@ export type Unit = {
   nombre: string;
 };
 
+export type AdminUser = {
+  id: string;
+  correo_institucional: string;
+  nombres: string;
+  rol: Role;
+  unidad_codigo: string | null;
+  activo: boolean;
+};
+
 export type Report = {
   id: string;
   numero_informe: string;
@@ -56,6 +88,16 @@ export type Dashboard = {
   en_mora: number;
   en_revision_interna: number;
   por_estado: Record<string, number>;
+  unidades_en_mora: { unidad_codigo: string; unidad_nombre: string; vencidas: number; total: number }[];
+  fecha_corte: string;
+};
+
+export type DashboardKPIs = {
+  total_recomendaciones: number;
+  recomendaciones_por_estado: Record<string, number>;
+  tasa_cumplimiento_porcentaje: number;
+  recomendaciones_vencidas_o_en_mora: number;
+  total_informes_cge: number;
 };
 
 export type AuditLogEntry = {
@@ -88,6 +130,7 @@ export type NotificationSettings = {
   canal_email_activo: boolean;
   destinatarios_vencimiento: string[];
   destinatarios_mora: string[];
+  actualizado_en?: string;
 };
 
 type Envelope<T> = {
@@ -230,6 +273,20 @@ export const api = {
 
   listUnits: () => request<Unit[]>("/api/v1/unidades"),
 
+  createUnit: (payload: { codigo: string; nombre: string }) =>
+    request<Unit>("/api/v1/unidades", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  listUsers: () => request<AdminUser[]>("/api/v1/usuarios"),
+
+  updateUser: (userId: string, payload: { rol?: Role; unidad_codigo?: string }) =>
+    request<AdminUser>(`/api/v1/usuarios/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
   getRecommendation: (id: string) => request<RecommendationDetail>(`/api/v1/recomendaciones/${id}`),
 
   createReport: (payload: FormData) =>
@@ -251,6 +308,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+
+  listPlan: (recommendationId: string) =>
+    request<Milestone[]>(`/api/v1/recomendaciones/${recommendationId}/plan-accion`),
 
   createPlan: (
     recommendationId: string,
@@ -293,16 +353,21 @@ export const api = {
     return response.blob();
   },
 
-  submitDictamen: (
+  submitDictamen: async (
     recommendationId: string,
     payload: { evidence_id: string; approved: boolean; observaciones?: string },
-  ) =>
-    request<Recommendation>(`/api/v1/recomendaciones/${recommendationId}/dictamen`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    }),
+  ): Promise<Recommendation> => {
+    // El dictamen es un recurso nuevo: POST /dictamenes -> 201 con la recomendación actualizada.
+    const dictamen = await request<Dictamen>(
+      `/api/v1/recomendaciones/${recommendationId}/dictamenes`,
+      { method: "POST", body: JSON.stringify(payload) },
+    );
+    return dictamen.recomendacion;
+  },
 
   getDashboard: () => request<Dashboard>("/api/v1/reportes/tablero"),
+
+  getDashboardKPIs: () => request<DashboardKPIs>("/api/v1/dashboard/kpis"),
 
   getAuditLog: (filters: { entity?: string; entity_id?: string; limit?: number } = {}) => {
     const params = new URLSearchParams();
@@ -317,7 +382,7 @@ export const api = {
 
   downloadMatriz: async (): Promise<Blob> => {
     const response = await fetch(`${API_BASE}/api/v1/reportes/matriz-cge`, {
-      method: "POST",
+      method: "GET",
       headers: authHeaders(),
     });
     if (!response.ok) {

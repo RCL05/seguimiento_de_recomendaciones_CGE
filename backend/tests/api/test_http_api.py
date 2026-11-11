@@ -49,7 +49,7 @@ def test_login_sso_devuelve_jwt_con_claims_de_identidad(monkeypatch):
         "unidad_codigo": "UAI",
     }
     monkeypatch.setattr(
-        "backend.core.api.views.SsoAdapter.authenticate",
+        "backend.modules.usuarios.infrastructure.sso_adapter.SsoAdapter.authenticate",
         lambda _adapter, *, token: sso_identity if token == "active-test-credential" else {},
     )
     valid = client.post(

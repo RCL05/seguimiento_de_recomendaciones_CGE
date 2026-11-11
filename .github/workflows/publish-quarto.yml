@@ -1,0 +1,65 @@
+name: Publicar documentación (Quarto → GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "DOCUMENTACION/**"
+      - ".github/workflows/publish-quarto.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "DOCUMENTACION/**"
+      - ".github/workflows/publish-quarto.yml"
+  workflow_dispatch:
+
+# Permisos mínimos: leer el código; escribir en Pages y emitir el token OIDC solo en el job de despliegue.
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Construir el portal
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: 1.11.9
+
+      - name: Construir el sitio
+        run: quarto render docs
+
+      - name: Configurar GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+
+      - name: Generar el artefacto de publicación
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/_site
+
+  deploy:
+    name: Publicar en GitHub Pages
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Desplegar
+        id: deployment
+        uses: actions/deploy-pages@v4

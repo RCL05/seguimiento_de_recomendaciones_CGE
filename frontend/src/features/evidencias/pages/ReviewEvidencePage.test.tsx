@@ -50,9 +50,9 @@ describe("ReviewEvidencePage", () => {
   it("solo muestra recomendaciones en revisión interna", async () => {
     render(<ReviewEvidencePage />);
 
-    expect(await screen.findByText(/Implementar controles/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Implementar controles/i })).toBeInTheDocument();
     expect(screen.queryByText(/REC-002/)).not.toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /REC-001/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /REC-001/ })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("registra el dictamen de aprobación con la evidencia seleccionada", async () => {

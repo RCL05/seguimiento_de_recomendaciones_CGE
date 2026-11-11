@@ -41,15 +41,16 @@ def send_deadline_alerts() -> dict[str, int]:
     now = timezone.localtime()  # America/Guayaquil para lógica de negocio
     threshold_date = now.date() + timedelta(days=threshold_days)
 
-    # Recomendaciones activas próximas a vencer sin evidencia aprobada
+    # Recomendaciones aún dentro del plazo, próximas a vencer y sin evidencia presentada
+    # (En Validación ya tiene evidencia presentada; las vencidas las atiende mark_overdue).
     candidates = (
         Recomendacion.objects.filter(
             estado__in=[
                 Recomendacion.Estado.PENDIENTE,
                 Recomendacion.Estado.EN_PROCESO,
-                Recomendacion.Estado.EN_PROCESO,
-                Recomendacion.Estado.EN_PROCESO,
+                Recomendacion.Estado.REABIERTA,
             ],
+            fecha_vencimiento_legal__gte=now.date(),
             fecha_vencimiento_legal__lte=threshold_date,
         )
         .exclude(evidencias__validada=True)

@@ -41,9 +41,10 @@ Actores y responsabilidades:
 
 Flujo de petición:
 
-1. El frontend envía `X-User-ID`, `X-Role` y opcionalmente `X-Unit-ID`.
-2. `backend/core/api` valida identidad, construye el sobre de respuesta y aplica
-   el catálogo de errores.
+1. El frontend envía `Authorization: Bearer <JWT>`; el token incluye identidad,
+   rol y unidad efectiva.
+2. `backend/core/api` valida la firma del JWT, construye el sobre de respuesta y
+   aplica el catálogo de errores.
 3. La capa `application` de cada módulo ejecuta el caso de uso y registra
    auditoría dentro de la misma transacción.
 4. La capa `infrastructure` persiste el estado y adapta servicios externos
@@ -120,8 +121,10 @@ Reglas de cumplimiento:
 
 - Autorización por rol: UAI registra y dictamina; EJECUTOR planifica y carga;
   RECTORADO/UAI/CGE consultan tablero; DTI administra configuración y jobs.
-- Aislamiento por unidad: el ejecutor solo ve recomendaciones de su
-  `X-Unit-ID`; el acceso indebido responde `404` y genera `ACCESS_DENIED`.
+- Aislamiento por unidad: el ejecutor solo ve recomendaciones de la unidad
+  declarada en su JWT; el acceso indebido responde `404` y genera `ACCESS_DENIED`.
+- La UAI puede reasignar una recomendación a otra unidad con motivo obligatorio;
+  la unidad anterior y la nueva se conservan en `AuditLog`.
 - Validación de evidencia: MIME PDF, extensión, firma `%PDF`, tamaño máximo
   30 MB, SHA-256 y análisis antimalware.
 - Secretos solo por variables de entorno; la configuración de notificaciones

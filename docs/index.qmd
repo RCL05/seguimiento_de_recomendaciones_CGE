@@ -1,0 +1,145 @@
+---
+title: "SITRA-CGE UNL"
+subtitle: "Documentación técnica del sistema de seguimiento de recomendaciones de la Contraloría General del Estado"
+description: "Portal de documentación técnica, arquitectónica y funcional, verificada contra el código fuente."
+date: 2026-11-11
+date-format: long
+author: "Equipo de desarrollo SITRA-CGE UNL"
+number-sections: false
+toc: true
+---
+
+## Qué es SITRA-CGE
+
+**SITRA-CGE UNL** es una aplicación web con la que la **Universidad Nacional de Loja** registra las recomendaciones que emite la **Contraloría General del Estado (CGE)**, las asigna a una unidad responsable con un plazo legal, recibe las evidencias PDF de cumplimiento, permite que la **Unidad de Auditoría Interna (UAI)** dictamine y conserva una bitácora inmutable de todo el proceso.
+
+::: {.metric-row}
+::: {.metric}
+<strong>24</strong> requisitos funcionales: 23 implementados y probados, 1 parcial
+:::
+::: {.metric}
+<strong>32</strong> operaciones en la API `/api/v1`
+:::
+::: {.metric}
+<strong>5</strong> roles con segregación de funciones
+:::
+::: {.metric}
+<strong>157</strong> pruebas automatizadas aprobadas (145 backend · 12 frontend)
+:::
+:::
+
+## Contexto y problema
+
+El seguimiento de estas recomendaciones era manual y disperso. El riesgo principal identificado por el equipo es **dar por cumplida una recomendación que normativamente sigue pendiente o rechazada**. SITRA-CGE lo mitiga con una máquina de estados en la que solo la UAI puede declarar el cumplimiento, y solo con evidencia validada. → [Problema y justificación](01-general/problema-justificacion.qmd)
+
+## Objetivo y alcance
+
+Registrar recomendaciones con responsable y plazo, respaldar su cumplimiento con evidencias PDF íntegras (SHA-256), validarlo mediante dictamen UAI y mantener una trazabilidad consultable y exportable (matriz CSV). Quedan fuera la integración en tiempo real con la CGE y la gestión de responsabilidades legales. → [Objetivos y alcance](01-general/objetivos-alcance.qmd)
+
+## Flujo central
+
+```{mermaid}
+stateDiagram-v2
+  direction LR
+  [*] --> PENDIENTE: UAI registra
+  PENDIENTE --> EN_PROCESO: hito del ejecutor
+  EN_PROCESO --> EN_VALIDACION: evidencia PDF
+  EN_VALIDACION --> CUMPLIDA: UAI aprueba
+  EN_VALIDACION --> EN_PROCESO: UAI rechaza
+  CUMPLIDA --> REABIERTA: UAI reabre
+  REABIERTA --> EN_PROCESO: nuevo hito
+```
+
+## Tecnologías
+
+| Capa | Tecnología |
+|---|---|
+| Frontend | React 19, TypeScript, Vite 6 |
+| Backend | Python, Django 5.2, Django REST Framework 3.18, drf-spectacular |
+| Seguridad | JWT HS256 (PyJWT) emitido tras SSO institucional; RBAC y autorización por unidad |
+| Datos | SQLite (desarrollo), PostgreSQL 16 (Compose); PDF en almacenamiento privado |
+| Calidad | pytest, Vitest, Playwright, ESLint; GitHub Actions |
+| Documentación | OpenAPI 3.0.3 + Swagger UI, Quarto |
+
+## Arquitectura resumida
+
+Monolito modular por capas (presentación → aplicación → dominio, con infraestructura como adaptador), una SPA independiente y servicios externos detrás de puertos.
+
+```{mermaid}
+flowchart LR
+  user(["Usuarios por rol"]) --> spa["SPA React"]
+  spa -->|JSON · Bearer JWT| api["API Django /api/v1"]
+  api --> db[("SQLite / PostgreSQL")]
+  api --> fs[("PDF privados")]
+  api --> sso[["SSO UNL"]]
+  api --> smtp[["SMTP"]]
+  job["evaluar_plazos"] --> db
+```
+
+→ [Arquitectura general](03-arquitectura/arquitectura-general.qmd) · [Modelo C4](03-arquitectura/c1-contexto.qmd)
+
+## Componentes principales
+
+| Módulo | Responsabilidad |
+|---|---|
+| `usuarios` | Inicio de sesión SSO, JWT, usuarios y unidades |
+| `informes_cge` | Registro de informes de examen especial |
+| `recomendaciones` | Estados, plan de acción, dictamen, reapertura, vencimiento |
+| `evidencias` | Carga, anulación, descarga autorizada e integridad de PDF |
+| `notificaciones` | Alertas de plazo, vencimientos, preferencias y configuración |
+| `reportes` | KPIs, tablero ejecutivo, matriz CSV y auditoría |
+| `core` | Envoltura de respuestas, errores, autenticación, auditoría inmutable |
+
+## Capítulos
+
+::: {.portal-grid}
+::: {.portal-card}
+### [0. Auditoría](00-auditoria/control-maestro.qmd)
+Inventario técnico y documental, hallazgos y control del trabajo.
+:::
+::: {.portal-card}
+### [1. General](01-general/introduccion.qmd)
+Contexto, actores, requisitos y trazabilidad.
+:::
+::: {.portal-card}
+### [2. Procesos](02-procesos/procesos.qmd)
+BPMN de registro, ejecución-dictamen y plazos.
+:::
+::: {.portal-card}
+### [3. Arquitectura](03-arquitectura/arquitectura-general.qmd)
+Capas, C4 (C1–C4), UML y ADR.
+:::
+::: {.portal-card}
+### [4. Implementación](04-implementacion/componentes.qmd)
+Tecnologías, estructura, componentes y modelo de datos.
+:::
+::: {.portal-card}
+### [5. API](05-api/endpoints.qmd)
+Endpoints, contratos e integraciones.
+:::
+::: {.portal-card}
+### [6. Seguridad](06-seguridad/riesgos-controles.qmd)
+Autenticación, autorización, riesgos y datos.
+:::
+::: {.portal-card}
+### [7. Calidad](07-calidad/resultados.qmd)
+Estrategia, inventario y resultados reales de pruebas.
+:::
+::: {.portal-card}
+### [8. Despliegue](08-despliegue/instalacion.qmd)
+Instalación, configuración, ejecución y problemas frecuentes.
+:::
+::: {.portal-card}
+### [9. Operación](09-operacion/operacion-mantenimiento.qmd)
+Salud, auditoría, logs y mantenimiento.
+:::
+::: {.portal-card}
+### [10–12. Cierre](12-cierre/informe-final.qmd)
+Referencias, publicación e informe final.
+:::
+:::
+
+::: {.callout-important}
+## Cómo leer esta documentación
+Cada afirmación se contrastó con el código de la rama `feature/sdd-spec-kit-structure` el 2026-11-10. Lo **no implementado** o **no verificado** se indica explícitamente, y los defectos encontrados se registran como hallazgos `H-xx` en el [control maestro](00-auditoria/control-maestro.qmd).
+:::

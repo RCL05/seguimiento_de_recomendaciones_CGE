@@ -1,0 +1,17 @@
+---
+title: "Introducción"
+description: "Presentar el sistema, su contexto institucional y el público de esta documentación."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Presentar el sistema, su contexto institucional y el público de esta documentación.
+
+Fuente única: [`DOCUMENTACION/01_GENERAL/INTRODUCCION.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/01_GENERAL/INTRODUCCION.md).
+:::
+
+{{< include ../../DOCUMENTACION/01_GENERAL/INTRODUCCION.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Problema y justificación](../01-general/problema-justificacion.qmd)
+- [Actores](../01-general/actores.qmd)
