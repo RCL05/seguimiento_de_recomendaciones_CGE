@@ -36,7 +36,11 @@ evidencias y controles de seguridad para SITRA-CGE UNL.
 | `EMAIL_HOST_USER` | Sí para correo | `notificaciones@unl.edu.ec` | Cuenta emisora. |
 | `EMAIL_HOST_PASSWORD` | Sí para correo | `***` | Secreto SMTP. |
 | `EMAIL_USE_TLS` | No | `true` | STARTTLS obligatorio en producción. |
+| `EMAIL_USE_SSL` | No | `false` | SMTP sobre SSL (excluye TLS). |
+| `EMAIL_TIMEOUT` | No | `10` | Timeout de envío en segundos. |
+| `EMAIL_BACKEND` | No | `django.core.mail.backends.smtp.EmailBackend` | Fuerza el backend de correo. |
 | `DEFAULT_FROM_EMAIL` | No | `SITRA-CGE <no-reply@unl.edu.ec>` | Remitente visible. |
+| `SCHEDULER_INTERVAL_SECONDS` | No | `3600` | Frecuencia del servicio `scheduler`. |
 | `EVIDENCE_STORAGE_BACKEND` | No | `s3` | `local` o `s3`. |
 | `EVIDENCE_S3_BUCKET` | Sí con S3 | `sitra-evidencias` | Bucket privado de PDFs. |
 | `EVIDENCE_S3_ENDPOINT` | No | `https://s3.unl.edu.ec` | Endpoint compatible S3. |
@@ -80,10 +84,11 @@ reemplazarse por la validación OIDC real.
   solo la administra `DTI` y todo cambio queda en `AuditLog`.
 - Las preferencias personales (`GET/PUT /api/v1/notificaciones/preferencias`)
   solo las edita el propio usuario o `DTI`.
-- En producción los jobs se ejecutan por cron o tarea programada; el endpoint
-  `POST /api/v1/jobs/evaluar-plazos` queda restringido a `DTI`.
-
-Ejemplo de cron (cada hora):
+- La evaluación periódica se ejecuta con `python manage.py evaluar_plazos`
+  (alertas de vencimiento + registro de mora, ambos idempotentes). El endpoint
+  manual `POST /api/v1/evaluaciones-plazos` queda restringido a `DTI`.
+- `docker-compose.yml` incluye el servicio `scheduler`, que repite el comando
+  cada `SCHEDULER_INTERVAL_SECONDS` (3600 por defecto). Sin Docker, use cron:
 
 ```cron
 0 * * * * cd /opt/sitra/backend && /opt/sitra/.venv/bin/python manage.py evaluar_plazos

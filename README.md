@@ -168,6 +168,19 @@ cd frontend
 npm run dev
 ```
 
+### Evaluación periódica de plazos (opcional)
+
+Las alertas de vencimiento y el registro de mora se ejecutan con un comando
+idempotente. Desde la raíz y con `.venv` activo:
+
+```bash
+python backend/manage.py evaluar_plazos
+```
+
+En producción puede programarse con cron o con el servicio `scheduler` de
+`docker-compose.yml` (frecuencia en `SCHEDULER_INTERVAL_SECONDS`). El endpoint
+manual equivalente es `POST /api/v1/evaluaciones-plazos` (solo DTI).
+
 ## Puntos de acceso
 
 | Servicio | URL |
@@ -187,7 +200,7 @@ pantalla de inicio de sesión:
 |---|---|---|---|
 | `uai-sso-token` | UAI — Auditor | UAI | Registrar recomendaciones, revisar evidencias, dictaminar y consultar auditoría |
 | `ejecutor-sso-token` | EJECUTOR | DEP-A | Gestionar planes de acción y cargar evidencias |
-| `dti-sso-token` | DTI — Admin | DTI | Administrar configuración y notificaciones |
+| `dti-sso-token` | DTI — Admin | DTI | Administrar usuarios, unidades, configuración y notificaciones |
 | `rectorado-sso-token` | RECTORADO — Autoridad | RECTORADO | Consultar indicadores y reportes institucionales |
 
 Estos tokens son únicamente para desarrollo. La aplicación los intercambia por
@@ -283,12 +296,15 @@ npm run lint
 npm run build
 ```
 
-Backend:
+Backend (con `.venv` activo, desde la raíz):
 
 ```bash
-cd backend
-python manage.py test
+python -m pytest backend -q
 ```
+
+La integración continua definida en `.github/workflows/ci.yml` ejecuta
+`manage.py check`, la suite de pytest, el lint, las pruebas y el build del
+frontend en cada push y pull request.
 
 ## Estructura principal
 

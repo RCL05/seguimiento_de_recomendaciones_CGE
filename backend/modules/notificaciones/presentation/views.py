@@ -10,11 +10,12 @@ from backend.core.shared.domain_types import NotFoundError, PermissionDenied, Ro
 from backend.modules.notificaciones.application.manage_notification_settings import (
     ManageNotificationSettingsUseCase,
 )
-from backend.modules.notificaciones.application.mark_overdue import mark_overdue_recommendations
-from backend.modules.notificaciones.application.send_deadline_alerts import send_deadline_alerts
 from backend.modules.notificaciones.infrastructure.preferences_models import (
     PreferenciaNotificacion,
     TipoAlerta,
+)
+from backend.modules.notificaciones.infrastructure.scheduled_jobs import (
+    run_scheduled_evaluations,
 )
 from backend.modules.notificaciones.models import Notificacion
 from backend.modules.notificaciones.presentation.serializers import (
@@ -156,8 +157,5 @@ class EvaluacionPlazosView(ApiView):
         responses={200: envelope("EjecucionPlazos", EjecucionPlazosSerializer), **errors(401, 403)},
     )
     def post(self, request):
-        data = {
-            "alertas_vencimiento": send_deadline_alerts(),
-            "mora": mark_overdue_recommendations(),
-        }
+        data = run_scheduled_evaluations()
         return ok(request, data, "Jobs ejecutados correctamente")
