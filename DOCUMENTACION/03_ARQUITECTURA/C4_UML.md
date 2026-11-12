@@ -152,7 +152,7 @@ sequenceDiagram
   participant IdP as SSO UNL (introspección)
   participant DB as Base de datos
   U->>SPA: Ingresa credencial / token SSO
-  SPA->>L: POST /api/v1/auth/login-sso {credential}
+  SPA->>L: POST /api/v1/sesiones {credential}
   L->>S: authenticate(token=credential)
   alt DEBUG=true y token de desarrollo
     S->>S: identidad fija (uai/ejecutor/dti/rectorado)

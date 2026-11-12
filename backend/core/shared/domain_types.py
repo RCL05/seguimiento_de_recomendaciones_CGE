@@ -7,6 +7,11 @@ class DomainError(Exception):
     code = "BUSINESS_RULE_VIOLATION"
     status_code = 409
 
+    def __init__(self, message: str = "", *, fields: Mapping[str, list[str]] | None = None) -> None:
+        super().__init__(message)
+        # Errores por campo, como en la validación de serializadores (`errors.fields`).
+        self.fields = dict(fields) if fields else None
+
 
 class ValidationError(DomainError):
     code = "VALIDATION_ERROR"

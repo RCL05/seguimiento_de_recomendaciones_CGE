@@ -4,7 +4,7 @@ SITRA-CGE no gestiona contraseñas. La identidad la aporta el **SSO instituciona
 
 | Paso | Componente | Detalle verificado |
 |---|---|---|
-| 1. Intercambio | `POST /api/v1/auth/login-sso` (`LoginSsoView`, `AllowAny`) | Cuerpo `{"credential": "…"}` |
+| 1. Intercambio | `POST /api/v1/sesiones` (`LoginSsoView`, `AllowAny`) | Cuerpo `{"credential": "…"}` |
 | 2. Validación de la credencial | `SsoAdapter.authenticate` | Con `DEBUG=true`, acepta tokens de desarrollo fijos; en otro caso, introspección OAuth2 contra `SSO_INTROSPECTION_URL` (timeout 5 s). Exige `active=true`, correo y rol válido |
 | 3. Aprovisionamiento | `SsoAdapter._persist_identity` | Crea o actualiza `Usuario` y `UnidadOrganica` en una transacción |
 | 4. Emisión | `SsoAdapter.issue_session` | JWT **HS256**; claims `iss=sitra-cge`, `aud=sitra-cge-api`, `sub`, `user_id`, `email`, `role`, `unit_id`, `iat`, `exp` (+3600 s), `jti` |
@@ -33,13 +33,13 @@ La SPA guarda la sesión en `sessionStorage` (`frontend/src/api/client.ts`): se 
 | `tests/integration/usuarios/test_identity_configuration_flow.py` | Flujo completo de identidad |
 | `tests/integration/usuarios/test_admin_flow.py` (`test_sso_adapter_interpreta_claims_de_introspeccion`, `test_tokens_sso_de_desarrollo_crean_identidades_completas`) | Claims de introspección y tokens de desarrollo |
 | `tests/integration/usuarios/test_admin_flow.py::test_tokens_de_desarrollo_no_se_aceptan_fuera_de_debug` | Tokens fijos inactivos fuera de `DEBUG` |
+| `tests/security/test_hallazgos_semana4.py` (`test_login_fallido_se_audita_y_responde_con_www_authenticate`, `test_login_limita_intentos_por_ip`) | Login fallido auditado sin eco del secreto; límite de intentos `LOGIN_THROTTLE_RATE` (10/min) |
 
 ## Brechas y recomendaciones
 
 | Brecha | Riesgo | Recomendación |
 |---|---|---|
 | `DEBUG=true` activa tokens de desarrollo conocidos (H-10) | Si se habilita en producción, cualquiera con esos tokens obtiene identidad | `DEBUG` ya es `false` por defecto; mantenerlo así y añadir `check --deploy` en CI |
-| Sin limitación de intentos en `login-sso` | Fuerza bruta de credenciales SSO a través de la API | Activar *throttling* de DRF para la vista |
 | Proveedor SSO productivo no definido | Comportamiento real por validar | Acordar con DTI (OIDC recomendado) y ampliar `SsoAdapter` |
 | Sin revocación por `jti` | Token robado válido hasta 1 h | Lista de revocación o TTL menor |
 

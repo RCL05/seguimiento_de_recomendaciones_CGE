@@ -3,11 +3,15 @@ from ..shared.domain_types import DomainError
 
 
 def error_response(error: DomainError, request_id=None) -> tuple[dict, int]:
+    errors = {"code": error.code, "detail": str(error)}
+    fields = getattr(error, "fields", None)
+    if fields:
+        errors["fields"] = fields
     return (
         build_envelope(
             success=False,
             message=str(error),
-            errors={"code": error.code, "detail": str(error)},
+            errors=errors,
             request_id=request_id,
         ),
         error.status_code,

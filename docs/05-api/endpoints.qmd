@@ -1,10 +1,10 @@
 ---
 title: "Endpoints"
-description: "Catalogar las 32 operaciones con los roles verificados en el código, sus solicitudes y respuestas."
+description: "Catalogar las 31 operaciones con los roles verificados en el código, sus solicitudes y respuestas."
 ---
 
 ::: {.callout-note appearance="simple" icon=false}
-**Objetivo de esta página.** Catalogar las 32 operaciones con los roles verificados en el código, sus solicitudes y respuestas.
+**Objetivo de esta página.** Catalogar las 31 operaciones con los roles verificados en el código, sus solicitudes y respuestas.
 
 Fuente única: [`DOCUMENTACION/05_API/ENDPOINTS.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/05_API/ENDPOINTS.md).
 :::

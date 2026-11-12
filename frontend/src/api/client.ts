@@ -260,7 +260,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export const api = {
   login: async (credential: string): Promise<Session> => {
-    const response = await fetch(`${API_BASE}/api/v1/auth/login-sso`, {
+    const response = await fetch(`${API_BASE}/api/v1/sesiones`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ credential }),
@@ -310,14 +310,14 @@ export const api = {
     }),
 
   listPlan: (recommendationId: string) =>
-    request<Milestone[]>(`/api/v1/recomendaciones/${recommendationId}/plan-accion`),
+    request<Milestone[]>(`/api/v1/recomendaciones/${recommendationId}/hitos`),
 
   createPlan: (
     recommendationId: string,
     payload: { descripcion_hito: string; fecha_compromiso: string },
   ) =>
     request<{ id: string; recommendation_id: string }>(
-      `/api/v1/recomendaciones/${recommendationId}/plan-accion`,
+      `/api/v1/recomendaciones/${recommendationId}/hitos`,
       { method: "POST", body: JSON.stringify(payload) },
     ),
 

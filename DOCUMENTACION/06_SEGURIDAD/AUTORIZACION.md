@@ -18,6 +18,7 @@ Los casos de uso repiten la comprobación de rol aunque la vista ya la haya hech
 | Registrar recomendación | ✔ | — | — | — | — |
 | Listar / consultar recomendación y hitos | ✔ | ◐ su unidad | ✔ | ✔ | — |
 | Reabrir recomendación | ✔ | — | — | — | — |
+| Reasignar recomendación (mismo PATCH, `unit_id`) | ✔ | — | — | — | — |
 | Registrar hito | — | ◐ su unidad | — | — | — |
 | Cargar evidencia | — | ◐ su unidad | — | — | — |
 | Anular evidencia | ✔ | — | — | — | — |
@@ -25,7 +26,7 @@ Los casos de uso repiten la comprobación de rol aunque la vista ya la haya hech
 | Verificar integridad | ✔ | — | — | ✔ | — |
 | Emitir dictamen | ✔ | — | — | — | — |
 | Tablero ejecutivo | ✔ | — | ✔ | ✔ | — |
-| KPIs | ✔ | ✔ | ✔ | ✔ | ✔ (sin restricción, H-14) |
+| KPIs | ✔ | ◐ su unidad | ✔ | ✔ | ✔ (sin restricción de rol; EJECUTOR acotado a su unidad, H-14 parcial) |
 | Matriz CSV | ✔ | — | ✔ | ✔ | — |
 | Consultar auditoría | ✔ | — | — | ✔ | — |
 | Bandeja de notificaciones | ◐ propias | ◐ propias | ◐ propias | ◐ propias | ◐ propias |

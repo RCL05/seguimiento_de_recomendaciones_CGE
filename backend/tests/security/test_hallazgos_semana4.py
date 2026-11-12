@@ -97,7 +97,7 @@ def test_un_borrador_no_puede_aprobarse_como_cumplimiento(recomendacion_en_valid
 
 def _login(client, credential):
     return client.post(
-        "/api/v1/auth/login-sso",
+        "/api/v1/sesiones",
         data=json.dumps({"credential": credential}),
         content_type="application/json",
     )

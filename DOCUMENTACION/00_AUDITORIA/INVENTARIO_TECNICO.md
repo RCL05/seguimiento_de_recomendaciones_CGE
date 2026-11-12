@@ -109,12 +109,12 @@ Node.js local verificado: v26.4.0. CI y Compose: Node 22.
 
 | Elemento | Verificado |
 |---|---|
-| API REST | 24 rutas y 31 operaciones bajo `/api/v1`, más `GET /health/` (32 operaciones en el contrato OpenAPI 3.0.3) |
+| API REST | 23 rutas y 30 operaciones bajo `/api/v1`, más `GET /health/` (31 operaciones en el contrato OpenAPI 3.0.3) |
 | Documentación interactiva | Swagger UI en `/api/docs/`, esquema en `/api/schema/` |
 | Salud | `GET /health/` (pública) |
 | SSO | Introspección OAuth2 (`SSO_INTROSPECTION_URL`) o tokens de desarrollo con `DEBUG=true` |
 | Correo | `django.core.mail` con backend SMTP o consola |
-| Programación | Comando `manage.py evaluar_plazos` (servicio `scheduler` o cron) y `POST /api/v1/evaluaciones-plazos` |
+| Programación | Comando `manage.py evaluar_plazos` (servicio `scheduler` o cron) |
 
 ## Infraestructura, herramientas y automatización
 

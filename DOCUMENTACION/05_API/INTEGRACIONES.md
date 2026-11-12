@@ -14,7 +14,7 @@
 | Productor → consumidor | Mecanismo |
 |---|---|
 | SPA → API | HTTP/JSON; en desarrollo, proxy de Vite (`/api`, `/health` → `VITE_BACKEND_PROXY_TARGET` o `http://127.0.0.1:8000`); en otros entornos `VITE_API_BASE` |
-| Programador → núcleo | `python manage.py evaluar_plazos` (imprime JSON) o `POST /api/v1/evaluaciones-plazos` |
+| Programador → núcleo | `python manage.py evaluar_plazos` (imprime JSON); no se expone en la API |
 | Casos de uso → auditoría | Llamada directa a `record_audit` dentro de la transacción |
 | Documentación | `docs_server/app.py` lee `docs/**/*.md` del sistema de archivos |
 

@@ -75,7 +75,7 @@
 | Aspecto | Detalle |
 |---|---|
 | Propósito | Información agregada para decisión y auditoría |
-| Procesamiento | `get_kpis` (sin restricción de rol, H-14), `get_dashboard` (semáforo 75/40 %, unidades en mora), `export_matriz_cge_csv` (10 columnas, BOM UTF-8), `query_audit_log` (filtros y límite) |
+| Procesamiento | `get_kpis` (sin restricción de rol; EJECUTOR limitado a su unidad, H-14 parcial), `get_dashboard` (semáforo 75/40 %, unidades en mora), `export_matriz_cge_csv` (10 columnas, BOM UTF-8), `query_audit_log` (filtros y límite) |
 | Roles | Tablero y matriz: UAI, RECTORADO, CGE_AUDITOR. Auditoría: UAI, CGE_AUDITOR |
 | Persistencia | Solo lectura |
 

@@ -203,8 +203,8 @@ python backend/manage.py evaluar_plazos
 ```
 
 En producción puede programarse con cron o con el servicio `scheduler` de
-`docker-compose.yml` (frecuencia en `SCHEDULER_INTERVAL_SECONDS`). El endpoint
-manual equivalente es `POST /api/v1/evaluaciones-plazos` (solo DTI).
+`docker-compose.yml` (frecuencia en `SCHEDULER_INTERVAL_SECONDS`). No se expone
+como endpoint de la API.
 
 ## Puntos de acceso
 

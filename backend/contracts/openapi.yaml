@@ -79,72 +79,6 @@ paths:
                       pagination: null
                   summary: Error de servidor
           description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
-  /api/v1/auth/login-sso:
-    post:
-      operationId: iniciarSesionSso
-      summary: Validar credencial institucional y emitir JWT
-      tags:
-      - Autenticación
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginSsoRequestRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/LoginSsoRequestRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/LoginSsoRequestRequest'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SesionEnvelope'
-          description: ''
-        '400':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
-            expirado.'
-        '429':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-          description: 'TOO_MANY_REQUESTS: se superó el límite de intentos; ver la
-            cabecera Retry-After.'
-        '500':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                ErrorDeServidor:
-                  value:
-                    success: false
-                    message: Error interno del servidor
-                    data: null
-                    errors:
-                      code: INTERNAL_ERROR
-                      detail: No fue posible procesar la solicitud.
-                    meta:
-                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
-                      timestamp: '2026-11-05T12:00:00Z'
-                      version: 1.0.0
-                      pagination: null
-                  summary: Error de servidor
-          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/dashboard/kpis:
     get:
       operationId: consultarKpisDashboard
@@ -169,57 +103,6 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
             expirado.'
-        '500':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                ErrorDeServidor:
-                  value:
-                    success: false
-                    message: Error interno del servidor
-                    data: null
-                    errors:
-                      code: INTERNAL_ERROR
-                      detail: No fue posible procesar la solicitud.
-                    meta:
-                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
-                      timestamp: '2026-11-05T12:00:00Z'
-                      version: 1.0.0
-                      pagination: null
-                  summary: Error de servidor
-          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
-  /api/v1/evaluaciones-plazos:
-    post:
-      operationId: evaluarPlazos
-      description: Normalmente lo invoca una tarea programada; es idempotente (RF-021).
-      summary: 'Ejecutar la evaluación de plazos: alertas y vencimientos (DTI, RF-011,
-        RF-012)'
-      tags:
-      - Notificaciones
-      security:
-      - bearerAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EjecucionPlazosEnvelope'
-          description: ''
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
-            expirado.'
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
         '500':
           content:
             application/json:
@@ -1484,6 +1367,77 @@ paths:
                       pagination: null
                   summary: Error de servidor
           description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
+  /api/v1/recomendaciones/{recommendation_id}/dictamenes/{dictamen_id}:
+    get:
+      operationId: consultarDictamen
+      description: Es el recurso que identifica `Location` al emitir el dictamen.
+        Un ejecutor de otra unidad recibe 404.
+      summary: Consultar un dictamen UAI de la recomendación
+      parameters:
+      - in: path
+        name: dictamen_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: recommendation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Dictamen UAI
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DictamenConsultadoEnvelope'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'RESOURCE_NOT_FOUND: inexistente o no visible para el usuario
+            (BOLA/IDOR).'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
   /api/v1/recomendaciones/{recommendation_id}/evidencias:
     post:
       operationId: cargarEvidencia
@@ -1588,7 +1542,7 @@ paths:
                       pagination: null
                   summary: Error de servidor
           description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
-  /api/v1/recomendaciones/{recommendation_id}/plan-accion:
+  /api/v1/recomendaciones/{recommendation_id}/hitos:
     get:
       operationId: listarHitos
       summary: Consultar los hitos del plan de acción
@@ -1821,6 +1775,72 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: 'PERMISSION_DENIED: el rol no puede ejecutar la operación.'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                ErrorDeServidor:
+                  value:
+                    success: false
+                    message: Error interno del servidor
+                    data: null
+                    errors:
+                      code: INTERNAL_ERROR
+                      detail: No fue posible procesar la solicitud.
+                    meta:
+                      request_id: 4a54c2a9-8b76-4a9f-a1f3-7bf8a8a2f001
+                      timestamp: '2026-11-05T12:00:00Z'
+                      version: 1.0.0
+                      pagination: null
+                  summary: Error de servidor
+          description: 'INTERNAL_ERROR: error inesperado procesando la solicitud.'
+  /api/v1/sesiones:
+    post:
+      operationId: iniciarSesionSso
+      summary: Validar credencial institucional y emitir JWT
+      tags:
+      - Autenticación
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginSsoRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginSsoRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginSsoRequestRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionEnvelope'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'VALIDATION_ERROR: campos, formatos o tipos inválidos.'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'AUTHENTICATION_REQUIRED: token Bearer ausente, inválido o
+            expirado.'
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'TOO_MANY_REQUESTS: se superó el límite de intentos; ver la
+            cabecera Retry-After.'
         '500':
           content:
             application/json:
@@ -2336,6 +2356,24 @@ components:
       - observaciones
       - recomendacion
       - resultado
+    DictamenConsultadoEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Dictamen'
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        errors:
+          nullable: true
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - message
+      - meta
     DictamenCreateRequest:
       type: object
       properties:
@@ -2355,36 +2393,6 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/Dictamen'
-        success:
-          type: boolean
-          default: true
-        message:
-          type: string
-        errors:
-          nullable: true
-        meta:
-          $ref: '#/components/schemas/Meta'
-      required:
-      - data
-      - message
-      - meta
-    EjecucionPlazos:
-      type: object
-      properties:
-        alertas_vencimiento:
-          type: object
-          additionalProperties: {}
-        mora:
-          type: object
-          additionalProperties: {}
-      required:
-      - alertas_vencimiento
-      - mora
-    EjecucionPlazosEnvelope:
-      type: object
-      properties:
-        data:
-          $ref: '#/components/schemas/EjecucionPlazos'
         success:
           type: boolean
           default: true
@@ -3585,4 +3593,4 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT emitido por POST /api/v1/auth/login-sso (expira en 1 hora).
+      description: JWT emitido por POST /api/v1/sesiones (expira en 1 hora).

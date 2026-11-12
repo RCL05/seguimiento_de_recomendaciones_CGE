@@ -34,7 +34,7 @@ Con `DJANGO_DEBUG=true`, en la pantalla de inicio de sesión se escribe uno de e
 Desde la línea de comandos:
 
 ```bash
-curl -s -X POST http://localhost:8000/api/v1/auth/login-sso \
+curl -s -X POST http://localhost:8000/api/v1/sesiones \
   -H "Content-Type: application/json" -d '{"credential":"uai-sso-token"}'
 ```
 
@@ -50,7 +50,7 @@ Es idempotente y puede programarse con cron:
 0 * * * * cd /opt/sitra/backend && /opt/sitra/.venv/bin/python manage.py evaluar_plazos
 ```
 
-O ejecutarse manualmente como DTI con `POST /api/v1/evaluaciones-plazos`.
+O ejecutarse manualmente con `python backend/manage.py evaluar_plazos`. No hay un endpoint para esto: es un proceso interno, no un recurso.
 
 ## Pruebas
 

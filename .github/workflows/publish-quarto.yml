@@ -1,8 +1,13 @@
-name: Publicar documentación (Quarto → GitHub Pages)
+name: Verificar documentación (Quarto)
+
+# Este flujo solo comprueba que el portal compila. La publicación en GitHub Pages
+# la hace el repositorio BrTrl3/sitra-cge-docs, que descarga `main` de este
+# repositorio, compila `docs/` y publica en https://brtrl3.github.io/sitra-cge-docs/
+# (diariamente o a mano: gh workflow run publicar.yml -R BrTrl3/sitra-cge-docs).
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - "docs/**"
       - "DOCUMENTACION/**"
@@ -14,13 +19,8 @@ on:
       - ".github/workflows/publish-quarto.yml"
   workflow_dispatch:
 
-# Permisos mínimos: leer el código; escribir en Pages y emitir el token OIDC solo en el job de despliegue.
 permissions:
   contents: read
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
   build:
@@ -37,29 +37,3 @@ jobs:
 
       - name: Construir el sitio
         run: quarto render docs
-
-      - name: Configurar GitHub Pages
-        if: github.event_name != 'pull_request'
-        uses: actions/configure-pages@v5
-
-      - name: Generar el artefacto de publicación
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs/_site
-
-  deploy:
-    name: Publicar en GitHub Pages
-    if: github.event_name != 'pull_request'
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Desplegar
-        id: deployment
-        uses: actions/deploy-pages@v4

@@ -81,7 +81,7 @@ def test_json_mal_formado_responde_400_validation_error():
         ("delete", "/api/v1/recomendaciones/{rid}", {"GET", "HEAD", "PATCH"}),
         ("delete", "/api/v1/recomendaciones", {"GET", "HEAD", "POST"}),
         ("put", "/api/v1/unidades", {"GET", "HEAD", "POST"}),
-        ("get", "/api/v1/auth/login-sso", {"POST"}),
+        ("get", "/api/v1/sesiones", {"POST"}),
         ("post", "/api/v1/reportes/matriz-cge", {"GET", "HEAD"}),
         ("patch", "/api/v1/recomendaciones/{rid}/dictamenes", {"POST"}),
     ],

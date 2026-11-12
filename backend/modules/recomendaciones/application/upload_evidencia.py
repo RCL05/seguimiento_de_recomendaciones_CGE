@@ -154,8 +154,10 @@ class UploadEvidencia:
 
     @staticmethod
     def _check_state(recommendation: Recomendacion) -> None:
+        # Sin plan o en otro estado es el mismo caso: la recomendación no admite evidencias
+        # en su estado actual (409), aunque el mensaje indique qué falta.
         if recommendation.estado == Recomendacion.Estado.PENDIENTE:
-            raise ValidationError(
+            raise ConflictError(
                 "Debe registrar primero el Plan de accion antes de cargar evidencias."
             )
         if recommendation.estado != Recomendacion.Estado.EN_PROCESO:
