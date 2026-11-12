@@ -1,0 +1,16 @@
+---
+title: "C4 · Nivel 4: código (UML)"
+description: "Documentar con UML el modelo de dominio y los flujos de dictamen y autenticación."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Documentar con UML el modelo de dominio y los flujos de dictamen y autenticación.
+
+Fuente única: [`DOCUMENTACION/03_ARQUITECTURA/C4_UML.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/03_ARQUITECTURA/C4_UML.md).
+:::
+
+{{< include ../../DOCUMENTACION/03_ARQUITECTURA/C4_UML.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Modelo de datos](../04-implementacion/modelo-datos.qmd)

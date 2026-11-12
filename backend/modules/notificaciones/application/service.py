@@ -8,6 +8,8 @@ from backend.modules.notificaciones.models import Notificacion
 from backend.modules.recomendaciones.models import Recomendacion
 from backend.modules.usuarios.models import Usuario
 
+MAX_DELIVERY_ATTEMPTS = 3
+
 
 def schedule_notification(
     *,
@@ -58,11 +60,19 @@ def schedule_notification(
 
 
 def deliver_pending_notifications(*, limit: int = 50) -> int:
+    """Entrega correos pendientes con reintentos acotados.
+
+    Solo se reintentan las notificaciones PENDIENTES o FALLIDAS que aún no
+    alcanzaron ``MAX_DELIVERY_ATTEMPTS``. La clave de idempotencia evita crear
+    duplicados; un fallo SMTP no revierte la transacción de negocio.
+    """
     delivered = 0
     for notification in Notificacion.objects.filter(
-        estado=Notificacion.Estado.PENDIENTE,
+        estado__in=[Notificacion.Estado.PENDIENTE, Notificacion.Estado.FALLIDA],
         canal_email=True,
+        intentos__lt=MAX_DELIVERY_ATTEMPTS,
     ).order_by("programada_en")[:limit]:
+        notification.intentos += 1
         try:
             sent = send_mail(
                 subject=f"SITRA-CGE: {notification.tipo}",
@@ -71,14 +81,14 @@ def deliver_pending_notifications(*, limit: int = 50) -> int:
                 recipient_list=[notification.destinatario.correo_institucional],
                 fail_silently=False,
             )
-            notification.intentos += 1
-            if sent:
-                notification.estado = Notificacion.Estado.ENVIADA
-                notification.enviada_en = timezone.now()
-                delivered += 1
-            notification.save(update_fields=["intentos", "estado", "enviada_en"])
         except (SMTPException, OSError):
-            notification.intentos += 1
+            sent = False
+
+        if sent:
+            notification.estado = Notificacion.Estado.ENVIADA
+            notification.enviada_en = timezone.now()
+            delivered += 1
+        else:
             notification.estado = Notificacion.Estado.FALLIDA
-            notification.save(update_fields=["intentos", "estado"])
+        notification.save(update_fields=["intentos", "estado", "enviada_en"])
     return delivered

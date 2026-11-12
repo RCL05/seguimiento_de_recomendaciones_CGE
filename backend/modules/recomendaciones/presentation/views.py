@@ -12,10 +12,14 @@ from backend.core.auth.permissions import IsAuthenticatedActor, require_roles
 from backend.core.shared.domain_types import Role
 from backend.modules.recomendaciones.application.create_plan_accion import CreatePlanAccion
 from backend.modules.recomendaciones.application.create_recomendacion import CreateRecomendacion
+from backend.modules.recomendaciones.application.get_dictamen import GetDictamen
 from backend.modules.recomendaciones.application.get_recomendacion import GetRecomendacion
 from backend.modules.recomendaciones.application.issue_dictamen import IssueDictamen
 from backend.modules.recomendaciones.application.list_recomendaciones import ListRecomendaciones
 from backend.modules.recomendaciones.application.reabrir_recomendacion import ReabrirRecomendacion
+from backend.modules.recomendaciones.application.reasignar_recomendacion import (
+    ReasignarRecomendacion,
+)
 from backend.modules.recomendaciones.presentation.serializers import (
     DictamenCreateSerializer,
     DictamenSerializer,
@@ -23,9 +27,9 @@ from backend.modules.recomendaciones.presentation.serializers import (
     HitoSerializer,
     RecomendacionCreateSerializer,
     RecomendacionDetalleSerializer,
+    RecomendacionPatchSerializer,
     RecomendacionQuerySerializer,
     RecomendacionSerializer,
-    ReaperturaSerializer,
 )
 
 SOLO_UAI = require_roles(Role.UAI, message="Solo el rol UAI puede realizar esta operación.")
@@ -110,26 +114,41 @@ class RecomendacionDetailView(ApiView):
 
     @extend_schema(
         tags=["Recomendaciones"],
-        operation_id="reabrirRecomendacion",
-        summary="Reabrir una recomendación cumplida (UAI)",
+        operation_id="modificarRecomendacion",
+        summary="Reabrir o reasignar una recomendación (UAI, RF-023 y RF-003)",
         description=(
-            "Modificación parcial del estado: solo admite CUMPLIDA → REABIERTA con motivo. "
-            "El ejecutor la reanuda registrando un nuevo hito."
+            "Modificación parcial con motivo obligatorio. Se envía `estado: REABIERTA` para reabrir "
+            "una recomendación cumplida (solo CUMPLIDA → REABIERTA), o `unit_id` para reasignarla a "
+            "otra unidad. La reasignación conserva el estado y registra en auditoría la unidad "
+            "anterior, la nueva y el motivo."
         ),
-        request=ReaperturaSerializer,
-        responses={200: envelope("RecomendacionReabierta", RecomendacionSerializer), **errors(400, 401, 403, 404, 409)},
+        request=RecomendacionPatchSerializer,
+        responses={200: envelope("RecomendacionModificada", RecomendacionSerializer), **errors(400, 401, 403, 404, 409)},
     )
     def patch(self, request, recommendation_id: UUID):
-        payload = ReaperturaSerializer(data=request.data)
+        payload = RecomendacionPatchSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
-        recommendation = ReabrirRecomendacion().execute(
-            actor=self.actor,
-            request_id=self.request_id,
-            recommendation_id=recommendation_id,
-            reason=payload.validated_data["motivo"],
-            ip_address=self.client_ip,
-        )
-        return ok(request, RecomendacionSerializer(recommendation).data, "Recomendación reabierta")
+        data = payload.validated_data
+        if "unit_id" in data:
+            recommendation = ReasignarRecomendacion().execute(
+                actor=self.actor,
+                request_id=self.request_id,
+                recommendation_id=recommendation_id,
+                unit_id=data["unit_id"],
+                reason=data["motivo"],
+                ip_address=self.client_ip,
+            )
+            message = "Recomendación reasignada"
+        else:
+            recommendation = ReabrirRecomendacion().execute(
+                actor=self.actor,
+                request_id=self.request_id,
+                recommendation_id=recommendation_id,
+                reason=data["motivo"],
+                ip_address=self.client_ip,
+            )
+            message = "Recomendación reabierta"
+        return ok(request, RecomendacionSerializer(recommendation).data, message)
 
     @extend_schema(
         tags=["Recomendaciones"],
@@ -197,7 +216,7 @@ class PlanAccionView(ApiView):
             HitoSerializer(hito).data,
             "Hito del plan de acción registrado",
             status=201,
-            location=reverse("plan-accion", args=[recommendation_id]),
+            location=reverse("hitos", args=[recommendation_id]),
         )
 
 
@@ -227,7 +246,32 @@ class DictamenView(ApiView):
             observations=payload.validated_data["observaciones"],
             ip_address=self.client_ip,
         )
-        return ok(request, DictamenSerializer(dictamen).data, "Dictamen registrado", status=201)
+        return ok(
+            request,
+            DictamenSerializer(dictamen).data,
+            "Dictamen registrado",
+            status=201,
+            location=reverse("dictamen-detalle", args=[recommendation_id, dictamen.id]),
+        )
+
+
+class DictamenDetailView(ApiView):
+    @extend_schema(
+        tags=["Dictamen UAI"],
+        operation_id="consultarDictamen",
+        summary="Consultar un dictamen UAI de la recomendación",
+        description="Es el recurso que identifica `Location` al emitir el dictamen. Un ejecutor de otra unidad recibe 404.",
+        responses={200: envelope("DictamenConsultado", DictamenSerializer), **errors(401, 403, 404)},
+    )
+    def get(self, request, recommendation_id: UUID, dictamen_id: UUID):
+        dictamen = GetDictamen().execute(
+            actor=self.actor,
+            recommendation_id=recommendation_id,
+            dictamen_id=dictamen_id,
+            request_id=self.request_id,
+            ip_address=self.client_ip,
+        )
+        return ok(request, DictamenSerializer(dictamen).data, "Dictamen consultado")
 
 
 def _iso(value):

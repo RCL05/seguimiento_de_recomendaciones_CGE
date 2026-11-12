@@ -1,0 +1,17 @@
+---
+title: "Actores y usuarios"
+description: "Describir los roles humanos y sistemas externos, sus responsabilidades y la segregación de funciones verificada."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Describir los roles humanos y sistemas externos, sus responsabilidades y la segregación de funciones verificada.
+
+Fuente única: [`DOCUMENTACION/01_GENERAL/ACTORES.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/01_GENERAL/ACTORES.md).
+:::
+
+{{< include ../../DOCUMENTACION/01_GENERAL/ACTORES.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Autorización](../06-seguridad/autorizacion.qmd)
+- [Contexto C4](../03-arquitectura/c1-contexto.qmd)

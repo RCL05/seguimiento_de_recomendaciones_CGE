@@ -14,14 +14,10 @@ from backend.modules.notificaciones.infrastructure.preferences_models import (
     PreferenciaNotificacion,
     TipoAlerta,
 )
-from backend.modules.notificaciones.infrastructure.scheduled_jobs import (
-    run_scheduled_evaluations,
-)
 from backend.modules.notificaciones.models import Notificacion
 from backend.modules.notificaciones.presentation.serializers import (
     ConfiguracionSerializer,
     ConfiguracionUpdateSerializer,
-    EjecucionPlazosSerializer,
     NotificacionSerializer,
     PreferenciasSerializer,
     PreferenciasUpdateSerializer,
@@ -140,22 +136,3 @@ class ConfiguracionView(ApiView):
             request_id=self.request_id,
         )
         return ok(request, ConfiguracionSerializer(config).data, "Configuración de notificaciones actualizada")
-
-
-class EvaluacionPlazosView(ApiView):
-    permission_classes = [
-        IsAuthenticatedActor,
-        require_roles(Role.DTI, message="Solo el rol DTI puede ejecutar los jobs."),
-    ]
-
-    @extend_schema(
-        tags=["Notificaciones"],
-        operation_id="evaluarPlazos",
-        summary="Ejecutar la evaluación de plazos: alertas y vencimientos (DTI, RF-011, RF-012)",
-        description="Normalmente lo invoca una tarea programada; es idempotente (RF-021).",
-        request=None,
-        responses={200: envelope("EjecucionPlazos", EjecucionPlazosSerializer), **errors(401, 403)},
-    )
-    def post(self, request):
-        data = run_scheduled_evaluations()
-        return ok(request, data, "Jobs ejecutados correctamente")

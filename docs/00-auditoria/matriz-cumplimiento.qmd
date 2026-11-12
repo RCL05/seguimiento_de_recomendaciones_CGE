@@ -1,0 +1,16 @@
+---
+title: "Matriz de cumplimiento inicial"
+description: "Listar los artefactos documentales que corresponden al proyecto, la evidencia inicial y la acción decidida."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Listar los artefactos documentales que corresponden al proyecto, la evidencia inicial y la acción decidida.
+
+Fuente única: [`DOCUMENTACION/00_AUDITORIA/MATRIZ_CUMPLIMIENTO.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/00_AUDITORIA/MATRIZ_CUMPLIMIENTO.md).
+:::
+
+{{< include ../../DOCUMENTACION/00_AUDITORIA/MATRIZ_CUMPLIMIENTO.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Matriz final](../12-cierre/informe-final.qmd)

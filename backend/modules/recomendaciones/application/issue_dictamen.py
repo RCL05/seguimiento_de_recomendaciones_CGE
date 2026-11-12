@@ -3,7 +3,8 @@
 Reglas de negocio:
 - Solo el rol UAI puede emitir dictámenes.
 - La recomendación debe estar En Validación.
-- La evidencia debe pertenecer a la recomendación.
+- La evidencia debe pertenecer a la recomendación, estar vigente y no tener dictamen.
+- Solo una evidencia FINAL puede aprobarse.
 - Aprobado → CUMPLIDA (requiere historial de revisión interna y evidencia validada).
 - Rechazado → En Proceso (conserva archivos y revisiones previas).
 - Operación atómica con select_for_update (bloqueo pesimista).
@@ -57,12 +58,22 @@ class IssueDictamen:
 
         # La evidencia debe pertenecer a la recomendación
         evidence = (
-            Evidencia.objects.filter(pk=evidence_id, recomendacion=rec).first()
+            Evidencia.objects.select_for_update()
+            .filter(pk=evidence_id, recomendacion=rec)
+            .first()
         )
         if evidence is None:
             raise ValidationError("La evidencia no pertenece a la recomendación.")
         if evidence.estado != Evidencia.Estado.VIGENTE:
             raise ConflictError("No se puede dictaminar una evidencia anulada.")
+        # Cada evidencia recibe un solo dictamen: una evidencia rechazada no puede
+        # aprobarse después para cerrar la recomendación sin una entrega nueva.
+        if DictamenUAI.objects.filter(evidencia=evidence).exists():
+            raise ConflictError("La evidencia ya tiene un dictamen registrado.")
+        # Un borrador es un avance, no una entrega: solo una evidencia FINAL
+        # puede sustentar el cumplimiento.
+        if approved and evidence.tipo != Evidencia.Tipo.FINAL:
+            raise ConflictError("Solo una evidencia FINAL puede aprobarse como cumplimiento.")
 
         previous_state = rec.estado
 

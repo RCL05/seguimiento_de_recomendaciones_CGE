@@ -1,0 +1,16 @@
+---
+title: "Auditoría documental"
+description: "Clasificar la documentación existente según su vigencia respecto del código y decidir su reutilización."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Clasificar la documentación existente según su vigencia respecto del código y decidir su reutilización.
+
+Fuente única: [`DOCUMENTACION/00_AUDITORIA/AUDITORIA_DOCUMENTAL.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/00_AUDITORIA/AUDITORIA_DOCUMENTAL.md).
+:::
+
+{{< include ../../DOCUMENTACION/00_AUDITORIA/AUDITORIA_DOCUMENTAL.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Matriz de cumplimiento](../00-auditoria/matriz-cumplimiento.qmd)

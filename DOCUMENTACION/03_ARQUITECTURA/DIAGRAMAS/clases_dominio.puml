@@ -1,0 +1,157 @@
+@startuml clases_dominio
+' SITRA-CGE UNL — Modelo de dominio persistente (C4 nivel 4).
+' Derivado de backend/modules/*/models.py y backend/core/audit/models.py (2026-11-10).
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide empty methods
+
+package "usuarios" {
+  class UnidadOrganica <<unidades_organicas>> {
+    + id : UUID
+    + codigo : str {unique}
+    + nombre : str
+    + activo : bool
+  }
+  class Usuario <<usuarios>> {
+    + id : UUID
+    + correo_institucional : email {unique}
+    + nombres : str
+    + rol : Rol
+    + activo : bool
+  }
+  enum Rol {
+    DTI
+    UAI
+    EJECUTOR
+    RECTORADO
+    CGE_AUDITOR
+  }
+}
+
+package "recomendaciones" {
+  class InformeCGE <<informes_cge>> {
+    + id : UUID
+    + numero_informe : str {unique}
+    + periodo_auditado : str
+    + fecha_notificacion : date
+    + pdf_informe_url : url
+    + pdf_informe : file
+    + creado_en : datetime
+  }
+  class Recomendacion <<recomendaciones>> {
+    + id : UUID
+    + numero_recomendacion : str
+    + descripcion : text
+    + prioridad : str
+    + plazo_legal_dias : int >= 1
+    + fecha_vencimiento_legal : date
+    + estado : Estado
+    + vencimiento_registrado_en : datetime?
+    + creada_en : datetime
+  }
+  enum "Recomendacion.Estado" as Estado {
+    PENDIENTE
+    EN_PROCESO
+    EN_VALIDACION
+    REABIERTA
+    CUMPLIDA
+  }
+  class PlanAccion <<planes_accion>> {
+    + id : UUID
+    + descripcion_hito : text
+    + fecha_compromiso : date
+    + completado : bool
+  }
+  class Evidencia <<evidencias>> {
+    + id : UUID
+    + nombre_archivo : str
+    + mime_type : str
+    + tamano_bytes : int (1..30 MB)
+    + url_almacenamiento : url
+    + hash_sha256 : char(64)
+    + tipo : BORRADOR | FINAL
+    + estado : VIGENTE | ANULADA
+    + inmutable : bool
+    + validada : bool
+  }
+  class DictamenUAI <<dictamenes_uai>> {
+    + id : UUID
+    + resultado : APROBADO | RECHAZADO
+    + observaciones_oficiales : text
+    + fecha_dictamen : datetime
+  }
+}
+
+package "core.audit" {
+  class AuditLog <<audit_logs>> {
+    + id : bigint
+    + request_id : UUID
+    + timestamp_utc : datetime
+    + ip_origen : inet?
+    + modulo : str
+    + accion : str
+    + entidad : str
+    + entidad_id : UUID?
+    + estado_anterior : str?
+    + estado_nuevo : str?
+    + resultado : str
+    + detalles_json : json
+    --
+    + save() : rechaza si pk existe
+    + delete() : TypeError
+  }
+}
+
+package "notificaciones" {
+  class Notificacion <<notificaciones>> {
+    + id : UUID
+    + tipo : str
+    + clave_idempotencia : str {unique}
+    + programada_en : datetime
+    + enviada_en : datetime?
+    + intentos : int
+    + estado : PENDIENTE | ENVIADA | FALLIDA
+    + canal_interno : bool
+    + canal_email : bool
+    + leida : bool
+  }
+  class PreferenciaNotificacion <<preferencias_notificacion>> {
+    + tipo_alerta : ALERTA_VENCIMIENTO | EN_MORA
+    + notificar_interno : bool
+    + notificar_email : bool
+    + activo : bool
+  }
+  class ConfiguracionNotificacion <<configuracion_notificaciones>> {
+    + id = 1 (singleton)
+    + umbral_dias : 1..90
+    + notificaciones_activas : bool
+    + canal_interno_activo : bool
+    + canal_email_activo : bool
+    + destinatarios_vencimiento : json
+    + destinatarios_mora : json
+  }
+}
+
+UnidadOrganica "0..1" <-- "*" UnidadOrganica : padre
+UnidadOrganica "0..1" <-- "*" Usuario : unidad_org
+Usuario ..> Rol
+InformeCGE "1" <-- "*" Recomendacion : informe
+UnidadOrganica "1" <-- "*" Recomendacion : unidad_responsable
+Recomendacion ..> Estado
+Recomendacion "1" <-- "*" PlanAccion
+Recomendacion "1" <-- "*" Evidencia
+PlanAccion "0..1" <-- "*" Evidencia
+Recomendacion "1" <-- "*" DictamenUAI
+Evidencia "0..1" <-- "*" DictamenUAI
+Usuario "1" <-- "*" DictamenUAI : evaluador
+Usuario "1" <-- "*" InformeCGE : creado_por
+Usuario "1" <-- "*" Evidencia : subido_por
+Usuario "0..1" <-- "*" AuditLog : usuario
+Usuario "1" <-- "*" Notificacion : destinatario
+Recomendacion "0..1" <-- "*" Notificacion
+Usuario "1" *-- "*" PreferenciaNotificacion
+note "UNIQUE (informe, numero_recomendacion)" as N1
+N1 .. Recomendacion
+note "UNIQUE (usuario, tipo_alerta)" as N2
+N2 .. PreferenciaNotificacion
+@enduml

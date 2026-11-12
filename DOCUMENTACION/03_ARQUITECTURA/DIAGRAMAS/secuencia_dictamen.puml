@@ -1,0 +1,37 @@
+@startuml secuencia_dictamen
+' SITRA-CGE UNL — POST /api/v1/recomendaciones/{id}/dictamenes
+' Derivado de recomendaciones/presentation/views.py::DictamenView,
+' recomendaciones/presentation/serializers.py::DictamenCreateSerializer y
+' recomendaciones/application/issue_dictamen.py (evidencias/application/reject_evidence.py no lo usa la API: H-25).
+autonumber
+actor UAI
+participant "SPA\nReviewEvidencePage" as SPA
+participant "DictamenView" as V
+participant "JWTBearerAuthentication" as A
+participant "IssueDictamen" as UC
+participant "state_machine\ntransition_state" as SM
+database "Base de datos" as DB
+participant "record_audit" as AU
+
+UAI -> SPA : Aprueba o rechaza
+SPA -> V : POST …/dictamenes\n{evidence_id, approved, observaciones}
+V -> A : authenticate(Authorization: Bearer)
+A --> V : Usuario activo (rol UAI)
+V -> V : require_roles(UAI), DictamenCreateSerializer\n(observaciones obligatorias si approved=false)
+V -> UC : execute(actor, request_id, recommendation_id, …)
+UC -> DB : BEGIN; SELECT … FOR UPDATE
+alt estado ≠ EN_VALIDACION
+  UC --> V : ConflictError (409)
+else evidencia ajena (400) o anulada (409)
+  UC --> V : error de dominio
+else aprobado
+  UC -> DB : UPDATE evidencias SET validada = true
+  UC -> SM : EN_VALIDACION → CUMPLIDA
+else rechazado (observaciones obligatorias)
+  UC -> SM : EN_VALIDACION → EN_PROCESO
+end
+UC -> DB : INSERT dictamenes_uai; UPDATE recomendaciones.estado
+UC -> AU : INSERT audit_logs (estado anterior/nuevo, request_id)
+UC -> DB : COMMIT
+V --> SPA : 201 {success: true, data, errors: null, meta}
+@enduml

@@ -1,0 +1,17 @@
+---
+title: "Problema y justificación"
+description: "Explicar qué problema resuelve SITRA-CGE y por qué cada capacidad del sistema responde a una necesidad concreta."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Explicar qué problema resuelve SITRA-CGE y por qué cada capacidad del sistema responde a una necesidad concreta.
+
+Fuente única: [`DOCUMENTACION/01_GENERAL/PROBLEMA_Y_JUSTIFICACION.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/01_GENERAL/PROBLEMA_Y_JUSTIFICACION.md).
+:::
+
+{{< include ../../DOCUMENTACION/01_GENERAL/PROBLEMA_Y_JUSTIFICACION.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Objetivos y alcance](../01-general/objetivos-alcance.qmd)
+- [Riesgos y controles](../06-seguridad/riesgos-controles.qmd)

@@ -9,6 +9,7 @@ from rest_framework.permissions import AllowAny
 from backend.core.api.base import ApiView, ok
 from backend.core.api.schema import envelope, errors
 from backend.core.auth.permissions import IsAuthenticatedActor, require_roles
+from backend.core.auth.throttling import LoginRateThrottle
 from backend.core.shared.domain_types import NotFoundError, Role
 from backend.modules.usuarios.application.list_units import ListUnits
 from backend.modules.usuarios.application.login_sso import IniciarSesionSso
@@ -30,6 +31,7 @@ SOLO_DTI = require_roles(Role.DTI, message="Solo el rol DTI puede administrar us
 class LoginSsoView(ApiView):
     authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
 
     @extend_schema(
         tags=["Autenticación"],
@@ -37,7 +39,7 @@ class LoginSsoView(ApiView):
         summary="Validar credencial institucional y emitir JWT",
         auth=[],
         request=LoginSsoRequestSerializer,
-        responses={200: envelope("Sesion", SesionSerializer), **errors(400, 401)},
+        responses={200: envelope("Sesion", SesionSerializer), **errors(400, 401, 429)},
     )
     def post(self, request):
         payload = LoginSsoRequestSerializer(data=request.data)

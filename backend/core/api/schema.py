@@ -74,6 +74,7 @@ _ERROR_DESCRIPTIONS = {
     405: "METHOD_NOT_ALLOWED: ver la cabecera Allow.",
     409: "CONFLICT / BUSINESS_RULE_VIOLATION: transición o regla de negocio incumplida.",
     413: "PAYLOAD_TOO_LARGE: el PDF supera el tamaño máximo.",
+    429: "TOO_MANY_REQUESTS: se superó el límite de intentos; ver la cabecera Retry-After.",
     500: "INTERNAL_ERROR: error inesperado procesando la solicitud.",
 }
 
@@ -108,5 +109,5 @@ class JWTBearerScheme(OpenApiAuthenticationExtension):
             "type": "http",
             "scheme": "bearer",
             "bearerFormat": "JWT",
-            "description": "JWT emitido por POST /api/v1/auth/login-sso (expira en 1 hora).",
+            "description": "JWT emitido por POST /api/v1/sesiones (expira en 1 hora).",
         }

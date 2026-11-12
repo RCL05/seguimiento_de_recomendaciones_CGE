@@ -1,0 +1,16 @@
+---
+title: "Objetivos y alcance"
+description: "Delimitar qué cubre el sistema, qué queda fuera y qué limitaciones conocidas tiene hoy."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Delimitar qué cubre el sistema, qué queda fuera y qué limitaciones conocidas tiene hoy.
+
+Fuente única: [`DOCUMENTACION/01_GENERAL/OBJETIVOS_Y_ALCANCE.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/01_GENERAL/OBJETIVOS_Y_ALCANCE.md).
+:::
+
+{{< include ../../DOCUMENTACION/01_GENERAL/OBJETIVOS_Y_ALCANCE.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Requisitos](../01-general/requisitos.qmd)

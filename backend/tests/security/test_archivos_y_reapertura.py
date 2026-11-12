@@ -135,7 +135,7 @@ def test_uai_reabre_cumplida_y_ejecutor_la_reanuda(uai):
 
     ejecutor = authenticated_headers("EJECUTOR", "ejecutor-reab", "DEP-A")
     hito = Client().post(
-        f"/api/v1/recomendaciones/{rec_id}/plan-accion",
+        f"/api/v1/recomendaciones/{rec_id}/hitos",
         data=json.dumps({"descripcion_hito": "Corregir hallazgo", "fecha_compromiso": "2027-06-30"}),
         content_type="application/json",
         **ejecutor,

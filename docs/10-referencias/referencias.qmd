@@ -1,0 +1,15 @@
+---
+title: "Referencias y declaraciones"
+description: "Citar fuentes, estándares y herramientas, y declarar el uso de IA."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Citar fuentes, estándares y herramientas, y declarar el uso de IA.
+
+Fuente única: [`DOCUMENTACION/10_REFERENCIAS/REFERENCIAS.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/10_REFERENCIAS/REFERENCIAS.md).
+:::
+
+{{< include ../../DOCUMENTACION/10_REFERENCIAS/REFERENCIAS.md >}}
+
+::: {#refs}
+:::

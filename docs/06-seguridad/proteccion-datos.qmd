@@ -1,0 +1,16 @@
+---
+title: "Protección de datos"
+description: "Identificar la información tratada y las medidas de protección implementadas."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Identificar la información tratada y las medidas de protección implementadas.
+
+Fuente única: [`DOCUMENTACION/06_SEGURIDAD/PROTECCION_DATOS.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/06_SEGURIDAD/PROTECCION_DATOS.md).
+:::
+
+{{< include ../../DOCUMENTACION/06_SEGURIDAD/PROTECCION_DATOS.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Riesgos y controles](../06-seguridad/riesgos-controles.qmd)

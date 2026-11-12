@@ -61,7 +61,7 @@ def _recomendacion(uai, ejecutor, numero="R-V1"):
         uai,
     ).json()["data"]
     hito = _post(
-        f"/api/v1/recomendaciones/{rec['id']}/plan-accion",
+        f"/api/v1/recomendaciones/{rec['id']}/hitos",
         {"descripcion_hito": "Primer hito", "fecha_compromiso": (HOY() + timedelta(days=10)).isoformat()},
         ejecutor,
     )
@@ -79,6 +79,7 @@ def _subir(rec_id, ejecutor):
         data=PDF,
         content_type="application/pdf",
         HTTP_X_FILENAME="evidencia.pdf",
+        HTTP_X_EVIDENCE_TYPE="FINAL",
         **ejecutor,
     )
 
@@ -110,14 +111,14 @@ def test_vencida_sigue_en_proceso_y_acepta_hitos_futuros(uai, ejecutor):
     mark_overdue_recommendations()
 
     pasado = _post(
-        f"/api/v1/recomendaciones/{rec_id}/plan-accion",
+        f"/api/v1/recomendaciones/{rec_id}/hitos",
         {"descripcion_hito": "Fecha pasada", "fecha_compromiso": (HOY() - timedelta(days=1)).isoformat()},
         ejecutor,
     )
     assert pasado.status_code == 400
 
     futuro = _post(
-        f"/api/v1/recomendaciones/{rec_id}/plan-accion",
+        f"/api/v1/recomendaciones/{rec_id}/hitos",
         {"descripcion_hito": "Corrección tardía", "fecha_compromiso": (HOY() + timedelta(days=15)).isoformat()},
         ejecutor,
     )

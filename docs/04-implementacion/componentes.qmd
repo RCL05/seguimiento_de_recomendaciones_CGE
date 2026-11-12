@@ -1,0 +1,17 @@
+---
+title: "Componentes"
+description: "Describir propósito, entradas, procesamiento, salidas, reglas y persistencia de cada componente."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Describir propósito, entradas, procesamiento, salidas, reglas y persistencia de cada componente.
+
+Fuente única: [`DOCUMENTACION/04_IMPLEMENTACION/COMPONENTES.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/04_IMPLEMENTACION/COMPONENTES.md).
+:::
+
+{{< include ../../DOCUMENTACION/04_IMPLEMENTACION/COMPONENTES.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [C3 Componentes](../03-arquitectura/c3-componentes.qmd)
+- [Endpoints](../05-api/endpoints.qmd)

@@ -1,0 +1,17 @@
+---
+title: "Instalación"
+description: "Guiar la preparación del entorno local o con Docker Compose."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Guiar la preparación del entorno local o con Docker Compose.
+
+Fuente única: [`DOCUMENTACION/08_DESPLIEGUE/INSTALACION.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/08_DESPLIEGUE/INSTALACION.md).
+:::
+
+{{< include ../../DOCUMENTACION/08_DESPLIEGUE/INSTALACION.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Configuración](../08-despliegue/configuracion.qmd)
+- [Ejecución](../08-despliegue/ejecucion.qmd)

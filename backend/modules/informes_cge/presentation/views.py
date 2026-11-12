@@ -8,7 +8,7 @@ from django.urls import reverse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 
-from backend.core.api.base import ApiView, ok, page_meta
+from backend.core.api.base import ApiView, FileDownloadView, ok, page_meta
 from backend.core.api.schema import envelope, errors
 from backend.core.auth.permissions import IsAuthenticatedActor, require_roles
 from backend.core.shared.domain_types import PayloadTooLarge, Role
@@ -88,7 +88,7 @@ class InformeListCreateView(ApiView):
         )
 
 
-class InformeDocumentoView(ApiView):
+class InformeDocumentoView(FileDownloadView):
     @extend_schema(
         tags=["Informes CGE"],
         operation_id="descargarDocumentoInforme",

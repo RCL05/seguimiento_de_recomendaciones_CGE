@@ -1,0 +1,16 @@
+---
+title: "Contratos"
+description: "Documentar el contrato OpenAPI, su verificación frente al código y la envoltura universal de respuestas."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Documentar el contrato OpenAPI, su verificación frente al código y la envoltura universal de respuestas.
+
+Fuente única: [`DOCUMENTACION/05_API/CONTRATOS.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/05_API/CONTRATOS.md).
+:::
+
+{{< include ../../DOCUMENTACION/05_API/CONTRATOS.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [API general](../05-api/api-general.qmd)

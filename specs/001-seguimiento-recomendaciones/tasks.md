@@ -99,7 +99,7 @@ cargar PDF, obtener SHA-256 y confirmar `EN_REVISION_INTERNA`.
 - [X] T036 [P] [US2] Crear modelo y migración `Evidencia` con `mime_type = application/pdf`, `hash_sha256` de 64 caracteres hexadecimales, tamaño positivo, almacenamiento, creador e inmutabilidad en `backend/modules/recomendaciones/models.py`.
 - [X] T037 [US2] Implementar caso de uso de carga que valide dependencia del ejecutor, PDF, tamaño, contenido, hash y transición a `EN_REVISION_INTERNA` en `backend/modules/recomendaciones/application/service.py`.
 - [ ] T038 [US2] Implementar adaptador de almacenamiento de pruebas y producción detrás del puerto definido en `backend/modules/evidencias/infrastructure/storage_adapter.py`.
-- [X] T039 [US2] Implementar el endpoint `POST /api/v1/recomendaciones/{id}/plan-accion` en `backend/modules/recomendaciones/presentation/views.py` y `POST /api/v1/recomendaciones/{id}/evidencias` en `backend/modules/evidencias/presentation/views.py`.
+- [X] T039 [US2] Implementar el endpoint `POST /api/v1/recomendaciones/{id}/hitos` en `backend/modules/recomendaciones/presentation/views.py` y `POST /api/v1/recomendaciones/{id}/evidencias` en `backend/modules/evidencias/presentation/views.py`.
 - [ ] T040 [US2] Registrar auditoría de plan, carga de evidencia, hash y transición en `backend/modules/evidencias/application/audit_events.py`.
 - [ ] T041 [US2] Crear pruebas unitarias de fechas, MIME, extensión, tamaño, hash y autorización de unidad en `backend/tests/unit/evidencias/test_upload_rules.py`.
 - [ ] T042 [US2] Crear pruebas de integración de plan, carga válida, carga inválida y transición a revisión en `backend/tests/integration/evidencias/test_upload_flow.py`.
@@ -166,7 +166,7 @@ un usuario, cambiar su rol o unidad y comprobar permisos y auditoría.
 - [X] T074 [US6] Implementar caso de uso de inicio de sesión seguro con expiración y roles vigentes en `backend/modules/usuarios/application/login_sso.py`.
 - [X] T075 [US6] Implementar casos de uso DTI para asignar y revocar roles con segregación de funciones en `backend/modules/usuarios/application/manage_roles.py`.
 - [X] T076 [US6] Implementar casos de uso para crear, actualizar y reasignar dependencias sin perder historial en `backend/modules/usuarios/application/manage_units.py`.
-- [X] T077 [US6] Implementar endpoint `POST /api/v1/auth/login-sso` y endpoints administrativos protegidos en `backend/modules/usuarios/presentation/views.py`.
+- [X] T077 [US6] Implementar endpoint `POST /api/v1/sesiones` y endpoints administrativos protegidos en `backend/modules/usuarios/presentation/views.py`.
 - [X] T078 [US6] Registrar auditoría de autenticación, cambios de roles y reasignaciones administrativas en `backend/modules/usuarios/application/audit_events.py`.
 - [X] T079 [US6] Crear pruebas unitarias de roles, segregación, expiración y reasignación en `backend/tests/unit/usuarios/test_identity_rules.py`.
 - [X] T080 [US6] Crear pruebas de integración del adaptador SSO simulado y administración DTI en `backend/tests/integration/usuarios/test_admin_flow.py`.

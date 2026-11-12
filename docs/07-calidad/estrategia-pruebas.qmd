@@ -1,0 +1,16 @@
+---
+title: "Estrategia de pruebas"
+description: "Describir niveles, herramientas, casos positivos y negativos, CI y limitaciones."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Describir niveles, herramientas, casos positivos y negativos, CI y limitaciones.
+
+Fuente única: [`DOCUMENTACION/07_CALIDAD/ESTRATEGIA_PRUEBAS.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/07_CALIDAD/ESTRATEGIA_PRUEBAS.md).
+:::
+
+{{< include ../../DOCUMENTACION/07_CALIDAD/ESTRATEGIA_PRUEBAS.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Pruebas](../07-calidad/pruebas.qmd)

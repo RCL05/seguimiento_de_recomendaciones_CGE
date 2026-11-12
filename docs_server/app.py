@@ -1,4 +1,5 @@
 """Servidor asíncrono de lectura para la documentación Markdown del proyecto."""
+import os
 from pathlib import Path
 
 import markdown
@@ -55,4 +56,6 @@ async def document(doc_name: str):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8001)
+    # Herramienta interna sin autenticación: por defecto solo escucha en la máquina local.
+    # Para exponerla en la red, definir DOCS_SERVER_HOST de forma explícita.
+    app.run(host=os.getenv("DOCS_SERVER_HOST", "127.0.0.1"), port=int(os.getenv("DOCS_SERVER_PORT", "8001")))

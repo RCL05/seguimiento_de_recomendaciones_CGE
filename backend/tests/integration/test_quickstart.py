@@ -71,7 +71,7 @@ class QuickstartSmokeTests(TestCase):
 
     def _start_execution(self, recommendation_id):
         plan = self._post(
-            f"/api/v1/recomendaciones/{recommendation_id}/plan-accion",
+            f"/api/v1/recomendaciones/{recommendation_id}/hitos",
             {"descripcion_hito": "Documentar controles", "fecha_compromiso": "2027-01-30"},
             "EJECUTOR",
             "ejecutor-a",
@@ -86,6 +86,7 @@ class QuickstartSmokeTests(TestCase):
             data=content,
             content_type="application/pdf",
             HTTP_X_FILENAME="evidencia.pdf",
+            HTTP_X_EVIDENCE_TYPE="FINAL",
             **authenticated_headers("EJECUTOR", "ejecutor-a", "DEP-A"),
         )
 

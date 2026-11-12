@@ -1,0 +1,17 @@
+---
+title: "API: visión general"
+description: "Describir arquitectura, autenticación, paginación, errores y versionado de la API REST."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Describir arquitectura, autenticación, paginación, errores y versionado de la API REST.
+
+Fuente única: [`DOCUMENTACION/05_API/API_GENERAL.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/05_API/API_GENERAL.md).
+:::
+
+{{< include ../../DOCUMENTACION/05_API/API_GENERAL.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Endpoints](../05-api/endpoints.qmd)
+- [Contratos](../05-api/contratos.qmd)

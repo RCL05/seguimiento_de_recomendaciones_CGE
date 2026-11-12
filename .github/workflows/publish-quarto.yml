@@ -1,0 +1,39 @@
+name: Verificar documentación (Quarto)
+
+# Este flujo solo comprueba que el portal compila. La publicación en GitHub Pages
+# la hace el repositorio BrTrl3/sitra-cge-docs, que descarga `main` de este
+# repositorio, compila `docs/` y publica en https://brtrl3.github.io/sitra-cge-docs/
+# (diariamente o a mano: gh workflow run publicar.yml -R BrTrl3/sitra-cge-docs).
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "docs/**"
+      - "DOCUMENTACION/**"
+      - ".github/workflows/publish-quarto.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "DOCUMENTACION/**"
+      - ".github/workflows/publish-quarto.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Construir el portal
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: 1.11.9
+
+      - name: Construir el sitio
+        run: quarto render docs

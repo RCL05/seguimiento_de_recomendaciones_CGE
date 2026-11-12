@@ -69,7 +69,7 @@ Decisiones del equipo durante la implementación. Están pendientes de validar c
 - ¿La CGE admite prórrogas formales de plazo? ¿Quién las aprueba? (CL-06)
 - ¿El catálogo de estados y las columnas de la matriz coinciden con el Acuerdo No. 010-CG-2022? Debe verificarse con la UAI.
 - ¿Qué mecanismo SSO proporcionará la DTI en producción?
-- ¿Cómo se reasigna una recomendación si cambia la estructura orgánica? (RF-003, sin implementar)
+- RF-003 resuelto: la UAI reasigna con motivo obligatorio mediante `PATCH /api/v1/recomendaciones/{id}` con `unit_id`, y el historial queda en `AuditLog`. Decisión del equipo: la reasigna la UAI, no la DTI, porque es quien registra y asigna las recomendaciones.
 
 ## Escenarios de Usuario y Pruebas
 
@@ -253,9 +253,9 @@ dependencia y comprobar que sus permisos se actualizan sin perder auditoría.
 - **RF-002 [DTI - RBAC]**: El sistema DEBE permitir al administrador DTI asignar y
   revocar los roles `DTI`, `UAI`, `EJECUTOR`, `RECTORADO` y `CGE_AUDITOR`, manteniendo
   segregación de funciones.
-- **RF-003 [DTI - Estructura orgánica]**: Si cambia la estructura administrativa,
-  el sistema DEBE permitir reasignar una recomendación a otra unidad conservando el
-  historial y la bitácora anterior.
+- **RF-003 [UAI - Estructura orgánica]**: Si cambia la estructura administrativa,
+  el sistema DEBE permitir a la UAI reasignar una recomendación a otra unidad con un
+  motivo obligatorio, conservando el historial y la bitácora anterior.
 - **RF-004 [DTI - SMTP]**: Mientras las notificaciones estén activas, el sistema
   DEBE registrar alertas dentro del sistema y gestionar su entrega por correo
   electrónico institucional respetando la configuración y límites del servicio.
@@ -401,11 +401,11 @@ está en [contracts/openapi.yaml](./contracts/openapi.yaml).
 
 | Requisito | Recurso | Operación | Entrada principal | Resultado | Códigos |
 | --- | --- | --- | --- | --- | --- |
-| RF-001 | Sesión | `POST /auth/login-sso` | Credencial SSO | JWT Bearer | 200, 400, 401 |
+| RF-001 | Sesión | `POST /sesiones` | Credencial SSO | JWT Bearer | 200, 400, 401 |
 | RF-005 | Informe | `POST /informes` | Número, período, fecha, PDF o URL | Informe creado | 201, 400, 401, 403, 409, 413 |
 | RF-006 | Recomendación | `POST /recomendaciones` | Informe, número, unidad, plazo, prioridad | Recomendación `Pendiente` | 201, 400, 401, 403, 409 |
 | RF-019 | Recomendación | `GET /recomendaciones/{id}` | Identificador | Detalle con evidencias | 200, 401, 403, 404 |
-| RF-007 | Hito | `POST /recomendaciones/{id}/plan-accion` | Descripción y fecha | Hito registrado | 201, 400, 401, 403, 404, 409 |
+| RF-007 | Hito | `POST /recomendaciones/{id}/hitos` | Descripción y fecha | Hito registrado | 201, 400, 401, 403, 404, 409 |
 | RF-008 | Evidencia | `POST /recomendaciones/{id}/evidencias` | PDF binario | Evidencia con SHA-256 | 201, 400, 401, 403, 404, 409, 413 |
 | RF-009, RF-010 | Dictamen | `POST /recomendaciones/{id}/dictamenes` | Evidencia, resultado, observaciones | Dictamen y nuevo estado | 201, 400, 401, 403, 404, 409 |
 | RF-023 | Recomendación | `PATCH /recomendaciones/{id}` | Estado `REABIERTA` y motivo | Recomendación reabierta | 200, 400, 401, 403, 404, 409 |

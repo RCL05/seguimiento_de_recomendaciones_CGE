@@ -9,6 +9,10 @@ jobs:
   backend:
     name: Backend (Django + pytest)
     runs-on: ubuntu-latest
+    env:
+      DJANGO_DEBUG: "false"
+      DJANGO_SECRET_KEY: ci-only-secret-key-not-for-production-0123456789
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,testserver
     defaults:
       run:
         working-directory: backend

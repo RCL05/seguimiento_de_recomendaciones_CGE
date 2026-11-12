@@ -1,0 +1,16 @@
+---
+title: "Ejecución"
+description: "Explicar cómo iniciar los servicios, acceder a ellos y ejecutar pruebas y jobs."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Explicar cómo iniciar los servicios, acceder a ellos y ejecutar pruebas y jobs.
+
+Fuente única: [`DOCUMENTACION/08_DESPLIEGUE/EJECUCION.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/08_DESPLIEGUE/EJECUCION.md).
+:::
+
+{{< include ../../DOCUMENTACION/08_DESPLIEGUE/EJECUCION.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Problemas frecuentes](../08-despliegue/problemas-frecuentes.qmd)

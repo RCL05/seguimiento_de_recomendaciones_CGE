@@ -20,6 +20,7 @@ from backend.modules.notificaciones.application.service import (
 from backend.modules.notificaciones.infrastructure.preferences_models import (
     ConfiguracionNotificacion,
 )
+from backend.modules.notificaciones.models import Notificacion
 from backend.modules.recomendaciones.models import Recomendacion
 from backend.modules.usuarios.models import Usuario
 
@@ -85,6 +86,11 @@ def send_deadline_alerts() -> dict[str, int]:
                 continue
             seen.add(recipient.id)
             key = f"DEADLINE_ALERT:{rec.id}:{recipient.id}:{threshold_date}"
+            # schedule_notification devuelve la notificación existente ante una clave
+            # repetida; aquí se cuenta como omitida, no como una alerta nueva.
+            if Notificacion.objects.filter(clave_idempotencia=key).exists():
+                skipped += 1
+                continue
             notification = schedule_notification(
                 recommendation=rec,
                 recipient=recipient,

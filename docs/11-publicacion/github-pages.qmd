@@ -1,0 +1,16 @@
+---
+title: "Publicación en GitHub Pages"
+description: "Explicar cómo construir, publicar y mantener este portal."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Explicar cómo construir, publicar y mantener este portal.
+
+Fuente única: [`DOCUMENTACION/11_PUBLICACION_GITHUB_PAGES.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/11_PUBLICACION_GITHUB_PAGES.md).
+:::
+
+{{< include ../../DOCUMENTACION/11_PUBLICACION_GITHUB_PAGES.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Despliegue](../08-despliegue/despliegue.qmd)

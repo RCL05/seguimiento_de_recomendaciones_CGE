@@ -1,0 +1,16 @@
+---
+title: "Problemas frecuentes"
+description: "Resolver los errores más comunes de instalación y uso."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Resolver los errores más comunes de instalación y uso.
+
+Fuente única: [`DOCUMENTACION/08_DESPLIEGUE/PROBLEMAS_FRECUENTES.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/08_DESPLIEGUE/PROBLEMAS_FRECUENTES.md).
+:::
+
+{{< include ../../DOCUMENTACION/08_DESPLIEGUE/PROBLEMAS_FRECUENTES.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Ejecución](../08-despliegue/ejecucion.qmd)

@@ -1,0 +1,16 @@
+---
+title: "Despliegue"
+description: "Describir Dockerfile, Compose y CI existentes, y la recomendación para producción."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Describir Dockerfile, Compose y CI existentes, y la recomendación para producción.
+
+Fuente única: [`DOCUMENTACION/08_DESPLIEGUE/DESPLIEGUE.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/08_DESPLIEGUE/DESPLIEGUE.md).
+:::
+
+{{< include ../../DOCUMENTACION/08_DESPLIEGUE/DESPLIEGUE.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Publicación en GitHub Pages](../11-publicacion/github-pages.qmd)

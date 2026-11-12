@@ -1,0 +1,16 @@
+---
+title: "Autenticación"
+description: "Explicar el intercambio SSO → JWT, la revalidación por petición y sus brechas."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Explicar el intercambio SSO → JWT, la revalidación por petición y sus brechas.
+
+Fuente única: [`DOCUMENTACION/06_SEGURIDAD/AUTENTICACION.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/06_SEGURIDAD/AUTENTICACION.md).
+:::
+
+{{< include ../../DOCUMENTACION/06_SEGURIDAD/AUTENTICACION.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Autorización](../06-seguridad/autorizacion.qmd)

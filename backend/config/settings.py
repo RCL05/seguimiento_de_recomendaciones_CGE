@@ -5,14 +5,18 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 MEDIA_ROOT = Path(os.getenv("DJANGO_MEDIA_ROOT", BASE_DIR / "media"))
 MEDIA_URL = "/media/"
-DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
+DEBUG = os.getenv("DJANGO_DEBUG", "false").lower() == "true"
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     if not DEBUG:
         raise RuntimeError("DJANGO_SECRET_KEY es obligatorio cuando DEBUG está desactivado.")
     SECRET_KEY = secrets.token_urlsafe(48)
 ROOT_URLCONF = "config.urls"
-ALLOWED_HOSTS = [host for host in os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",") if host]
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    if host.strip()
+]
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -78,6 +82,8 @@ REST_FRAMEWORK = {
     "UNAUTHENTICATED_USER": None,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
+# Intentos de inicio de sesión por IP (formato DRF: "10/min", "100/hour").
+LOGIN_THROTTLE_RATE = os.getenv("LOGIN_THROTTLE_RATE", "10/min")
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "SITRA-CGE UNL API",
@@ -125,6 +131,26 @@ STATIC_URL = "/static/"
 USE_TZ = True
 TIME_ZONE = "America/Guayaquil"
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+    },
+}
+
 # Correo institucional (RF-011, RF-012). Sin EMAIL_HOST configurado, en desarrollo
 # los envíos se imprimen en consola para no bloquear las notificaciones internas.
 def _env_int(name: str, default: int) -> int:
@@ -167,4 +193,3 @@ else:
             "NAME": os.getenv("DJANGO_SQLITE_PATH") or BASE_DIR / "development.sqlite3",
         }
     }
-#prueba de conexion de comits en discord :)S

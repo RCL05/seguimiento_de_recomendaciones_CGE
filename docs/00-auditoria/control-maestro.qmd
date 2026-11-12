@@ -1,0 +1,17 @@
+---
+title: "Control maestro"
+description: "Registrar el alcance, las tareas, su estado, los hallazgos y las limitaciones del trabajo de documentación."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Registrar el alcance, las tareas, su estado, los hallazgos y las limitaciones del trabajo de documentación.
+
+Fuente única: [`DOCUMENTACION/CONTROL_MAESTRO.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/CONTROL_MAESTRO.md).
+:::
+
+{{< include ../../DOCUMENTACION/CONTROL_MAESTRO.md >}}
+
+## Páginas relacionadas {.unnumbered .unlisted}
+
+- [Matriz de cumplimiento](../00-auditoria/matriz-cumplimiento.qmd)
+- [Informe final](../12-cierre/informe-final.qmd)

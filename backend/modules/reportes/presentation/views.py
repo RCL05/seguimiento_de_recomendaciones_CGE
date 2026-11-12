@@ -6,7 +6,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers
 
-from backend.core.api.base import ApiView, ok
+from backend.core.api.base import ApiView, FileDownloadView, ok
 from backend.core.api.schema import envelope, errors
 from backend.core.audit.repository import query_audit_log
 from backend.core.auth.permissions import IsAuthenticatedActor, require_roles
@@ -34,10 +34,11 @@ class KpisView(ApiView):
         tags=["Dashboard"],
         operation_id="consultarKpisDashboard",
         summary="Consultar indicadores clave del sistema",
-        responses={200: envelope("KpisDashboard", KpisSerializer), **errors(401, 403, 500)},
+        description="El ejecutor recibe solo los indicadores de su unidad; los demás roles, los institucionales.",
+        responses={200: envelope("KpisDashboard", KpisSerializer), **errors(401, 500)},
     )
     def get(self, request):
-        data = get_kpis()
+        data = get_kpis(actor=self.actor)
         return ok(request, KpisSerializer(data).data, "Indicadores del dashboard consultados")
 
 
@@ -53,7 +54,7 @@ class TableroView(ApiView):
         return ok(request, TableroSerializer(data).data, "Resumen ejecutivo consultado")
 
 
-class MatrizCgeView(ApiView):
+class MatrizCgeView(FileDownloadView):
     @extend_schema(
         tags=["Reportes"],
         operation_id="exportarMatrizCge",

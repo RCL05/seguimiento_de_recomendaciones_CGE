@@ -70,7 +70,7 @@ def recomendacion_en_validacion(tmp_path, uai, ejecutor, informe):
         hito = _json(
             client,
             "post",
-            f"/api/v1/recomendaciones/{rec['id']}/plan-accion",
+            f"/api/v1/recomendaciones/{rec['id']}/hitos",
             {"descripcion_hito": "Redactar propuesta", "fecha_compromiso": "2027-03-01"},
             ejecutor,
         )
@@ -164,7 +164,7 @@ def test_dictamen_aprobado_201_y_doble_dictamen_409(recomendacion_en_validacion,
 
 def test_plan_de_accion_lista_hitos(recomendacion_en_validacion, ejecutor):
     rec_id, _, _ = recomendacion_en_validacion
-    response = Client().get(f"/api/v1/recomendaciones/{rec_id}/plan-accion", **ejecutor)
+    response = Client().get(f"/api/v1/recomendaciones/{rec_id}/hitos", **ejecutor)
     assert response.status_code == 200
     assert [h["descripcion_hito"] for h in response.json()["data"]] == ["Redactar propuesta"]
 

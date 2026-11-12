@@ -26,7 +26,8 @@ Si falta una flecha, el trabajo no está completamente demostrado.
 | Evitar declarar cumplimiento sin revisión | RF-009, RF-010 | US3 | T044-T052 | Salto ilegal devuelve 409 | Video o captura del rechazo y bitácora |
 | Avisar que se acerca un vencimiento | RF-011, RF-012 | US4 | T053-T062 | Umbral, reintento y mora | Registro de notificación y tablero |
 | Permitir una revisión externa | RF-014, RF-017, RF-018 | US5 | T063-T072 | Auditoría, hash y exportación | Matriz y consulta de historial |
-| Gestionar el acceso de una persona | RF-001, RF-002, RF-003 | US6 | T073-T080 | Roles, dependencia y reasignación | Captura de permisos y auditoría |
+| Gestionar el acceso de una persona | RF-001, RF-002 | US6 | T073-T080 | Roles y dependencia | Captura de permisos |
+| Reasignar una recomendación entre unidades | RF-003 | US6 | T128 | Reasignación con motivo e historial | Endpoint y registro de auditoría |
 
 ## 3. Registro por tarea
 
