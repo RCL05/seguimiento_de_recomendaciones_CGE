@@ -18,13 +18,13 @@ toc: true
 <strong>24</strong> requisitos funcionales: 23 implementados y probados, 1 parcial
 :::
 ::: {.metric}
-<strong>32</strong> operaciones en la API `/api/v1`
+<strong>31</strong> operaciones en la API `/api/v1`
 :::
 ::: {.metric}
 <strong>5</strong> roles con segregación de funciones
 :::
 ::: {.metric}
-<strong>157</strong> pruebas automatizadas aprobadas (145 backend · 12 frontend)
+<strong>243</strong> pruebas automatizadas aprobadas (231 backend · 12 frontend)
 :::
 :::
 

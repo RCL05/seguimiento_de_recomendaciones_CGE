@@ -17,7 +17,7 @@ from uuid import UUID
 from django.db import IntegrityError, transaction
 
 from backend.core.audit.repository import record_audit
-from backend.core.shared.domain_types import ConflictError, DomainError, ValidationError
+from backend.core.shared.domain_types import ConflictError, ValidationError
 from backend.modules.recomendaciones.infrastructure.repositories import (
     RecommendationRepository,
     ReportRepository,
@@ -56,15 +56,16 @@ class CreateRecomendacion:
         if legal_days <= 0:
             raise ValidationError("El plazo legal debe ser mayor que cero.")
 
-        # Informe debe existir
+        # Una referencia inexistente es un dato de entrada inválido (400), no un conflicto.
         report = self._report_repo.get(report_id)
         if report is None:
-            raise DomainError("El informe CGE especificado no existe.")
+            message = "El informe CGE especificado no existe."
+            raise ValidationError(message, fields={"report_id": [message]})
 
-        # Unidad responsable debe existir
         unit = UnidadOrganica.objects.filter(codigo=unit_id).first()
         if unit is None:
-            raise DomainError(f"La unidad responsable '{unit_id}' no existe.")
+            message = f"La unidad responsable '{unit_id}' no existe."
+            raise ValidationError(message, fields={"unit_id": [message]})
 
         try:
             rec = Recomendacion.objects.create(

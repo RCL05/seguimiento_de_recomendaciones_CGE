@@ -2,12 +2,12 @@
 
 | Aspecto | Valor |
 |---|---|
-| Archivo publicado | `backend/contracts/openapi.yaml` (3 689 líneas) |
+| Archivo publicado | `backend/contracts/openapi.yaml` (3 593 líneas) |
 | Réplica | `specs/001-seguimiento-recomendaciones/contracts/openapi.yaml` |
 | Versión OpenAPI | 3.0.3 (`OAS_VERSION`) |
 | Título / versión | `SITRA-CGE UNL API` / `1.0.0` |
-| Operaciones | 32 (24 rutas `/api/v1` + `/health/`) |
-| Componentes | 78 esquemas, esquema de seguridad `bearerAuth` (HTTP bearer, JWT) |
+| Operaciones | 31 (23 rutas `/api/v1` + `/health/`) |
+| Componentes | 75 esquemas, esquema de seguridad `bearerAuth` (HTTP bearer, JWT) |
 | Enumeraciones con nombre | `RolInstitucionalEnum`, `EstadoRecomendacionEnum`, `EstadoEvidenciaEnum`, `TipoEvidenciaEnum`, `PrioridadEnum` |
 
 ### Verificación de correspondencia con la implementación
@@ -23,7 +23,7 @@ El proyecto aplica *contract-first* verificado por pruebas (`backend/tests/contr
 
 Además, durante la auditoría se regeneró el esquema con `python manage.py spectacular --file <tmp>` y se comparó con `diff`: **sin diferencias** respecto de ambas copias del contrato.
 
-Discrepancia semántica conocida: el contrato documenta `403` para `GET /dashboard/kpis`, pero la implementación no restringe por rol (H-14). La prueba de contrato compara estructura, no comportamiento de autorización.
+Discrepancia semántica conocida: el contrato documenta `403` para `GET /dashboard/kpis`, pero la implementación no restringe por rol (sí acota los datos del EJECUTOR a su unidad; H-14 parcial). La prueba de contrato compara estructura, no comportamiento de autorización.
 
 ### Regenerar el contrato
 

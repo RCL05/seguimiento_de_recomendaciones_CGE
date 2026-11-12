@@ -52,8 +52,3 @@ class ConfiguracionUpdateSerializer(serializers.Serializer):
     canal_email_activo = serializers.BooleanField(required=False)
     destinatarios_vencimiento = serializers.ListField(child=serializers.CharField(), required=False)
     destinatarios_mora = serializers.ListField(child=serializers.CharField(), required=False)
-
-
-class EjecucionPlazosSerializer(serializers.Serializer):
-    alertas_vencimiento = serializers.DictField()
-    mora = serializers.DictField()

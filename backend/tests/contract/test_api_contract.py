@@ -62,7 +62,7 @@ def test_toda_ruta_api_v1_esta_documentada(generated_schema):
 
 
 def test_operaciones_protegidas_declaran_bearer_y_401(generated_schema):
-    publicas = {("/api/v1/auth/login-sso", "post")}
+    publicas = {("/api/v1/sesiones", "post")}
     for path, operations in generated_schema["paths"].items():
         if not path.startswith("/api/v1/"):
             continue

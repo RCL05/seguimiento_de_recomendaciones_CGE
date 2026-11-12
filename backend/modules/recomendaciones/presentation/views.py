@@ -12,6 +12,7 @@ from backend.core.auth.permissions import IsAuthenticatedActor, require_roles
 from backend.core.shared.domain_types import Role
 from backend.modules.recomendaciones.application.create_plan_accion import CreatePlanAccion
 from backend.modules.recomendaciones.application.create_recomendacion import CreateRecomendacion
+from backend.modules.recomendaciones.application.get_dictamen import GetDictamen
 from backend.modules.recomendaciones.application.get_recomendacion import GetRecomendacion
 from backend.modules.recomendaciones.application.issue_dictamen import IssueDictamen
 from backend.modules.recomendaciones.application.list_recomendaciones import ListRecomendaciones
@@ -215,7 +216,7 @@ class PlanAccionView(ApiView):
             HitoSerializer(hito).data,
             "Hito del plan de acción registrado",
             status=201,
-            location=reverse("plan-accion", args=[recommendation_id]),
+            location=reverse("hitos", args=[recommendation_id]),
         )
 
 
@@ -245,7 +246,32 @@ class DictamenView(ApiView):
             observations=payload.validated_data["observaciones"],
             ip_address=self.client_ip,
         )
-        return ok(request, DictamenSerializer(dictamen).data, "Dictamen registrado", status=201)
+        return ok(
+            request,
+            DictamenSerializer(dictamen).data,
+            "Dictamen registrado",
+            status=201,
+            location=reverse("dictamen-detalle", args=[recommendation_id, dictamen.id]),
+        )
+
+
+class DictamenDetailView(ApiView):
+    @extend_schema(
+        tags=["Dictamen UAI"],
+        operation_id="consultarDictamen",
+        summary="Consultar un dictamen UAI de la recomendación",
+        description="Es el recurso que identifica `Location` al emitir el dictamen. Un ejecutor de otra unidad recibe 404.",
+        responses={200: envelope("DictamenConsultado", DictamenSerializer), **errors(401, 403, 404)},
+    )
+    def get(self, request, recommendation_id: UUID, dictamen_id: UUID):
+        dictamen = GetDictamen().execute(
+            actor=self.actor,
+            recommendation_id=recommendation_id,
+            dictamen_id=dictamen_id,
+            request_id=self.request_id,
+            ip_address=self.client_ip,
+        )
+        return ok(request, DictamenSerializer(dictamen).data, "Dictamen consultado")
 
 
 def _iso(value):

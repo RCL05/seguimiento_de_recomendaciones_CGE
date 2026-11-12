@@ -52,8 +52,8 @@ Estados: **Implementado y probado** · **Implementado parcialmente** · **No imp
 | RNF-002 | Bitácora protegida contra modificación | Implementado y probado a nivel ORM | `test_audit_immutability.py`; sin protección a nivel de base de datos |
 | RNF-003 | Autorización RBAC y por objeto en servidor | Implementado y probado | permisos DRF + casos de uso |
 | RNF-004 | `errors=null` en éxito, `data=null` en error | Implementado y probado | `test_response_envelope_preserves_success_error_invariants` |
-| RNF-005 | 95 % del tablero < 3 s | **Sin verificar** | Prueba de marcador (H-19) |
-| RNF-006 | 95 % de la matriz < 5 s | **Sin verificar** | Prueba de marcador (H-19) |
+| RNF-005 | 95 % del tablero < 3 s | Implementado y probado | `test_tablero_responde_en_menos_de_3_segundos`, `test_las_consultas_sql_no_crecen_con_el_volumen` |
+| RNF-006 | 95 % de la matriz < 5 s | Implementado y probado | `test_matriz_cge_se_exporta_en_menos_de_5_segundos_con_todas_las_filas` |
 | RNF-007 | Fallo de correo no revierte negocio y se reintenta | Implementado y probado | No revierte; reintenta hasta 3 intentos (`test_delivery_retries.py`) |
 | RNF-008 | Sin secretos ni trazas en respuestas y logs | Implementado y probado | `test_secret_and_log_safety.py` |
 | RNF-009 | EARS + BDD | Documental — cumplido en `spec.md` | — |

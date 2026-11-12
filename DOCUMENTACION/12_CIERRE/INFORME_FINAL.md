@@ -3,8 +3,8 @@
 Se analizó SITRA-CGE UNL (Django 5.2 + DRF / React 19 + Vite) sobre la rama `feature/sdd-spec-kit-structure` (commit `a565ba2`) y se produjo una documentación técnica verificada contra el código, publicada como portal Quarto en `docs/` y preparada para GitHub Pages mediante `.github/workflows/publish-quarto.yml`.
 
 - El sistema implementa y prueba **23 de 24** requisitos funcionales; RF-001 (SSO) es parcial porque el proveedor productivo no está definido. RF-003 (reasignación) y RF-004 (reintento de correo) quedaron resueltos.
-- La suite automatizada pasa completa: **145 pruebas de backend** y **12 de frontend**; lint y build correctos; el contrato OpenAPI regenerado coincide con el publicado.
-- Se registraron **25 hallazgos** (H-01…H-25), de los cuales 4 eran de severidad alta: antimalware documentado pero inexistente (H-03), reintento SMTP inexistente (H-05, resuelto), `DEBUG=true` por defecto (H-10, resuelto) y rendimiento sin medición (H-19).
+- La suite automatizada pasa completa: **231 pruebas de backend** y **12 de frontend**; lint y build correctos; el contrato OpenAPI regenerado coincide con el publicado.
+- Se registraron **25 hallazgos** (H-01…H-25), de los cuales 4 eran de severidad alta: antimalware documentado pero inexistente (H-03), reintento SMTP inexistente (H-05, resuelto), `DEBUG=true` por defecto (H-10, resuelto) y rendimiento sin medición (H-19, resuelto con pruebas de tiempo y ausencia de N+1).
 - El portal compila sin errores ni advertencias (44 páginas, 0 enlaces internos rotos). **No está publicado todavía**: requiere *merge* a `main` y activar Pages por el propietario.
 
 ## Descripción del proyecto
@@ -94,9 +94,9 @@ Cada página del portal contiene solo metadatos, el objetivo y un `{{< include >
 | F-18 | Operación | `09_OPERACION/*` | Código | Completo | — |
 | F-19 | Referencias y declaración de IA | `10_REFERENCIAS/*` | 22 referencias | Completo | Uso de IA del equipo por declarar |
 | F-20 | Portal Quarto | `docs/_quarto.yml`, `docs/**/*.qmd` | Render 0 errores, 0 enlaces rotos | Completo | — |
-| F-21 | Workflow de publicación | `.github/workflows/publish-quarto.yml` | Revisión | Preparado | No ejecutado en GitHub |
+| F-21 | Workflow de publicación | `publicar.yml` en `BrTrl3/sitra-cge-docs`; verificación en `.github/workflows/publish-quarto.yml` | Ejecución en GitHub Actions | Completo | — |
 | F-22 | Guía de publicación y mantenimiento | `11_PUBLICACION_GITHUB_PAGES.md` | — | Completo | — |
-| F-23 | Publicación real | https://rcl05.github.io/seguimiento_de_recomendaciones_CGE/ | — | **Pendiente** | Requiere acción del propietario |
+| F-23 | Publicación real | https://brtrl3.github.io/sitra-cge-docs/ | Sitio responde 200 | Completo | Se actualiza a diario o a mano |
 | F-24 | Capturas de pantalla de la aplicación | — | — | No realizado | Fuera de lo verificado; ver limitaciones |
 | F-25 | Manual de usuario | `docs/manual-usuario.md` (existente) | — | Sin cambios | Fuera del alcance técnico de este encargo |
 
@@ -128,7 +128,7 @@ Output created: _site/index.html
 |---|---|
 | *Merge* a `main`, activar Pages (fuente GitHub Actions) y verificar la URL | Propietario del repositorio |
 | Revisar y aprobar el contenido; declarar el uso de IA del equipo | Equipo |
-| Atender hallazgos de severidad alta pendientes (H-03, H-19) | Equipo de desarrollo |
+| Atender hallazgo de severidad alta pendiente (H-03: escaneo antimalware) | Equipo de desarrollo |
 | Actualizar documentos desactualizados de `docs/` y `specs/` (H-01, H-02, H-06, H-07, H-16, H-21, H-23) o marcarlos como históricos | Equipo |
 
 ## Instrucciones para entregar
@@ -136,4 +136,4 @@ Output created: _site/index.html
 1. Revisar el portal localmente: `quarto preview docs`.
 2. Confirmar los cambios (archivos nuevos en `DOCUMENTACION/`, `docs/`, `.github/workflows/publish-quarto.yml`; modificados `.gitignore` y `.claude/launch.json`).
 3. Abrir un pull request hacia `develop`/`main`; el workflow construirá el portal como verificación.
-4. Tras el *merge* a `main`, seguir la guía de *Publicación en GitHub Pages* y entregar la URL **https://rcl05.github.io/seguimiento_de_recomendaciones_CGE/**.
+4. Tras el *merge* a `main`, ejecutar `gh workflow run publicar.yml -R BrTrl3/sitra-cge-docs` y entregar la URL **https://brtrl3.github.io/sitra-cge-docs/**.

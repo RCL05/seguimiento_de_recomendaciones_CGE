@@ -12,7 +12,7 @@ Las versiones se verificaron el 2026-11-10 sobre el entorno local (`.venv`, `fro
 | CORS | django-cors-headers | 4.9.0 | Orígenes explícitos, cabeceras permitidas y expuestas | `config/settings.py` |
 | Base de datos | SQLite / PostgreSQL | SQLite integrado · PostgreSQL 16-alpine | Persistencia | `DATABASES` |
 | Driver | psycopg[binary] | 3.3.8 | Conexión PostgreSQL | — |
-| Pruebas backend | pytest + pytest-django | 9.1.1 / 4.14.0 | 145 pruebas | `backend/tests/` |
+| Pruebas backend | pytest + pytest-django | 9.1.1 / 4.14.0 | 231 pruebas | `backend/tests/` |
 | Lenguaje frontend | TypeScript | ^5.7.2 | Tipado del cliente y componentes | `frontend/src/` |
 | UI | React / React DOM | ^19.0.0 | SPA por rol | `frontend/src/` |
 | Build | Vite + plugin React | ^6.0.0 | Dev server, proxy `/api`, build de producción | `frontend/vite.config.ts` |

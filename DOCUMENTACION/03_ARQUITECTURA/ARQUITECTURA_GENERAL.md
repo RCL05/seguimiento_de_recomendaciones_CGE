@@ -71,4 +71,4 @@ Los límites declarados en `docs/architecture/sitra-cge.md` (§3) siguen siendo 
 | Seguridad | JWT revalidado contra la cuenta activa en cada petición; RBAC + autorización de objeto; archivos privados |
 | Interoperabilidad | OpenAPI 3.0.3 generado del código y verificado en pruebas; CSV UTF-8 con BOM |
 | Disponibilidad | Fallo de correo no revierte la operación de negocio |
-| Mantenibilidad | Capas, casos de uso pequeños, 145 pruebas backend y 12 de frontend |
+| Mantenibilidad | Capas, casos de uso pequeños, 231 pruebas backend y 12 de frontend |

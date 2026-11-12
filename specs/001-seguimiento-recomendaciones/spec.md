@@ -401,11 +401,11 @@ está en [contracts/openapi.yaml](./contracts/openapi.yaml).
 
 | Requisito | Recurso | Operación | Entrada principal | Resultado | Códigos |
 | --- | --- | --- | --- | --- | --- |
-| RF-001 | Sesión | `POST /auth/login-sso` | Credencial SSO | JWT Bearer | 200, 400, 401 |
+| RF-001 | Sesión | `POST /sesiones` | Credencial SSO | JWT Bearer | 200, 400, 401 |
 | RF-005 | Informe | `POST /informes` | Número, período, fecha, PDF o URL | Informe creado | 201, 400, 401, 403, 409, 413 |
 | RF-006 | Recomendación | `POST /recomendaciones` | Informe, número, unidad, plazo, prioridad | Recomendación `Pendiente` | 201, 400, 401, 403, 409 |
 | RF-019 | Recomendación | `GET /recomendaciones/{id}` | Identificador | Detalle con evidencias | 200, 401, 403, 404 |
-| RF-007 | Hito | `POST /recomendaciones/{id}/plan-accion` | Descripción y fecha | Hito registrado | 201, 400, 401, 403, 404, 409 |
+| RF-007 | Hito | `POST /recomendaciones/{id}/hitos` | Descripción y fecha | Hito registrado | 201, 400, 401, 403, 404, 409 |
 | RF-008 | Evidencia | `POST /recomendaciones/{id}/evidencias` | PDF binario | Evidencia con SHA-256 | 201, 400, 401, 403, 404, 409, 413 |
 | RF-009, RF-010 | Dictamen | `POST /recomendaciones/{id}/dictamenes` | Evidencia, resultado, observaciones | Dictamen y nuevo estado | 201, 400, 401, 403, 404, 409 |
 | RF-023 | Recomendación | `PATCH /recomendaciones/{id}` | Estado `REABIERTA` y motivo | Recomendación reabierta | 200, 400, 401, 403, 404, 409 |

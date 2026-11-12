@@ -38,7 +38,7 @@ async function mockApi(page: Page) {
     const request = route.request();
     const path = new URL(request.url()).pathname;
 
-    if (path.endsWith("/auth/login-sso")) {
+    if (path.endsWith("/sesiones")) {
       const credential = (request.postDataJSON() as { credential: string }).credential;
       const role = (Object.keys(TOKENS) as Role[]).find((key) => TOKENS[key] === credential) ?? "UAI";
       return route.fulfill({
@@ -72,7 +72,7 @@ async function mockApi(page: Page) {
     if (path.endsWith("/unidades")) {
       return route.fulfill({ json: envelope([{ id: "u-1", codigo: "DEP-A", nombre: "Departamento A" }]) });
     }
-    if (path.endsWith("/plan-accion")) return route.fulfill({ json: envelope([]) });
+    if (path.endsWith("/hitos")) return route.fulfill({ json: envelope([]) });
     if (path.endsWith("/notificaciones/configuracion")) {
       return route.fulfill({
         json: envelope({

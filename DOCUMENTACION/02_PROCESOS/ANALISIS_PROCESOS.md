@@ -43,7 +43,7 @@ P1 — Registro y asignación (BPMN). Fuente editable: [`P1_registro_asignacion.
 | Entradas | Número de informe, período auditado, fecha de notificación, PDF o URL del informe; por recomendación: número, descripción, unidad, `legal_days`, `due_date`, prioridad |
 | Actividades | 1) `POST /api/v1/informes`; 2) validación y unicidad de `numero_informe`; 3) `POST /api/v1/recomendaciones`; 4) validación de campos, existencia de informe y unidad, unicidad `(informe, numero_recomendacion)`; 5) auditoría |
 | Decisiones | ¿Informe válido? ¿Recomendación válida? |
-| Excepciones | 400 `VALIDATION_ERROR` (campos), 409 `CONFLICT` (duplicado), 409 `BUSINESS_RULE_VIOLATION` (informe o unidad inexistente, H-24), 413 (PDF del informe demasiado grande), 403 si el rol no es UAI |
+| Excepciones | 400 `VALIDATION_ERROR` (campos, con `errors.fields`; informe o unidad inexistente), 409 `CONFLICT` (duplicado), 413 (PDF del informe demasiado grande), 403 si el rol no es UAI |
 | Resultado | Recomendación en `PENDIENTE` visible para la unidad responsable |
 | Código | `informes_cge/application/register_informe.py`, `recomendaciones/application/create_recomendacion.py` |
 
@@ -58,10 +58,10 @@ P2 — Ejecución y validación (BPMN). Fuente editable: [`P2_ejecucion_validaci
 | Objetivo | Que la unidad demuestre el cumplimiento y que solo la UAI lo declare |
 | Participantes | Ejecutor de la unidad responsable, Sistema, UAI |
 | Entradas | Hito (`descripcion_hito`, `fecha_compromiso`), PDF binario (cabeceras `X-Filename`, `X-Evidence-Type`), dictamen (`evidence_id`, `approved`, `observaciones`) |
-| Actividades | 1) `POST …/plan-accion`; 2) validar fecha (dentro del plazo o desde hoy si venció); 3) `POST …/evidencias` en flujo continuo; 4) validar extensión, firma `%PDF-`, tamaño ≤ 30 MB y unidad; 5) guardar archivo con nombre opaco y SHA-256; 6) `POST …/dictamenes` |
+| Actividades | 1) `POST …/hitos`; 2) validar fecha (dentro del plazo o desde hoy si venció); 3) `POST …/evidencias` en flujo continuo; 4) validar extensión, firma `%PDF-`, tamaño ≤ 30 MB y unidad; 5) guardar archivo con nombre opaco y SHA-256; 6) `POST …/dictamenes` |
 | Decisiones | ¿Fecha válida? ¿PDF válido? ¿Dictamen aprobado o rechazado? |
 | Información utilizada | Estado actual, `fecha_vencimiento_legal`, unidad del actor, historial de revisión, evidencia vigente |
-| Excepciones | 400 (fecha inválida, sin plan previo, no es PDF, rechazo sin observaciones), 404 (otra unidad o inexistente; se audita el intento), 409 (estado no admite la operación o doble dictamen), 413 (PDF > 30 MB), 403 (rol) |
+| Excepciones | 400 (fecha inválida, no es PDF, rechazo sin observaciones), 404 (otra unidad o inexistente; se audita el intento), 409 (estado no admite la operación: `PENDIENTE` sin plan, doble dictamen), 413 (PDF > 30 MB), 403 (rol) |
 | Concurrencia | Cada paso bloquea la recomendación con `select_for_update` dentro de `transaction.atomic` |
 | Resultado | `CUMPLIDA` con dictamen aprobado y evidencia `validada=True`, o regreso a `EN_PROCESO` con observaciones |
 | Código | `create_plan_accion.py`, `upload_evidencia.py`, `issue_dictamen.py` |
@@ -79,7 +79,7 @@ P3 — Evaluación de plazos (BPMN). Fuente editable: [`P3_evaluacion_plazos.bpm
 | Objetivo | Avisar antes del vencimiento y registrar una sola vez los vencimientos |
 | Participantes | Programador (servicio `scheduler` de Compose o cron), Sistema, SMTP |
 | Entradas | `ConfiguracionNotificacion` (umbral, canales, destinatarios), preferencias por usuario, recomendaciones y evidencias |
-| Actividades | 1) `manage.py evaluar_plazos` o `POST /api/v1/evaluaciones-plazos` (solo DTI); 2) `send_deadline_alerts`; 3) `mark_overdue_recommendations`; 4) `deliver_pending_notifications`; 5) log de resumen |
+| Actividades | 1) `manage.py evaluar_plazos` (tarea programada); 2) `send_deadline_alerts`; 3) `mark_overdue_recommendations`; 4) `deliver_pending_notifications`; 5) log de resumen |
 | Decisiones | ¿Faltan ≤ umbral días sin evidencia presentada? ¿Está vencida sin entrega oportuna pendiente? ¿Ya se registró el vencimiento en este ciclo? |
 | Excepciones | Fallo SMTP → notificación `FALLIDA`; no revierte la alerta interna ni el registro de vencimiento; se reintenta en cada ejecución hasta 3 intentos |
 | Idempotencia | `Notificacion.clave_idempotencia` única y `Recomendacion.vencimiento_registrado_en` |
