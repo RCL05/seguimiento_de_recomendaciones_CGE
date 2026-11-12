@@ -45,6 +45,17 @@ class ApiView(APIView):
         return self.request.META.get("REMOTE_ADDR")
 
 
+class FileDownloadView(ApiView):
+    # Vista que entrega un archivo (PDF o CSV) con HttpResponse/FileResponse, fuera del
+    # renderizado de DRF. DRF solo negocia JSON y, sin esto, un cliente que envía
+    # `Accept: application/pdf` o `Accept: text/csv` recibiría 406 antes de llegar a la
+    # vista. Con force=True la negociación no falla: el archivo se entrega igual y los
+    # errores (401, 403, 404) siguen saliendo en la envoltura JSON.
+
+    def perform_content_negotiation(self, request, force=False):
+        return super().perform_content_negotiation(request, force=True)
+
+
 def ok(
     request,
     data: Any,

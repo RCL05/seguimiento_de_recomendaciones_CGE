@@ -2,8 +2,11 @@
   "info": {
     "_postman_id": "f12c446f-404c-50cb-b681-8cbb8cd797f4",
     "name": "SITRA-CGE UNL API",
-    "description": "Colección de la API de seguimiento de recomendaciones de la CGE (UNL).\n\n1. Importe también el entorno `SITRA-CGE local`.\n2. Levante el backend con `DJANGO_DEBUG=true` (las credenciales de desarrollo solo funcionan así).\n3. Ejecute las carpetas en orden con el Collection Runner, o una por una.\n\nLos tokens y los identificadores se guardan solos en variables de la colección.",
+    "description": "Colección de la API de seguimiento de recomendaciones de la CGE (UNL), versión `/api/v1`.\n\n**Uso**\n1. Importe la colección y el entorno que corresponda (desarrollo, preproducción o producción).\n2. Ejecute primero `00 Salud y sesión`: guarda los tokens en el entorno activo.\n3. Ejecute las carpetas en orden con el Collection Runner, o una por una.\n\n**Autenticación:** JWT Bearer. Cada solicitud usa el token del rol que corresponde (`token_uai`, `token_ejecutor`, `token_dti`, `token_rectorado`).\n\n**Respuestas:** envoltura universal `success`, `message`, `data`, `errors` y `meta`. Cada solicitud incluye un ejemplo de respuesta real.\n\n**Producción:** el entorno tiene `solo_lectura=true`, así que se omiten las solicitudes que modifican datos.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
   },
   "event": [
     {
@@ -20,6 +23,14 @@
           "  pm.collectionVariables.set(\"fecha_hoy\", dia(0));",
           "  pm.collectionVariables.set(\"fecha_vencimiento\", dia(90));",
           "  pm.collectionVariables.set(\"fecha_hito\", dia(30));",
+          "  ",
+          "  // Entorno de solo lectura (producción): no se envía nada que modifique datos.",
+          "  const escritura = ![\"GET\", \"HEAD\", \"OPTIONS\"].includes(pm.request.method);",
+          "  const esSesion = pm.request.url.getPath().endsWith(\"/sesiones\");",
+          "  if (pm.environment.get(\"solo_lectura\") === \"true\" && escritura && !esSesion) {",
+          "    console.warn(\"Omitida por solo_lectura: \" + pm.request.method + \" \" + pm.request.url.getPath());",
+          "    pm.execution.skipRequest();",
+          "  }",
           "}"
         ]
       }
@@ -61,23 +72,11 @@
       "value": ""
     },
     {
-      "key": "token_uai",
-      "value": ""
-    },
-    {
-      "key": "token_ejecutor",
-      "value": ""
-    },
-    {
-      "key": "token_dti",
-      "value": ""
-    },
-    {
-      "key": "token_rectorado",
-      "value": ""
-    },
-    {
       "key": "informe_id",
+      "value": ""
+    },
+    {
+      "key": "informe_con_pdf_id",
       "value": ""
     },
     {
@@ -101,6 +100,10 @@
       "value": ""
     },
     {
+      "key": "usuario_ejecutor_id",
+      "value": ""
+    },
+    {
       "key": "recomendacion_sin_plan_id",
       "value": ""
     }
@@ -108,13 +111,22 @@
   "item": [
     {
       "name": "00 Salud y sesión",
-      "description": "Inicia sesión con los cuatro roles de desarrollo y guarda sus tokens.",
+      "description": "Comprueba el servicio y crea una sesión por rol. Los tokens quedan en el entorno activo.",
       "item": [
         {
+          "id": "c2c28afb-da1b-5d76-af53-4c055a45db2e",
           "name": "Salud del servicio",
           "request": {
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/health/",
               "host": [
@@ -138,13 +150,62 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/health/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Servicio disponible\",\n  \"data\": {\n    \"status\": \"ok\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"e9ef90c8-e475-4c53-9569-8dd607387496\",\n    \"timestamp\": \"2026-11-12T02:22:24.477771+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "d04a2792-5a37-5045-92a3-552aa806091e",
           "name": "Iniciar sesión: UAI",
           "request": {
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -161,7 +222,7 @@
                 "sesiones"
               ]
             },
-            "description": "Credencial de desarrollo del rol UAI. Solo funciona con DJANGO_DEBUG=true.",
+            "description": "Crea una sesión del rol UAI y guarda el JWT en la variable de entorno `token_uai`.\n\nEn desarrollo, la credencial es un token de prueba que solo funciona con `DJANGO_DEBUG=true`. En preproducción y producción, es la credencial del SSO institucional.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"credential\": \"{{cred_uai}}\"\n}",
@@ -182,18 +243,82 @@
                   "  pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
                   "  const data = pm.response.json().data;",
                   "  pm.test(\"Devuelve un token Bearer\", () => pm.expect(data.token_type).to.eql(\"Bearer\"));",
-                  "  pm.collectionVariables.set(\"token_uai\", data.access_token);",
+                  "  pm.environment.set(\"token_uai\", data.access_token);",
                   "}"
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/sesiones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "sesiones"
+                  ]
+                },
+                "description": "Crea una sesión del rol UAI y guarda el JWT en la variable de entorno `token_uai`.\n\nEn desarrollo, la credencial es un token de prueba que solo funciona con `DJANGO_DEBUG=true`. En preproducción y producción, es la credencial del SSO institucional.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"credential\": \"{{cred_uai}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "POST, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Identidad institucional validada\",\n  \"data\": {\n    \"access_token\": \"<jwt>\",\n    \"token_type\": \"Bearer\",\n    \"expires_in\": 3600,\n    \"user_id\": \"a1db77b6-42d7-441d-bc0e-cf4998118fa1\",\n    \"email\": \"uai@unl.edu.ec\",\n    \"display_name\": \"Usuario UAI\",\n    \"role\": \"UAI\",\n    \"unit_id\": \"UAI\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"1becdb76-9126-4411-aa84-9c5c63de5908\",\n    \"timestamp\": \"2026-11-12T02:22:24.613519+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "b5e1414e-49c4-52ac-a98c-4883bea6e8cf",
           "name": "Iniciar sesión: Ejecutor (DEP-A)",
           "request": {
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -210,7 +335,7 @@
                 "sesiones"
               ]
             },
-            "description": "Credencial de desarrollo del rol Ejecutor (DEP-A). Solo funciona con DJANGO_DEBUG=true.",
+            "description": "Crea una sesión del rol Ejecutor (DEP-A) y guarda el JWT en la variable de entorno `token_ejecutor`.\n\nEn desarrollo, la credencial es un token de prueba que solo funciona con `DJANGO_DEBUG=true`. En preproducción y producción, es la credencial del SSO institucional.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"credential\": \"{{cred_ejecutor}}\"\n}",
@@ -231,18 +356,82 @@
                   "  pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
                   "  const data = pm.response.json().data;",
                   "  pm.test(\"Devuelve un token Bearer\", () => pm.expect(data.token_type).to.eql(\"Bearer\"));",
-                  "  pm.collectionVariables.set(\"token_ejecutor\", data.access_token);",
+                  "  pm.environment.set(\"token_ejecutor\", data.access_token);",
                   "}"
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/sesiones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "sesiones"
+                  ]
+                },
+                "description": "Crea una sesión del rol Ejecutor (DEP-A) y guarda el JWT en la variable de entorno `token_ejecutor`.\n\nEn desarrollo, la credencial es un token de prueba que solo funciona con `DJANGO_DEBUG=true`. En preproducción y producción, es la credencial del SSO institucional.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"credential\": \"{{cred_ejecutor}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "POST, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Identidad institucional validada\",\n  \"data\": {\n    \"access_token\": \"<jwt>\",\n    \"token_type\": \"Bearer\",\n    \"expires_in\": 3600,\n    \"user_id\": \"a3de7d82-34ff-40f6-9a1d-064e2d1f1a45\",\n    \"email\": \"ejecutor@unl.edu.ec\",\n    \"display_name\": \"Usuario Ejecutor\",\n    \"role\": \"EJECUTOR\",\n    \"unit_id\": \"DEP-A\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"9948f6aa-d720-4d17-9c7d-d614ab671858\",\n    \"timestamp\": \"2026-11-12T02:22:24.706407+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "074d63c9-d29f-5d31-9eec-ba50a07778ae",
           "name": "Iniciar sesión: DTI",
           "request": {
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -259,7 +448,7 @@
                 "sesiones"
               ]
             },
-            "description": "Credencial de desarrollo del rol DTI. Solo funciona con DJANGO_DEBUG=true.",
+            "description": "Crea una sesión del rol DTI y guarda el JWT en la variable de entorno `token_dti`.\n\nEn desarrollo, la credencial es un token de prueba que solo funciona con `DJANGO_DEBUG=true`. En preproducción y producción, es la credencial del SSO institucional.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"credential\": \"{{cred_dti}}\"\n}",
@@ -280,18 +469,82 @@
                   "  pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
                   "  const data = pm.response.json().data;",
                   "  pm.test(\"Devuelve un token Bearer\", () => pm.expect(data.token_type).to.eql(\"Bearer\"));",
-                  "  pm.collectionVariables.set(\"token_dti\", data.access_token);",
+                  "  pm.environment.set(\"token_dti\", data.access_token);",
                   "}"
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/sesiones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "sesiones"
+                  ]
+                },
+                "description": "Crea una sesión del rol DTI y guarda el JWT en la variable de entorno `token_dti`.\n\nEn desarrollo, la credencial es un token de prueba que solo funciona con `DJANGO_DEBUG=true`. En preproducción y producción, es la credencial del SSO institucional.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"credential\": \"{{cred_dti}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "POST, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Identidad institucional validada\",\n  \"data\": {\n    \"access_token\": \"<jwt>\",\n    \"token_type\": \"Bearer\",\n    \"expires_in\": 3600,\n    \"user_id\": \"26575300-a1ac-4d2f-933d-e6c203078ada\",\n    \"email\": \"dti@unl.edu.ec\",\n    \"display_name\": \"Usuario DTI\",\n    \"role\": \"DTI\",\n    \"unit_id\": \"DTI\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"06ff13a0-6469-4401-82ff-09ccd66c9453\",\n    \"timestamp\": \"2026-11-12T02:22:24.816025+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "eb1abacb-04f0-5e01-8653-a32d5f2f1e6a",
           "name": "Iniciar sesión: Rectorado",
           "request": {
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -308,7 +561,7 @@
                 "sesiones"
               ]
             },
-            "description": "Credencial de desarrollo del rol Rectorado. Solo funciona con DJANGO_DEBUG=true.",
+            "description": "Crea una sesión del rol Rectorado y guarda el JWT en la variable de entorno `token_rectorado`.\n\nEn desarrollo, la credencial es un token de prueba que solo funciona con `DJANGO_DEBUG=true`. En preproducción y producción, es la credencial del SSO institucional.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"credential\": \"{{cred_rectorado}}\"\n}",
@@ -329,18 +582,82 @@
                   "  pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
                   "  const data = pm.response.json().data;",
                   "  pm.test(\"Devuelve un token Bearer\", () => pm.expect(data.token_type).to.eql(\"Bearer\"));",
-                  "  pm.collectionVariables.set(\"token_rectorado\", data.access_token);",
+                  "  pm.environment.set(\"token_rectorado\", data.access_token);",
                   "}"
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/sesiones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "sesiones"
+                  ]
+                },
+                "description": "Crea una sesión del rol Rectorado y guarda el JWT en la variable de entorno `token_rectorado`.\n\nEn desarrollo, la credencial es un token de prueba que solo funciona con `DJANGO_DEBUG=true`. En preproducción y producción, es la credencial del SSO institucional.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"credential\": \"{{cred_rectorado}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "POST, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Identidad institucional validada\",\n  \"data\": {\n    \"access_token\": \"<jwt>\",\n    \"token_type\": \"Bearer\",\n    \"expires_in\": 3600,\n    \"user_id\": \"aa5f61ef-cb63-467c-a173-c25530a4980b\",\n    \"email\": \"rectorado@unl.edu.ec\",\n    \"display_name\": \"Usuario Rectorado\",\n    \"role\": \"RECTORADO\",\n    \"unit_id\": \"RECTORADO\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"dd3af217-43c3-4c77-af5d-252b5296b4c3\",\n    \"timestamp\": \"2026-11-12T02:22:24.923767+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "1198a08d-4354-5e06-8c24-d9d3daddb1c5",
           "name": "Credencial inválida",
           "request": {
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -382,22 +699,93 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/sesiones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "sesiones"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"credential\": \"{{cred_invalida}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "WWW-Authenticate",
+                  "value": "Bearer realm=\"sitra-cge\""
+                },
+                {
+                  "key": "Allow",
+                  "value": "POST, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"La credencial SSO no es válida.\",\n  \"data\": null,\n  \"errors\": {\n    \"code\": \"AUTHENTICATION_REQUIRED\",\n    \"detail\": \"La credencial SSO no es válida.\"\n  },\n  \"meta\": {\n    \"request_id\": \"5905afa0-aa59-4d25-ac15-19eb11e3d11e\",\n    \"timestamp\": \"2026-11-12T02:22:25.034910+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         }
       ]
     },
     {
       "name": "01 Administración DTI",
-      "description": "Unidades, usuarios y configuración de notificaciones.",
+      "description": "Unidades, usuarios y configuración de notificaciones (rol DTI).",
       "item": [
         {
+          "id": "2d5e13a3-2249-50f1-882c-3097b256c4d1",
           "name": "Listar unidades",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_dti}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_dti}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -425,16 +813,77 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_dti}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/unidades",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "unidades"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Catálogo de unidades consultado\",\n  \"data\": [\n    {\n      \"id\": \"7f7922d8-7a73-4113-b4c9-b6f25948ca36\",\n      \"codigo\": \"DEP-A\",\n      \"nombre\": \"DEP-A\"\n    },\n    {\n      \"id\": \"6ed44bfd-f078-4c62-9e4c-7dbee3ad0a23\",\n      \"codigo\": \"DEP-PM-49946643\",\n      \"nombre\": \"Unidad de prueba Postman 49946643\"\n    },\n    {\n      \"id\": \"13041f11-bf55-4ecd-b94b-2a768e61d6fc\",\n      \"codigo\": \"DTI\",\n      \"nombre\": \"DTI\"\n    },\n    {\n      \"id\": \"10e40ba6-378f-486b-bbb1-23874f694463\",\n      \"codigo\": \"RECTORADO\",\n      \"nombre\": \"RECTORADO\"\n    },\n    {\n      \"id\": \"bd247591-7c48-49ce-805d-e8ea0f264a9c\",\n      \"codigo\": \"UAI\",\n      \"nombre\": \"UAI\"\n    }\n  ],\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"5034e232-80ad-4527-8ebf-9c6a877a8d2a\",\n    \"timestamp\": \"2026-11-12T02:22:25.148436+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "fb483699-ce1e-55db-bdbf-a4254c8998f6",
           "name": "Registrar unidad destino",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_dti}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_dti}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -476,16 +925,90 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_dti}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/unidades",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "unidades"
+                  ]
+                },
+                "description": "Unidad a la que luego se reasigna la recomendación.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"codigo\": \"DEP-PM-{{sufijo}}\",\n  \"nombre\": \"Unidad de prueba Postman {{sufijo}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Unidad registrada\",\n  \"data\": {\n    \"id\": \"60fe4f5e-4717-4b20-9395-48523fd1007c\",\n    \"codigo\": \"DEP-PM-50144408\",\n    \"nombre\": \"Unidad de prueba Postman 50144408\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"4647df2d-3e1c-4f33-8091-715378059a39\",\n    \"timestamp\": \"2026-11-12T02:22:25.234754+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "66ba474c-88c5-59f4-a178-729bc27df431",
           "name": "Listar usuarios",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_dti}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_dti}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -509,20 +1032,211 @@
                 "exec": [
                   "{",
                   "  pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "  const ejecutor = pm.response.json().data.find((u) => u.rol === \"EJECUTOR\" && u.unidad_codigo === \"DEP-A\");",
+                  "  pm.test(\"Existe un ejecutor de DEP-A\", () => pm.expect(ejecutor).to.be.an(\"object\"));",
+                  "  if (ejecutor) { pm.collectionVariables.set(\"usuario_ejecutor_id\", ejecutor.id); }",
                   "}"
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_dti}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "usuarios"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Usuarios consultados\",\n  \"data\": [\n    {\n      \"id\": \"26575300-a1ac-4d2f-933d-e6c203078ada\",\n      \"correo_institucional\": \"dti@unl.edu.ec\",\n      \"nombres\": \"Usuario DTI\",\n      \"rol\": \"DTI\",\n      \"unidad_codigo\": \"DTI\",\n      \"activo\": true\n    },\n    {\n      \"id\": \"a3de7d82-34ff-40f6-9a1d-064e2d1f1a45\",\n      \"correo_institucional\": \"ejecutor@unl.edu.ec\",\n      \"nombres\": \"Usuario Ejecutor\",\n      \"rol\": \"EJECUTOR\",\n      \"unidad_codigo\": \"DEP-A\",\n      \"activo\": true\n    },\n    {\n      \"id\": \"aa5f61ef-cb63-467c-a173-c25530a4980b\",\n      \"correo_institucional\": \"rectorado@unl.edu.ec\",\n      \"nombres\": \"Usuario Rectorado\",\n      \"rol\": \"RECTORADO\",\n      \"unidad_codigo\": \"RECTORADO\",\n      \"activo\": true\n    },\n    {\n      \"id\": \"a1db77b6-42d7-441d-bc0e-cf4998118fa1\",\n      \"correo_institucional\": \"uai@unl.edu.ec\",\n      \"nombres\": \"Usuario UAI\",\n      \"rol\": \"UAI\",\n      \"unidad_codigo\": \"UAI\",\n      \"activo\": true\n    }\n  ],\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"2cd2b455-92d2-4940-88d1-40f3f5f08fd6\",\n    \"timestamp\": \"2026-11-12T02:22:25.320422+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "a97ef528-5cfc-5cbf-8830-708f040b6d14",
+          "name": "Asignar rol y unidad a un usuario",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_dti}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios/{{usuario_ejecutor_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "{{usuario_ejecutor_id}}"
+              ]
+            },
+            "description": "El DTI asigna el rol y la unidad orgánica. Se envían los valores actuales del ejecutor para no invalidar su sesión: un cambio real de rol o de unidad revoca los tokens emitidos antes.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rol\": \"EJECUTOR\",\n  \"unidad_codigo\": \"DEP-A\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "{",
+                  "  pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "  pm.test(\"Conserva la unidad DEP-A\", () => pm.expect(pm.response.json().data.unidad_codigo).to.eql(\"DEP-A\"));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_dti}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/usuarios/{{usuario_ejecutor_id}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "usuarios",
+                    "{{usuario_ejecutor_id}}"
+                  ]
+                },
+                "description": "El DTI asigna el rol y la unidad orgánica. Se envían los valores actuales del ejecutor para no invalidar su sesión: un cambio real de rol o de unidad revoca los tokens emitidos antes.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rol\": \"EJECUTOR\",\n  \"unidad_codigo\": \"DEP-A\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "PATCH, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Usuario actualizado\",\n  \"data\": {\n    \"id\": \"a3de7d82-34ff-40f6-9a1d-064e2d1f1a45\",\n    \"correo_institucional\": \"ejecutor@unl.edu.ec\",\n    \"nombres\": \"Usuario Ejecutor\",\n    \"rol\": \"EJECUTOR\",\n    \"unidad_codigo\": \"DEP-A\",\n    \"activo\": true\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"6f21cbff-da8e-4d26-8605-a824f1bc919f\",\n    \"timestamp\": \"2026-11-12T02:22:25.458703+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "id": "c4cbed9a-85fc-5497-a3ee-b20b72dc8366",
           "name": "Consultar configuración de notificaciones",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_dti}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_dti}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -551,16 +1265,78 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_dti}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/notificaciones/configuracion",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "notificaciones",
+                    "configuracion"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, PUT, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Configuración de notificaciones consultada\",\n  \"data\": {\n    \"umbral_dias\": 15,\n    \"notificaciones_activas\": true,\n    \"canal_interno_activo\": true,\n    \"canal_email_activo\": true,\n    \"destinatarios_vencimiento\": [\n      \"UAI\"\n    ],\n    \"destinatarios_mora\": [\n      \"UAI\",\n      \"RECTORADO\"\n    ],\n    \"actualizado_en\": \"2026-11-11T21:19:08.229972-05:00\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"9c23a228-8236-4697-9294-b2b1ce3b25bd\",\n    \"timestamp\": \"2026-11-12T02:22:25.571425+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "a37b5f70-e3e3-5f9f-92a8-dabfd0dffe8b",
           "name": "Actualizar configuración de notificaciones",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_dti}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "PUT",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_dti}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -603,6 +1379,70 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_dti}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/notificaciones/configuracion",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "notificaciones",
+                    "configuracion"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"umbral_dias\": 15,\n  \"notificaciones_activas\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, PUT, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Configuración de notificaciones actualizada\",\n  \"data\": {\n    \"umbral_dias\": 15,\n    \"notificaciones_activas\": true,\n    \"canal_interno_activo\": true,\n    \"canal_email_activo\": true,\n    \"destinatarios_vencimiento\": [\n      \"UAI\"\n    ],\n    \"destinatarios_mora\": [\n      \"UAI\",\n      \"RECTORADO\"\n    ],\n    \"actualizado_en\": \"2026-11-11T21:22:25.660686-05:00\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"458fa6ec-38da-4615-8aef-fc70f7c415cb\",\n    \"timestamp\": \"2026-11-12T02:22:25.706820+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         }
       ]
@@ -612,13 +1452,24 @@
       "description": "Ejecutar en orden: informe → recomendación → hito → evidencia → dictamen.",
       "item": [
         {
+          "id": "2e742286-2a65-5047-9015-4e2fd159e0dd",
           "name": "Registrar informe CGE",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -661,16 +1512,354 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/informes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "informes"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"numero_informe\": \"DNA-PM-{{sufijo}}\",\n  \"periodo_auditado\": \"2025\",\n  \"fecha_notificacion\": \"{{fecha_hoy}}\",\n  \"pdf_informe_url\": \"https://example.test/informe.pdf\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Location",
+                  "value": "/api/v1/informes/a186dc28-28a3-468c-87e0-657f8b1537de"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Informe CGE registrado\",\n  \"data\": {\n    \"id\": \"a186dc28-28a3-468c-87e0-657f8b1537de\",\n    \"numero_informe\": \"DNA-PM-50144408\",\n    \"periodo_auditado\": \"2025\",\n    \"fecha_notificacion\": \"2026-11-12\",\n    \"pdf_informe_url\": \"https://example.test/informe.pdf\",\n    \"creado_en\": \"2026-11-11T21:22:25.834765-05:00\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"fa1e6145-0886-4801-b2da-ec0b24c076e1\",\n    \"timestamp\": \"2026-11-12T02:22:25.883454+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
-          "name": "Listar informes",
+          "id": "673db2bb-36e6-52d5-bcc4-f385ae7f6a48",
+          "name": "Registrar informe con PDF adjunto (multipart)",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/informes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "informes"
+              ]
+            },
+            "description": "Adjunta el documento oficial como `multipart/form-data`. El archivo está en `postman/archivos/`. En Postman, configure esa carpeta como *Working directory* (Settings → General) o vuelva a elegir el archivo.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "numero_informe",
+                  "value": "DNA-PM-DOC-{{sufijo}}",
+                  "type": "text"
+                },
+                {
+                  "key": "periodo_auditado",
+                  "value": "2025",
+                  "type": "text"
+                },
+                {
+                  "key": "fecha_notificacion",
+                  "value": "{{fecha_hoy}}",
+                  "type": "text"
+                },
+                {
+                  "key": "pdf_informe",
+                  "type": "file",
+                  "src": "archivos/informe-ejemplo.pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "{",
+                  "  pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "  pm.collectionVariables.set(\"informe_con_pdf_id\", pm.response.json().data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/informes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "informes"
+                  ]
+                },
+                "description": "Adjunta el documento oficial como `multipart/form-data`. El archivo está en `postman/archivos/`. En Postman, configure esa carpeta como *Working directory* (Settings → General) o vuelva a elegir el archivo.",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "numero_informe",
+                      "value": "DNA-PM-DOC-{{sufijo}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "periodo_auditado",
+                      "value": "2025",
+                      "type": "text"
+                    },
+                    {
+                      "key": "fecha_notificacion",
+                      "value": "{{fecha_hoy}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "pdf_informe",
+                      "type": "file",
+                      "src": "archivos/informe-ejemplo.pdf"
+                    }
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Location",
+                  "value": "/api/v1/informes/0b60676b-057d-4f53-8aeb-1f7b1d82f4c9"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Informe CGE registrado\",\n  \"data\": {\n    \"id\": \"0b60676b-057d-4f53-8aeb-1f7b1d82f4c9\",\n    \"numero_informe\": \"DNA-PM-DOC-50144408\",\n    \"periodo_auditado\": \"2025\",\n    \"fecha_notificacion\": \"2026-11-12\",\n    \"pdf_informe_url\": \"/api/v1/informes/0b60676b-057d-4f53-8aeb-1f7b1d82f4c9/documento\",\n    \"creado_en\": \"2026-11-11T21:22:25.971101-05:00\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"3652e1d8-b0ba-4133-91de-112f531082b0\",\n    \"timestamp\": \"2026-11-12T02:22:25.983707+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "id": "69773f15-e9c5-5bdf-92d0-40644101dca2",
+          "name": "Descargar documento del informe",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/pdf"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/informes/{{informe_con_pdf_id}}/documento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "informes",
+                "{{informe_con_pdf_id}}",
+                "documento"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "{",
+                  "  pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "  pm.test(\"Es un PDF\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/pdf\"));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/pdf"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/informes/{{informe_con_pdf_id}}/documento",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "informes",
+                    "{{informe_con_pdf_id}}",
+                    "documento"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/pdf"
+                },
+                {
+                  "key": "Content-Disposition",
+                  "value": "inline; filename=\"DNA-PM-DOC-50144408.pdf\""
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, HEAD, OPTIONS"
+                }
+              ],
+              "body": "(PDF binario de 142 bytes)"
+            }
+          ]
+        },
+        {
+          "id": "046b9379-b41e-5031-93ab-61b530217fac",
+          "name": "Listar informes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -709,16 +1898,87 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/informes?page=1&page_size=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "informes"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Informes consultados\",\n  \"data\": [\n    {\n      \"id\": \"809579c6-4924-419f-bc19-6eaba2aa8ea0\",\n      \"numero_informe\": \"DNA-PM-49946643\",\n      \"periodo_auditado\": \"2025\",\n      \"fecha_notificacion\": \"2026-11-12\",\n      \"pdf_informe_url\": \"https://example.test/informe.pdf\",\n      \"creado_en\": \"2026-11-11T21:19:08.377069-05:00\"\n    },\n    {\n      \"id\": \"a186dc28-28a3-468c-87e0-657f8b1537de\",\n      \"numero_informe\": \"DNA-PM-50144408\",\n      \"periodo_auditado\": \"2025\",\n      \"fecha_notificacion\": \"2026-11-12\",\n      \"pdf_informe_url\": \"https://example.test/informe.pdf\",\n      \"creado_en\": \"2026-11-11T21:22:25.834765-05:00\"\n    },\n    {\n      \"id\": \"563a6bb5-78f9-4d6e-b0e3-e617232b0cab\",\n      \"numero_informe\": \"DNA-PM-DOC-49946643\",\n      \"periodo_auditado\": \"2025\",\n      \"fecha_notificacion\": \"2026-11-12\",\n      \"pdf_informe_url\": \"/api/v1/informes/563a6bb5-78f9-4d6e-b0e3-e617232b0cab/documento\",\n      \"creado_en\": \"2026-11-11T21:19:08.510905-05:00\"\n    },\n    {\n      \"id\": \"0b60676b-057d-4f53-8aeb-1f7b1d82f4c9\",\n      \"numero_informe\": \"DNA-PM-DOC-50144408\",\n      \"periodo_auditado\": \"2025\",\n      \"fecha_notificacion\": \"2026-11-12\",\n      \"pdf_informe_url\": \"/api/v1/informes/0b60676b-057d-4f53-8aeb-1f7b1d82f4c9/documento\",\n      \"creado_en\": \"2026-11-11T21:22:25.971101-05:00\"\n    }\n  ],\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"90a69c1e-f596-4d0d-ae0f-708a7c0daeae\",\n    \"timestamp\": \"2026-11-12T02:22:26.195252+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": {\n      \"page\": 1,\n      \"page_size\": 10,\n      \"total\": 4,\n      \"total_pages\": 1,\n      \"has_next\": false,\n      \"has_previous\": false\n    }\n  }\n}"
+            }
           ]
         },
         {
+          "id": "c5f4b7e6-6763-5e3d-80e7-9327300d04ff",
           "name": "Consultar informe",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -747,16 +2007,78 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/informes/{{informe_id}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "informes",
+                    "{{informe_id}}"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Informe consultado\",\n  \"data\": {\n    \"id\": \"a186dc28-28a3-468c-87e0-657f8b1537de\",\n    \"numero_informe\": \"DNA-PM-50144408\",\n    \"periodo_auditado\": \"2025\",\n    \"fecha_notificacion\": \"2026-11-12\",\n    \"pdf_informe_url\": \"https://example.test/informe.pdf\",\n    \"creado_en\": \"2026-11-11T21:22:25.834765-05:00\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"671dbb7b-afbf-4b9e-8217-4726ee3f0258\",\n    \"timestamp\": \"2026-11-12T02:22:26.284856+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "2f865132-fb6d-5814-b45d-441117002ecb",
           "name": "Registrar recomendación",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -800,20 +2122,98 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"report_id\": \"{{informe_id}}\",\n  \"number\": \"R-01\",\n  \"description\": \"Actualizar el reglamento interno de bienes.\",\n  \"unit_id\": \"DEP-A\",\n  \"legal_days\": 90,\n  \"due_date\": \"{{fecha_vencimiento}}\",\n  \"priority\": \"ALTA\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Location",
+                  "value": "/api/v1/recomendaciones/8b3129c3-0a46-44cf-9983-b1c5617001be"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Recomendación creada\",\n  \"data\": {\n    \"id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n    \"report_id\": \"a186dc28-28a3-468c-87e0-657f8b1537de\",\n    \"number\": \"R-01\",\n    \"description\": \"Actualizar el reglamento interno de bienes.\",\n    \"unit_id\": \"DEP-A\",\n    \"legal_days\": 90,\n    \"due_date\": \"2027-02-10\",\n    \"priority\": \"ALTA\",\n    \"state\": \"PENDIENTE\",\n    \"vencida\": false,\n    \"overdue_registered_at\": null\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"d9d36bc7-8302-427f-aed4-bb33828f83fb\",\n    \"timestamp\": \"2026-11-12T02:22:26.424220+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "8f118f83-7692-5639-87d0-36992d91fa97",
           "name": "Listar recomendaciones filtradas",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/recomendaciones?state=PENDIENTE&unit_id=DEP-A",
+              "raw": "{{baseUrl}}/api/v1/recomendaciones?state=PENDIENTE&unit_id=DEP-A&page=1&page_size=25",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -830,6 +2230,14 @@
                 {
                   "key": "unit_id",
                   "value": "DEP-A"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "25"
                 }
               ]
             },
@@ -847,16 +2255,95 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones?state=PENDIENTE&unit_id=DEP-A&page=1&page_size=25",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones"
+                  ],
+                  "query": [
+                    {
+                      "key": "state",
+                      "value": "PENDIENTE"
+                    },
+                    {
+                      "key": "unit_id",
+                      "value": "DEP-A"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "25"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Recomendaciones consultadas\",\n  \"data\": [\n    {\n      \"id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n      \"report_id\": \"a186dc28-28a3-468c-87e0-657f8b1537de\",\n      \"number\": \"R-01\",\n      \"description\": \"Actualizar el reglamento interno de bienes.\",\n      \"unit_id\": \"DEP-A\",\n      \"legal_days\": 90,\n      \"due_date\": \"2027-02-10\",\n      \"priority\": \"ALTA\",\n      \"state\": \"PENDIENTE\",\n      \"vencida\": false,\n      \"overdue_registered_at\": null\n    },\n    {\n      \"id\": \"9c9a5944-f8df-48f1-8bb5-4f4c5cdddc30\",\n      \"report_id\": \"809579c6-4924-419f-bc19-6eaba2aa8ea0\",\n      \"number\": \"R-SINPLAN-49946643\",\n      \"description\": \"Aún sin hitos.\",\n      \"unit_id\": \"DEP-A\",\n      \"legal_days\": 30,\n      \"due_date\": \"2027-02-10\",\n      \"priority\": \"MEDIA\",\n      \"state\": \"PENDIENTE\",\n      \"vencida\": false,\n      \"overdue_registered_at\": null\n    }\n  ],\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"85dd26a2-beb9-454b-8261-2ebb5f0b4a91\",\n    \"timestamp\": \"2026-11-12T02:22:26.529095+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": {\n      \"page\": 1,\n      \"page_size\": 25,\n      \"total\": 2,\n      \"total_pages\": 1,\n      \"has_next\": false,\n      \"has_previous\": false\n    }\n  }\n}"
+            }
           ]
         },
         {
+          "id": "d8dffe16-e752-5cee-ab0c-26b7dee188c7",
           "name": "Consultar recomendación (ejecutor de su unidad)",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ejecutor}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_ejecutor}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -885,16 +2372,78 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_ejecutor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_id}}"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, PATCH, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Recomendación consultada\",\n  \"data\": {\n    \"id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n    \"report_id\": \"a186dc28-28a3-468c-87e0-657f8b1537de\",\n    \"number\": \"R-01\",\n    \"description\": \"Actualizar el reglamento interno de bienes.\",\n    \"unit_id\": \"DEP-A\",\n    \"legal_days\": 90,\n    \"due_date\": \"2027-02-10\",\n    \"priority\": \"ALTA\",\n    \"state\": \"PENDIENTE\",\n    \"vencida\": false,\n    \"overdue_registered_at\": null,\n    \"evidencias\": []\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"bee1352c-8eb0-4912-bd8c-5c09ca2db225\",\n    \"timestamp\": \"2026-11-12T02:22:26.632729+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "1384fe73-f6fa-55f7-8754-750f9b7e01ee",
           "name": "Registrar hito del plan",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ejecutor}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_ejecutor}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -937,16 +2486,96 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_ejecutor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/hitos",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_id}}",
+                    "hitos"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"descripcion_hito\": \"Redactar la propuesta de reglamento\",\n  \"fecha_compromiso\": \"{{fecha_hito}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Location",
+                  "value": "/api/v1/recomendaciones/8b3129c3-0a46-44cf-9983-b1c5617001be/hitos"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Hito del plan de acción registrado\",\n  \"data\": {\n    \"id\": \"6db9ff2b-c751-4123-a0f9-097118bbe9a1\",\n    \"recommendation_id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n    \"descripcion_hito\": \"Redactar la propuesta de reglamento\",\n    \"fecha_compromiso\": \"2026-12-12\",\n    \"completado\": false,\n    \"created_by\": \"a3de7d82-34ff-40f6-9a1d-064e2d1f1a45\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"2a6beac0-7924-484e-b4b1-f7db37a2d1f7\",\n    \"timestamp\": \"2026-11-12T02:22:26.762866+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "d8a14971-06c0-5927-a5d9-9949a224c31e",
           "name": "Listar hitos",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ejecutor}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_ejecutor}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -976,16 +2605,79 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_ejecutor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/hitos",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_id}}",
+                    "hitos"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Plan de acción consultado\",\n  \"data\": [\n    {\n      \"id\": \"6db9ff2b-c751-4123-a0f9-097118bbe9a1\",\n      \"recommendation_id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n      \"descripcion_hito\": \"Redactar la propuesta de reglamento\",\n      \"fecha_compromiso\": \"2026-12-12\",\n      \"completado\": false,\n      \"created_by\": \"a3de7d82-34ff-40f6-9a1d-064e2d1f1a45\"\n    }\n  ],\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"b5d77eb8-ccb4-4686-9ee1-fcb7e21f7b61\",\n    \"timestamp\": \"2026-11-12T02:22:26.822709+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "dca3068b-87f1-5c56-a422-7315041bc0a5",
           "name": "Cargar evidencia BORRADOR",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ejecutor}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_ejecutor}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -1034,16 +2726,99 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_ejecutor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/pdf"
+                  },
+                  {
+                    "key": "X-Filename",
+                    "value": "avance.pdf"
+                  },
+                  {
+                    "key": "X-Evidence-Type",
+                    "value": "BORRADOR"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/evidencias",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_id}}",
+                    "evidencias"
+                  ]
+                },
+                "description": "El cuerpo es el PDF en binario. En Postman también puede elegir Body → binary y seleccionar un archivo.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "%PDF-1.7\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Location",
+                  "value": "/api/v1/evidencias/22e19785-d06c-4802-a820-bc36593db22e/archivo"
+                },
+                {
+                  "key": "Allow",
+                  "value": "POST, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Evidencia cargada\",\n  \"data\": {\n    \"id\": \"22e19785-d06c-4802-a820-bc36593db22e\",\n    \"recommendation_id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n    \"filename\": \"avance.pdf\",\n    \"mime_type\": \"application/pdf\",\n    \"size_bytes\": 48,\n    \"sha256\": \"49c28c332031c5be46a9f1cc28754ba850448ac9d4ffcc1cbb169f779b66b273\",\n    \"uploaded_at\": \"2026-11-11T21:22:26.913322-05:00\",\n    \"uploaded_by\": \"a3de7d82-34ff-40f6-9a1d-064e2d1f1a45\",\n    \"validated\": false,\n    \"type\": \"BORRADOR\",\n    \"status\": \"VIGENTE\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"7c3dfefc-55ad-44bc-a425-5294c1dbdd30\",\n    \"timestamp\": \"2026-11-12T02:22:26.922211+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "816bb52d-0df2-505b-987a-a3171c1c0307",
           "name": "Verificar integridad",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -1074,16 +2849,79 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/evidencias/{{evidencia_borrador_id}}/integridad",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "evidencias",
+                    "{{evidencia_borrador_id}}",
+                    "integridad"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"La evidencia es íntegra.\",\n  \"data\": {\n    \"evidence_id\": \"22e19785-d06c-4802-a820-bc36593db22e\",\n    \"integra\": true,\n    \"hash_registrado\": \"49c28c332031c5be46a9f1cc28754ba850448ac9d4ffcc1cbb169f779b66b273\",\n    \"hash_calculado\": \"49c28c332031c5be46a9f1cc28754ba850448ac9d4ffcc1cbb169f779b66b273\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"499bd669-4a80-4d6c-89b0-787949a02329\",\n    \"timestamp\": \"2026-11-12T02:22:27.029953+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "165afb47-330b-50ab-a73d-6417b515b05f",
           "name": "Aprobar un BORRADOR (rechazado)",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -1126,16 +2964,92 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "409 Conflict",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/dictamenes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_id}}",
+                    "dictamenes"
+                  ]
+                },
+                "description": "Solo una evidencia FINAL puede sustentar el cumplimiento.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"evidence_id\": \"{{evidencia_borrador_id}}\",\n  \"approved\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "POST, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Solo una evidencia FINAL puede aprobarse como cumplimiento.\",\n  \"data\": null,\n  \"errors\": {\n    \"code\": \"CONFLICT\",\n    \"detail\": \"Solo una evidencia FINAL puede aprobarse como cumplimiento.\"\n  },\n  \"meta\": {\n    \"request_id\": \"a7711a33-7786-4bd8-9e79-4116da986547\",\n    \"timestamp\": \"2026-11-12T02:22:27.132195+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "6ed183b9-3147-54c5-a443-fcb5729883f9",
           "name": "Rechazar sin observaciones",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -1179,16 +3093,92 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/dictamenes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_id}}",
+                    "dictamenes"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"evidence_id\": \"{{evidencia_borrador_id}}\",\n  \"approved\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "POST, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"observaciones: Las observaciones son obligatorias al rechazar una evidencia.\",\n  \"data\": null,\n  \"errors\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"detail\": \"observaciones: Las observaciones son obligatorias al rechazar una evidencia.\",\n    \"fields\": {\n      \"observaciones\": [\n        \"Las observaciones son obligatorias al rechazar una evidencia.\"\n      ]\n    }\n  },\n  \"meta\": {\n    \"request_id\": \"120e76b1-07ef-4c82-a1e9-6c74a8b20901\",\n    \"timestamp\": \"2026-11-12T02:22:27.227249+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "37637f5a-9b16-517b-bbcd-b6bc5b5e8b19",
           "name": "Rechazar con observaciones",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -1234,16 +3224,96 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/dictamenes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_id}}",
+                    "dictamenes"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"evidence_id\": \"{{evidencia_borrador_id}}\",\n  \"approved\": false,\n  \"observaciones\": \"Es un avance; falta la versión firmada.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Location",
+                  "value": "/api/v1/recomendaciones/8b3129c3-0a46-44cf-9983-b1c5617001be/dictamenes/c165ba59-86bb-4694-b5db-80676a93066c"
+                },
+                {
+                  "key": "Allow",
+                  "value": "POST, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Dictamen registrado\",\n  \"data\": {\n    \"id\": \"c165ba59-86bb-4694-b5db-80676a93066c\",\n    \"resultado\": \"RECHAZADO\",\n    \"evidence_id\": \"22e19785-d06c-4802-a820-bc36593db22e\",\n    \"evaluator_id\": \"a1db77b6-42d7-441d-bc0e-cf4998118fa1\",\n    \"observaciones\": \"Es un avance; falta la versión firmada.\",\n    \"fecha_dictamen\": \"2026-11-11T21:22:27.317646-05:00\",\n    \"recomendacion\": {\n      \"id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n      \"report_id\": \"a186dc28-28a3-468c-87e0-657f8b1537de\",\n      \"number\": \"R-01\",\n      \"description\": \"Actualizar el reglamento interno de bienes.\",\n      \"unit_id\": \"DEP-A\",\n      \"legal_days\": 90,\n      \"due_date\": \"2027-02-10\",\n      \"priority\": \"ALTA\",\n      \"state\": \"EN_PROCESO\",\n      \"vencida\": false,\n      \"overdue_registered_at\": null\n    }\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"14577fc8-7ade-46cb-850d-c2aff626eec8\",\n    \"timestamp\": \"2026-11-12T02:22:27.360382+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "ca84951e-1419-5c5f-b134-8c53d800a98c",
           "name": "Consultar dictamen",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ejecutor}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_ejecutor}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -1275,16 +3345,80 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_ejecutor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/dictamenes/{{dictamen_id}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_id}}",
+                    "dictamenes",
+                    "{{dictamen_id}}"
+                  ]
+                },
+                "description": "Recurso que identifica la cabecera Location del POST de dictámenes."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Dictamen consultado\",\n  \"data\": {\n    \"id\": \"c165ba59-86bb-4694-b5db-80676a93066c\",\n    \"resultado\": \"RECHAZADO\",\n    \"evidence_id\": \"22e19785-d06c-4802-a820-bc36593db22e\",\n    \"evaluator_id\": \"a1db77b6-42d7-441d-bc0e-cf4998118fa1\",\n    \"observaciones\": \"Es un avance; falta la versión firmada.\",\n    \"fecha_dictamen\": \"2026-11-11T21:22:27.317646-05:00\",\n    \"recomendacion\": {\n      \"id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n      \"report_id\": \"a186dc28-28a3-468c-87e0-657f8b1537de\",\n      \"number\": \"R-01\",\n      \"description\": \"Actualizar el reglamento interno de bienes.\",\n      \"unit_id\": \"DEP-A\",\n      \"legal_days\": 90,\n      \"due_date\": \"2027-02-10\",\n      \"priority\": \"ALTA\",\n      \"state\": \"EN_PROCESO\",\n      \"vencida\": false,\n      \"overdue_registered_at\": null\n    }\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"0904ba86-ec53-4650-8a04-00c9bf1209eb\",\n    \"timestamp\": \"2026-11-12T02:22:27.479844+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "3fc807ed-7050-5503-953c-87244c5dbad4",
           "name": "Cargar evidencia FINAL",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ejecutor}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_ejecutor}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -1331,16 +3465,99 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_ejecutor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/pdf"
+                  },
+                  {
+                    "key": "X-Filename",
+                    "value": "reglamento-firmado.pdf"
+                  },
+                  {
+                    "key": "X-Evidence-Type",
+                    "value": "FINAL"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/evidencias",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_id}}",
+                    "evidencias"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "%PDF-1.7\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Location",
+                  "value": "/api/v1/evidencias/5fc64e6a-9e22-4030-9996-b1b0d9c19d8e/archivo"
+                },
+                {
+                  "key": "Allow",
+                  "value": "POST, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Evidencia cargada\",\n  \"data\": {\n    \"id\": \"5fc64e6a-9e22-4030-9996-b1b0d9c19d8e\",\n    \"recommendation_id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n    \"filename\": \"reglamento-firmado.pdf\",\n    \"mime_type\": \"application/pdf\",\n    \"size_bytes\": 48,\n    \"sha256\": \"49c28c332031c5be46a9f1cc28754ba850448ac9d4ffcc1cbb169f779b66b273\",\n    \"uploaded_at\": \"2026-11-11T21:22:27.602600-05:00\",\n    \"uploaded_by\": \"a3de7d82-34ff-40f6-9a1d-064e2d1f1a45\",\n    \"validated\": false,\n    \"type\": \"FINAL\",\n    \"status\": \"VIGENTE\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"02001e50-bc4b-4ffe-a4ab-801063009038\",\n    \"timestamp\": \"2026-11-12T02:22:27.613225+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "f7c90716-870e-5309-9fee-bcd742fc1722",
           "name": "Descargar archivo de evidencia",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/pdf"
               }
             ],
             "url": {
@@ -1371,16 +3588,83 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/pdf"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/evidencias/{{evidencia_final_id}}/archivo",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "evidencias",
+                    "{{evidencia_final_id}}",
+                    "archivo"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/pdf"
+                },
+                {
+                  "key": "Content-Disposition",
+                  "value": "inline; filename=\"reglamento-firmado.pdf\""
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, HEAD, OPTIONS"
+                }
+              ],
+              "body": "(PDF binario de 48 bytes)"
+            }
           ]
         },
         {
+          "id": "0817aa89-e400-5660-90fe-7bc2ce13059a",
           "name": "Aprobar evidencia FINAL",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -1424,16 +3708,96 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/dictamenes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_id}}",
+                    "dictamenes"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"evidence_id\": \"{{evidencia_final_id}}\",\n  \"approved\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Location",
+                  "value": "/api/v1/recomendaciones/8b3129c3-0a46-44cf-9983-b1c5617001be/dictamenes/98714dcd-14a5-4b29-aaf6-d0a443249b89"
+                },
+                {
+                  "key": "Allow",
+                  "value": "POST, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Dictamen registrado\",\n  \"data\": {\n    \"id\": \"98714dcd-14a5-4b29-aaf6-d0a443249b89\",\n    \"resultado\": \"APROBADO\",\n    \"evidence_id\": \"5fc64e6a-9e22-4030-9996-b1b0d9c19d8e\",\n    \"evaluator_id\": \"a1db77b6-42d7-441d-bc0e-cf4998118fa1\",\n    \"observaciones\": \"\",\n    \"fecha_dictamen\": \"2026-11-11T21:22:27.818741-05:00\",\n    \"recomendacion\": {\n      \"id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n      \"report_id\": \"a186dc28-28a3-468c-87e0-657f8b1537de\",\n      \"number\": \"R-01\",\n      \"description\": \"Actualizar el reglamento interno de bienes.\",\n      \"unit_id\": \"DEP-A\",\n      \"legal_days\": 90,\n      \"due_date\": \"2027-02-10\",\n      \"priority\": \"ALTA\",\n      \"state\": \"CUMPLIDA\",\n      \"vencida\": false,\n      \"overdue_registered_at\": null\n    }\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"7697056a-541e-4cdc-b91c-7336311c0418\",\n    \"timestamp\": \"2026-11-12T02:22:27.831110+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "37a6e086-1d7f-5c9b-9a0d-e9e7862bd319",
           "name": "Anular la evidencia que sustenta el cumplimiento (rechazado)",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "PATCH",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -1475,16 +3839,91 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "409 Conflict",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/evidencias/{{evidencia_final_id}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "evidencias",
+                    "{{evidencia_final_id}}"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"estado\": \"ANULADA\",\n  \"motivo\": \"Prueba de regla.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "PATCH, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"La evidencia sustenta una recomendación cumplida; reabra la recomendación antes de anularla.\",\n  \"data\": null,\n  \"errors\": {\n    \"code\": \"CONFLICT\",\n    \"detail\": \"La evidencia sustenta una recomendación cumplida; reabra la recomendación antes de anularla.\"\n  },\n  \"meta\": {\n    \"request_id\": \"999bcb2c-4919-4421-bac4-c3dab7f48136\",\n    \"timestamp\": \"2026-11-12T02:22:27.915345+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "6c717aea-6949-5fe3-9828-cb23ed0cfe6d",
           "name": "Reabrir recomendación",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "PATCH",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -1527,16 +3966,91 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_id}}"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"estado\": \"REABIERTA\",\n  \"motivo\": \"Hallazgo posterior de la auditoría.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, PATCH, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Recomendación reabierta\",\n  \"data\": {\n    \"id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n    \"report_id\": \"a186dc28-28a3-468c-87e0-657f8b1537de\",\n    \"number\": \"R-01\",\n    \"description\": \"Actualizar el reglamento interno de bienes.\",\n    \"unit_id\": \"DEP-A\",\n    \"legal_days\": 90,\n    \"due_date\": \"2027-02-10\",\n    \"priority\": \"ALTA\",\n    \"state\": \"REABIERTA\",\n    \"vencida\": false,\n    \"overdue_registered_at\": null\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"5ea124e3-c5e6-4f35-9d1c-6f9af397e6f5\",\n    \"timestamp\": \"2026-11-12T02:22:28.395306+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "addd23f6-d38d-5426-8bfc-dce896daa102",
           "name": "Reasignar recomendación",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "PATCH",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -1579,16 +4093,91 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_id}}"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"unit_id\": \"{{unidad_destino}}\",\n  \"motivo\": \"Cambio de estructura orgánica.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, PATCH, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Recomendación reasignada\",\n  \"data\": {\n    \"id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n    \"report_id\": \"a186dc28-28a3-468c-87e0-657f8b1537de\",\n    \"number\": \"R-01\",\n    \"description\": \"Actualizar el reglamento interno de bienes.\",\n    \"unit_id\": \"DEP-PM-50144408\",\n    \"legal_days\": 90,\n    \"due_date\": \"2027-02-10\",\n    \"priority\": \"ALTA\",\n    \"state\": \"REABIERTA\",\n    \"vencida\": false,\n    \"overdue_registered_at\": null\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"61f0ecec-383e-4ec9-8168-24a3058e2265\",\n    \"timestamp\": \"2026-11-12T02:22:28.506818+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "17a69ed5-c78c-5810-8585-7d0d98ae9094",
           "name": "Consultar auditoría de la recomendación",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -1630,22 +4219,97 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auditoria?entity=recomendacion&entity_id={{recomendacion_id}}&limit=50",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auditoria"
+                  ],
+                  "query": [
+                    {
+                      "key": "entity",
+                      "value": "recomendacion"
+                    },
+                    {
+                      "key": "entity_id",
+                      "value": "{{recomendacion_id}}"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "50"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Historial de auditoría consultado\",\n  \"data\": [\n    {\n      \"id\": 42,\n      \"request_id\": \"48b904f0-73bc-4ba8-8ae6-5ea96ae3e909\",\n      \"timestamp_utc\": \"2026-11-11T21:22:28.498034-05:00\",\n      \"usuario\": \"uai@unl.edu.ec\",\n      \"modulo\": \"recomendaciones\",\n      \"accion\": \"REASSIGN\",\n      \"entidad\": \"recomendacion\",\n      \"entidad_id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n      \"estado_anterior\": \"REABIERTA\",\n      \"estado_nuevo\": \"REABIERTA\",\n      \"resultado\": \"OK\",\n      \"ip_origen\": \"127.0.0.1\"\n    },\n    {\n      \"id\": 41,\n      \"request_id\": \"4c284252-e1fd-43e4-8e01-866265aaabda\",\n      \"timestamp_utc\": \"2026-11-11T21:22:28.384893-05:00\",\n      \"usuario\": \"uai@unl.edu.ec\",\n      \"modulo\": \"recomendaciones\",\n      \"accion\": \"REOPEN\",\n      \"entidad\": \"recomendacion\",\n      \"entidad_id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n      \"estado_anterior\": \"CUMPLIDA\",\n      \"estado_nuevo\": \"REABIERTA\",\n      \"resultado\": \"OK\",\n      \"ip_origen\": \"127.0.0.1\"\n    },\n    {\n      \"id\": 40,\n      \"request_id\": \"a41b16d8-cdf9-4700-a91a-1a2bdac417fa\",\n      \"timestamp_utc\": \"2026-11-11T21:22:27.819779-05:00\",\n      \"usuario\": \"uai@unl.edu.ec\",\n      \"modulo\": \"evidencias\",\n      \"accion\": \"ISSUE_DICTAMEN\",\n      \"entidad\": \"recomendacion\",\n      \"entidad_id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n      \"estado_anterior\": \"EN_VALIDACION\",\n      \"estado_nuevo\": \"CUMPLIDA\",\n      \"resultado\": \"OK\",\n      \"ip_origen\": \"127.0.0.1\"\n    },\n    {\n      \"id\": 39,\n      \"request_id\": \"fe6c3986-3be9-4643-a76e-cd5bbb6464ef\",\n      \"timestamp_utc\": \"2026-11-11T21:22:27.606215-05:00\",\n      \"usuario\": \"ejecutor@unl.edu.ec\",\n      \"modulo\": \"evidencias\",\n      \"accion\": \"UPLOAD_EVIDENCE\",\n      \"entidad\": \"recomendacion\",\n      \"entidad_id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n      \"estado_anterior\": \"EN_PROCESO\",\n      \"estado_nuevo\": \"EN_VALIDACION\",\n      \"resultado\": \"OK\",\n      \"ip_origen\": \"127.0.0.1\"\n    },\n    {\n      \"id\": 38,\n      \"request_id\": \"7125a97d-e848-4130-a026-92b803567384\",\n      \"timestamp_utc\": \"2026-11-11T21:22:27.349317-05:00\",\n      \"usuario\": \"uai@unl.edu.ec\",\n      \"modulo\": \"evidencias\",\n      \"accion\": \"ISSUE_DICTAMEN\",\n      \"entidad\": \"recomendacion\",\n      \"entidad_id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n      \"estado_anterior\": \"EN_VALIDACION\",\n      \"estado_nuevo\": \"EN_PROCESO\",\n      \"resultado\": \"OK\",\n      \"ip_origen\": \"127.0.0.1\"\n    },\n    {\n      \"id\": 36,\n      \"request_id\": \"762a1cac-bbe2-4eaf-96e9-f90b0cd58811\",\n      \"timestamp_utc\": \"2026-11-11T21:22:26.915128-05:00\",\n      \"usuario\": \"ejecutor@unl.edu.ec\",\n      \"modulo\": \"evidencias\",\n      \"accion\": \"UPLOAD_EVIDENCE\",\n      \"entidad\": \"recomendacion\",\n      \"entidad_id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n      \"estado_anterior\": \"EN_PROCESO\",\n      \"estado_nuevo\": \"EN_VALIDACION\",\n      \"resultado\": \"OK\",\n      \"ip_origen\": \"127.0.0.1\"\n    },\n    {\n      \"id\": 35,\n      \"request_id\": \"48ed9b10-0f5c-4d17-b5b1-a722af631ed3\",\n      \"timestamp_utc\": \"2026-11-11T21:22:26.756784-05:00\",\n      \"usuario\": \"ejecutor@unl.edu.ec\",\n      \"modulo\": \"recomendaciones\",\n      \"accion\": \"CREATE_PLAN\",\n      \"entidad\": \"recomendacion\",\n      \"entidad_id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n      \"estado_anterior\": \"PENDIENTE\",\n      \"estado_nuevo\": \"EN_PROCESO\",\n      \"resultado\": \"OK\",\n      \"ip_origen\": \"127.0.0.1\"\n    },\n    {\n      \"id\": 34,\n      \"request_id\": \"9993bf0f-c3b3-4c26-9dcf-f89e49d10cbf\",\n      \"timestamp_utc\": \"2026-11-11T21:22:26.411719-05:00\",\n      \"usuario\": \"uai@unl.edu.ec\",\n      \"modulo\": \"recomendaciones\",\n      \"accion\": \"CREATE\",\n      \"entidad\": \"recomendacion\",\n      \"entidad_id\": \"8b3129c3-0a46-44cf-9983-b1c5617001be\",\n      \"estado_anterior\": null,\n      \"estado_nuevo\": \"PENDIENTE\",\n      \"resultado\": \"OK\",\n      \"ip_origen\": \"127.0.0.1\"\n    }\n  ],\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"3321853b-683f-4249-9104-4e26ecc59091\",\n    \"timestamp\": \"2026-11-12T02:22:28.607167+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         }
       ]
     },
     {
       "name": "03 Reportes y notificaciones",
-      "description": "Tablero, KPIs, matriz CGE y bandeja.",
+      "description": "Tablero, KPIs, matriz CGE, preferencias y bandeja.",
       "item": [
         {
+          "id": "f6f790de-7658-5c06-957b-12ce2a49caeb",
           "name": "Tablero ejecutivo (Rectorado)",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_rectorado}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_rectorado}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -1674,16 +4338,78 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_rectorado}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reportes/tablero",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reportes",
+                    "tablero"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Resumen ejecutivo consultado\",\n  \"data\": {\n    \"total\": 3,\n    \"cumplimiento_porcentaje\": 0.0,\n    \"semaforo_riesgo\": \"ROJO\",\n    \"en_mora\": 0,\n    \"en_revision_interna\": 0,\n    \"por_estado\": {\n      \"REABIERTA\": 2,\n      \"PENDIENTE\": 1\n    },\n    \"unidades_en_mora\": [],\n    \"fecha_corte\": \"2026-11-11\"\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"25346a4b-b5a0-4cff-9317-9f028f54c6fa\",\n    \"timestamp\": \"2026-11-12T02:22:28.682304+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "464b2ebf-049f-56a2-ada5-558a73059f0f",
           "name": "KPIs (ejecutor, solo su unidad)",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ejecutor}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_ejecutor}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -1712,16 +4438,78 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_ejecutor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/dashboard/kpis",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "dashboard",
+                    "kpis"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Indicadores del dashboard consultados\",\n  \"data\": {\n    \"total_recomendaciones\": 1,\n    \"recomendaciones_por_estado\": {\n      \"PENDIENTE\": 1,\n      \"EN_PROCESO\": 0,\n      \"EN_VALIDACION\": 0,\n      \"CUMPLIDA\": 0\n    },\n    \"tasa_cumplimiento_porcentaje\": 0.0,\n    \"recomendaciones_vencidas_o_en_mora\": 0,\n    \"total_informes_cge\": 1\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"9c7cfa8a-e7ee-420b-bc03-74d1e88003a1\",\n    \"timestamp\": \"2026-11-12T02:22:28.778660+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "bc71b9d2-6f83-57fa-bbe0-432b2b48f630",
           "name": "KPIs institucionales (UAI)",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -1750,16 +4538,78 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/dashboard/kpis",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "dashboard",
+                    "kpis"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Indicadores del dashboard consultados\",\n  \"data\": {\n    \"total_recomendaciones\": 3,\n    \"recomendaciones_por_estado\": {\n      \"PENDIENTE\": 1,\n      \"EN_PROCESO\": 0,\n      \"EN_VALIDACION\": 0,\n      \"CUMPLIDA\": 0\n    },\n    \"tasa_cumplimiento_porcentaje\": 0.0,\n    \"recomendaciones_vencidas_o_en_mora\": 0,\n    \"total_informes_cge\": 4\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"3f407c3b-4138-4665-8909-49b4d0d9291f\",\n    \"timestamp\": \"2026-11-12T02:22:28.869107+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "83db7674-e554-57c8-af2f-4457434a1867",
           "name": "Exportar matriz CGE (CSV)",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "text/csv"
               }
             ],
             "url": {
@@ -1789,16 +4639,310 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "text/csv"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/reportes/matriz-cge",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "reportes",
+                    "matriz-cge"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/csv; charset=utf-8"
+                },
+                {
+                  "key": "Content-Disposition",
+                  "value": "attachment; filename=\"matriz-cge.csv\""
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, HEAD, OPTIONS"
+                }
+              ],
+              "body": "﻿numero_informe,numero_recomendacion,descripcion,unidad_responsable,prioridad,estado,plazo_legal_dias,fecha_vencimiento_legal,vencida,vencimiento_registrado_en\nDNA-PM-49946643,R-01,Actualizar el reglamento interno de bienes.,DEP-PM-49946643,ALTA,REABIERTA,90,2027-02-10,NO,\nDNA-PM-49946643,R-SINPLAN-49946643,Aún sin hitos.,DEP-A,MEDIA,PENDIENTE,30,2027-02-10,NO,\nDNA-PM-50144408,R-01,Actualizar el reglamento interno de bienes.,DEP-PM-50144408,ALTA,REABIERTA,90,2027-02-10,NO,\n"
+            }
           ]
         },
         {
-          "name": "Bandeja de notificaciones",
+          "id": "e36ef0ae-c841-5f33-88b8-fd138370ca1b",
+          "name": "Consultar mis preferencias de notificación",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ejecutor}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_ejecutor}}"
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones/preferencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notificaciones",
+                "preferencias"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "{",
+                  "  pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_ejecutor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/notificaciones/preferencias",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "notificaciones",
+                    "preferencias"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, PUT, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Preferencias de notificación consultadas\",\n  \"data\": {\n    \"usuario_id\": \"a3de7d82-34ff-40f6-9a1d-064e2d1f1a45\",\n    \"preferencias\": [\n      {\n        \"id\": \"59b6b85a-6ffd-4cda-ad04-86c88321edc4\",\n        \"usuario_id\": \"a3de7d82-34ff-40f6-9a1d-064e2d1f1a45\",\n        \"tipo_alerta\": \"ALERTA_VENCIMIENTO\",\n        \"notificar_interno\": true,\n        \"notificar_email\": true,\n        \"activo\": true,\n        \"actualizado_en\": \"2026-11-11T21:19:11.284115-05:00\"\n      },\n      {\n        \"id\": \"62bfc450-d8a9-49a9-b9f4-7adce7a41883\",\n        \"usuario_id\": \"a3de7d82-34ff-40f6-9a1d-064e2d1f1a45\",\n        \"tipo_alerta\": \"EN_MORA\",\n        \"notificar_interno\": true,\n        \"notificar_email\": false,\n        \"activo\": true,\n        \"actualizado_en\": \"2026-11-11T21:19:11.323448-05:00\"\n      }\n    ]\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"d0915811-909d-4d56-be22-5fb039b16976\",\n    \"timestamp\": \"2026-11-12T02:22:29.081781+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "id": "556cb858-9c00-57f0-b5c8-21090f4bb37f",
+          "name": "Actualizar mis preferencias de notificación",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ejecutor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notificaciones/preferencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notificaciones",
+                "preferencias"
+              ]
+            },
+            "description": "Cada usuario edita sus propias preferencias. El DTI puede editar las de otro con `usuario_id`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"preferencias\": [\n    {\n      \"tipo_alerta\": \"ALERTA_VENCIMIENTO\",\n      \"notificar_interno\": true,\n      \"notificar_email\": true,\n      \"activo\": true\n    },\n    {\n      \"tipo_alerta\": \"EN_MORA\",\n      \"notificar_interno\": true,\n      \"notificar_email\": false,\n      \"activo\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "{",
+                  "  pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "  const mora = pm.response.json().data.preferencias.find((p) => p.tipo_alerta === \"EN_MORA\");",
+                  "  pm.test(\"Mora solo por canal interno\", () => pm.expect(mora.notificar_email).to.eql(false));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_ejecutor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/notificaciones/preferencias",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "notificaciones",
+                    "preferencias"
+                  ]
+                },
+                "description": "Cada usuario edita sus propias preferencias. El DTI puede editar las de otro con `usuario_id`.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"preferencias\": [\n    {\n      \"tipo_alerta\": \"ALERTA_VENCIMIENTO\",\n      \"notificar_interno\": true,\n      \"notificar_email\": true,\n      \"activo\": true\n    },\n    {\n      \"tipo_alerta\": \"EN_MORA\",\n      \"notificar_interno\": true,\n      \"notificar_email\": false,\n      \"activo\": true\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, PUT, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Preferencias de notificación actualizadas\",\n  \"data\": {\n    \"usuario_id\": \"a3de7d82-34ff-40f6-9a1d-064e2d1f1a45\",\n    \"preferencias\": [\n      {\n        \"id\": \"59b6b85a-6ffd-4cda-ad04-86c88321edc4\",\n        \"usuario_id\": \"a3de7d82-34ff-40f6-9a1d-064e2d1f1a45\",\n        \"tipo_alerta\": \"ALERTA_VENCIMIENTO\",\n        \"notificar_interno\": true,\n        \"notificar_email\": true,\n        \"activo\": true,\n        \"actualizado_en\": \"2026-11-11T21:22:29.177100-05:00\"\n      },\n      {\n        \"id\": \"62bfc450-d8a9-49a9-b9f4-7adce7a41883\",\n        \"usuario_id\": \"a3de7d82-34ff-40f6-9a1d-064e2d1f1a45\",\n        \"tipo_alerta\": \"EN_MORA\",\n        \"notificar_interno\": true,\n        \"notificar_email\": false,\n        \"activo\": true,\n        \"actualizado_en\": \"2026-11-11T21:22:29.185209-05:00\"\n      }\n    ]\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"43efcf0e-9d2c-4d2b-9e75-238933429c12\",\n    \"timestamp\": \"2026-11-12T02:22:29.199827+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "id": "22f3d9a6-944b-5480-ac3d-aa94bb7c6ee4",
+          "name": "Bandeja de notificaciones",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ejecutor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -1826,6 +4970,56 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_ejecutor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/notificaciones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "notificaciones"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Bandeja de notificaciones consultada\",\n  \"data\": [],\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"2ad30c15-8995-4c6e-a696-bbb7cdf112a9\",\n    \"timestamp\": \"2026-11-12T02:22:29.316200+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         }
       ]
@@ -1835,10 +5029,19 @@
       "description": "Casos de error con su código esperado.",
       "item": [
         {
+          "id": "6ffb9b29-96b1-58c8-acd9-06bd2acf4dd3",
           "name": "401 sin token",
           "request": {
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/recomendaciones",
               "host": [
@@ -1865,16 +5068,74 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "WWW-Authenticate",
+                  "value": "Bearer realm=\"sitra-cge\""
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Se requiere un token Bearer válido.\",\n  \"data\": null,\n  \"errors\": {\n    \"code\": \"AUTHENTICATION_REQUIRED\",\n    \"detail\": \"Se requiere un token Bearer válido.\"\n  },\n  \"meta\": {\n    \"request_id\": \"2ca2a71d-6af8-42cf-bc75-0e0a2c884bdd\",\n    \"timestamp\": \"2026-11-12T02:22:29.405820+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "aadfb6c1-0702-5cc2-ab0e-e97feec6bf74",
           "name": "403 ejecutor registra recomendación",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ejecutor}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_ejecutor}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -1915,16 +5176,90 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_ejecutor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"report_id\": \"{{informe_id}}\",\n  \"number\": \"R-X\",\n  \"description\": \"No permitido.\",\n  \"unit_id\": \"DEP-A\",\n  \"legal_days\": 30,\n  \"due_date\": \"{{fecha_vencimiento}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Solo el rol UAI puede realizar esta operación.\",\n  \"data\": null,\n  \"errors\": {\n    \"code\": \"PERMISSION_DENIED\",\n    \"detail\": \"Solo el rol UAI puede realizar esta operación.\"\n  },\n  \"meta\": {\n    \"request_id\": \"97e95756-5767-43b0-a780-caf2c5c6ef9d\",\n    \"timestamp\": \"2026-11-12T02:22:29.504619+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "d90a44a3-963a-5400-b530-9ebefdfd0515",
           "name": "400 validación de campos",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -1966,16 +5301,90 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"report_id\": \"{{informe_id}}\",\n  \"legal_days\": 0\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"number: Este campo es requerido.\",\n  \"data\": null,\n  \"errors\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"detail\": \"number: Este campo es requerido.\",\n    \"fields\": {\n      \"number\": [\n        \"Este campo es requerido.\"\n      ],\n      \"description\": [\n        \"Este campo es requerido.\"\n      ],\n      \"unit_id\": [\n        \"Este campo es requerido.\"\n      ],\n      \"legal_days\": [\n        \"Asegúrese de que este valor es mayor o igual a 1.\"\n      ],\n      \"due_date\": [\n        \"Este campo es requerido.\"\n      ]\n    }\n  },\n  \"meta\": {\n    \"request_id\": \"76eb1da8-1858-414e-9d70-9cfb3d87bf2d\",\n    \"timestamp\": \"2026-11-12T02:22:29.610243+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "c52cc895-bc05-5323-9fc7-4d1acfae1f01",
           "name": "400 informe inexistente",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -2017,16 +5426,90 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones"
+                  ]
+                },
+                "description": "Una referencia inexistente es un dato de entrada inválido, no un conflicto.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"report_id\": \"00000000-0000-0000-0000-000000000000\",\n  \"number\": \"R-X\",\n  \"description\": \"Sin informe.\",\n  \"unit_id\": \"DEP-A\",\n  \"legal_days\": 30,\n  \"due_date\": \"{{fecha_vencimiento}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"El informe CGE especificado no existe.\",\n  \"data\": null,\n  \"errors\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"detail\": \"El informe CGE especificado no existe.\",\n    \"fields\": {\n      \"report_id\": [\n        \"El informe CGE especificado no existe.\"\n      ]\n    }\n  },\n  \"meta\": {\n    \"request_id\": \"24569e7f-e44a-4d1d-b2b0-b192946541fa\",\n    \"timestamp\": \"2026-11-12T02:22:29.708358+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "00cd2291-7f94-5031-af9e-126ab616d458",
           "name": "Preparar: recomendación sin plan",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -2068,16 +5551,94 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"report_id\": \"{{informe_id}}\",\n  \"number\": \"R-SINPLAN-{{sufijo}}\",\n  \"description\": \"Aún sin hitos.\",\n  \"unit_id\": \"DEP-A\",\n  \"legal_days\": 30,\n  \"due_date\": \"{{fecha_vencimiento}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Location",
+                  "value": "/api/v1/recomendaciones/34d3cab3-cf36-4ac7-b18b-f817616414a2"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Recomendación creada\",\n  \"data\": {\n    \"id\": \"34d3cab3-cf36-4ac7-b18b-f817616414a2\",\n    \"report_id\": \"a186dc28-28a3-468c-87e0-657f8b1537de\",\n    \"number\": \"R-SINPLAN-50144408\",\n    \"description\": \"Aún sin hitos.\",\n    \"unit_id\": \"DEP-A\",\n    \"legal_days\": 30,\n    \"due_date\": \"2027-02-10\",\n    \"priority\": \"MEDIA\",\n    \"state\": \"PENDIENTE\",\n    \"vencida\": false,\n    \"overdue_registered_at\": null\n  },\n  \"errors\": null,\n  \"meta\": {\n    \"request_id\": \"db641d6e-6222-462c-8ce1-73d86a28bf8d\",\n    \"timestamp\": \"2026-11-12T02:22:29.844889+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "9bd8c1c8-d50e-5246-bcee-cb9519474bd2",
           "name": "409 evidencia sin plan de acción",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ejecutor}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_ejecutor}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -2123,16 +5684,95 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "409 Conflict",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_ejecutor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/pdf"
+                  },
+                  {
+                    "key": "X-Filename",
+                    "value": "prematura.pdf"
+                  },
+                  {
+                    "key": "X-Evidence-Type",
+                    "value": "FINAL"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_sin_plan_id}}/evidencias",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_sin_plan_id}}",
+                    "evidencias"
+                  ]
+                },
+                "description": "Pendiente sin plan no admite evidencias, igual que cualquier otro estado distinto de En Proceso.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "%PDF-1.7\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "POST, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Debe registrar primero el Plan de accion antes de cargar evidencias.\",\n  \"data\": null,\n  \"errors\": {\n    \"code\": \"CONFLICT\",\n    \"detail\": \"Debe registrar primero el Plan de accion antes de cargar evidencias.\"\n  },\n  \"meta\": {\n    \"request_id\": \"6e40d8e2-71c8-4a0e-91e3-38d325a9d820\",\n    \"timestamp\": \"2026-11-12T02:22:29.959315+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "9a4cbc07-c920-5851-bcfc-15335891aba8",
           "name": "404 recomendación inexistente",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "url": {
@@ -2161,16 +5801,78 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/00000000-0000-0000-0000-000000000000",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "00000000-0000-0000-0000-000000000000"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, PATCH, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"La recomendación no existe.\",\n  \"data\": null,\n  \"errors\": {\n    \"code\": \"RESOURCE_NOT_FOUND\",\n    \"detail\": \"La recomendación no existe.\"\n  },\n  \"meta\": {\n    \"request_id\": \"4160b1d6-77f5-45c6-8c89-3c9980b60cd9\",\n    \"timestamp\": \"2026-11-12T02:22:30.055734+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "55039732-c698-56b0-8b17-0c37d0f8ba2f",
           "name": "405 método no permitido",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "PUT",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -2213,16 +5915,91 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "405 Method Not Allowed",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "recomendaciones",
+                    "{{recomendacion_id}}"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Method Not Allowed",
+              "code": 405,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, PATCH, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Método \\\"PUT\\\" no permitido.\",\n  \"data\": null,\n  \"errors\": {\n    \"code\": \"METHOD_NOT_ALLOWED\",\n    \"detail\": \"Método \\\"PUT\\\" no permitido.\"\n  },\n  \"meta\": {\n    \"request_id\": \"e302134c-71ec-4643-95df-1de3b6e71bfd\",\n    \"timestamp\": \"2026-11-12T02:22:30.139450+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
+            }
           ]
         },
         {
+          "id": "04eb3f2a-e64f-5e98-afd5-6602b6f4f630",
           "name": "409 informe duplicado",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_uai}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{token_uai}}"
+                "key": "Accept",
+                "value": "application/json"
               },
               {
                 "key": "Content-Type",
@@ -2262,6 +6039,69 @@
                   "}"
                 ]
               }
+            }
+          ],
+          "response": [
+            {
+              "name": "409 Conflict",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_uai}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/informes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "informes"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"numero_informe\": \"DNA-PM-{{sufijo}}\",\n  \"periodo_auditado\": \"2025\",\n  \"fecha_notificacion\": \"{{fecha_hoy}}\",\n  \"pdf_informe_url\": \"https://example.test/otro.pdf\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Allow",
+                  "value": "GET, POST, HEAD, OPTIONS"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Ya existe un informe con ese número.\",\n  \"data\": null,\n  \"errors\": {\n    \"code\": \"CONFLICT\",\n    \"detail\": \"Ya existe un informe con ese número.\"\n  },\n  \"meta\": {\n    \"request_id\": \"82dc16ff-f31f-4ba3-8787-98857584fce1\",\n    \"timestamp\": \"2026-11-12T02:22:30.221816+00:00\",\n    \"version\": \"v1\",\n    \"pagination\": null\n  }\n}"
             }
           ]
         }

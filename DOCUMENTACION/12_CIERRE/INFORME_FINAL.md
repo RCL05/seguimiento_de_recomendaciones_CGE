@@ -3,7 +3,7 @@
 Se analizó SITRA-CGE UNL (Django 5.2 + DRF / React 19 + Vite) sobre la rama `feature/sdd-spec-kit-structure` (commit `a565ba2`) y se produjo una documentación técnica verificada contra el código, publicada como portal Quarto en `docs/` y preparada para GitHub Pages mediante `.github/workflows/publish-quarto.yml`.
 
 - El sistema implementa y prueba **23 de 24** requisitos funcionales; RF-001 (SSO) es parcial porque el proveedor productivo no está definido. RF-003 (reasignación) y RF-004 (reintento de correo) quedaron resueltos.
-- La suite automatizada pasa completa: **231 pruebas de backend** y **12 de frontend**; lint y build correctos; el contrato OpenAPI regenerado coincide con el publicado.
+- La suite automatizada pasa completa: **233 pruebas de backend** y **12 de frontend**; lint y build correctos; el contrato OpenAPI regenerado coincide con el publicado.
 - Se registraron **25 hallazgos** (H-01…H-25), de los cuales 4 eran de severidad alta: antimalware documentado pero inexistente (H-03), reintento SMTP inexistente (H-05, resuelto), `DEBUG=true` por defecto (H-10, resuelto) y rendimiento sin medición (H-19, resuelto con pruebas de tiempo y ausencia de N+1).
 - El portal compila sin errores ni advertencias (44 páginas, 0 enlaces internos rotos). **No está publicado todavía**: requiere *merge* a `main` y activar Pages por el propietario.
 

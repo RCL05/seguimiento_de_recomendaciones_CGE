@@ -71,7 +71,7 @@ El directorio `backend/media/evidencias/` se crea automáticamente en la primera
 cd backend && python manage.py check && python -m pytest -q
 ```
 
-Resultado esperado: `System check identified no issues` y `231 passed`.
+Resultado esperado: `System check identified no issues` y `233 passed`.
 
 ## Opción B — Docker Compose (no verificada en esta auditoría)
 

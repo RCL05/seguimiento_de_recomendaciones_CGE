@@ -14,7 +14,7 @@
 | # | Comando | Directorio | Resultado | Salida relevante |
 |---|---|---|---|---|
 | 1 | `python manage.py check` | `backend/` | ✅ Correcto | `System check identified no issues (0 silenced).` |
-| 2 | `python -m pytest -q -p no:cacheprovider` | `backend/` | ✅ **231 aprobadas**, 0 fallidas, 0 omitidas | `231 passed in 6.46s` |
+| 2 | `python -m pytest -q -p no:cacheprovider` | `backend/` | ✅ **233 aprobadas**, 0 fallidas, 0 omitidas | `233 passed in 5.72s` |
 | 3 | `python manage.py spectacular --file <tmp>` + `diff` con `contracts/openapi.yaml` y la réplica en `specs/` | `backend/` | ✅ Sin diferencias, sin advertencias | — |
 | 4 | `npm test` (Vitest) | `frontend/` | ✅ **12 aprobadas** en 4 archivos | `Test Files 4 passed (4) · Tests 12 passed (12)` |
 | 5 | `npm run lint` (ESLint) | `frontend/` | ✅ Sin errores | — |

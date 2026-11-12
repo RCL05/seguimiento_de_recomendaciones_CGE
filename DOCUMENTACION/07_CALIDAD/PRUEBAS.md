@@ -1,10 +1,10 @@
 ## Inventario de pruebas del backend
 
-Obtenido con `python -m pytest --collect-only -q` (2026-11-11): **231 pruebas** en 37 archivos (incluye casos parametrizados). Las *fixtures* compartidas viven en `tests/factories.py`.
+Obtenido con `python -m pytest --collect-only -q` (2026-11-11): **233 pruebas** en 37 archivos (incluye casos parametrizados). Las *fixtures* compartidas viven en `tests/factories.py`.
 
 | Categoría | Archivo | Pruebas | Qué verifica |
 |---|---|---|---|
-| API | `tests/api/test_contrato_acd3.py` | 10 | Ajustes ACD 3: `/sesiones`, `hitos`, 400 con `errors.fields`, evidencia sin plan 409, dictamen con `Location` consultable, `evaluaciones-plazos` retirado |
+| API | `tests/api/test_contrato_acd3.py` | 12 | Descargas que aceptan `application/pdf` y `text/csv` (sin 406) y errores en JSON. Ajustes ACD 3: `/sesiones`, `hitos`, 400 con `errors.fields`, evidencia sin plan 409, dictamen con `Location` consultable, `evaluaciones-plazos` retirado |
 | API | `tests/api/test_endpoints_base.py` | 15 | Informes (201 + `Location`, paginación, 409), validación 400, 401 con `WWW-Authenticate`, dictamen, hitos, anulación, integridad, tablero, matriz, rol DTI, Swagger |
 | API | `tests/api/test_http_api.py` | 8 | Salud, login SSO → JWT, 401 sin token, tablero de Rectorado, envoltura, rutas, evidencia requiere plan, catálogo de unidades |
 | API | `tests/api/test_http_semantics.py` | 15 | 201 + `Location`, JSON mal formado, 405 + `Allow`, 405 antes que 401, `limit` inválido, CORS |
