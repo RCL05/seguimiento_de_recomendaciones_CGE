@@ -51,11 +51,11 @@ flowchart TB
 | `core/auth` | `backend/core/auth/` | — (clases DRF) | `usuarios` (modelo `Usuario`, `SsoAdapter`) |
 | `core/api` | `backend/core/api/` | `/health/` | — |
 | `core/audit` | `backend/core/audit/` | — (consultado por `reportes`) | `usuarios` |
-| `usuarios` | `backend/modules/usuarios/` | `auth/login-sso`, `unidades`, `usuarios`, `usuarios/{id}` | `core` |
+| `usuarios` | `backend/modules/usuarios/` | `sesiones`, `unidades`, `usuarios`, `usuarios/{id}` | `core` |
 | `informes_cge` | `backend/modules/informes_cge/` | `informes`, `informes/{id}`, `informes/{id}/documento` | `core`, modelos de `recomendaciones` |
-| `recomendaciones` | `backend/modules/recomendaciones/` | `recomendaciones`, `…/{id}`, `…/plan-accion`, `…/dictamenes` | `core`, `usuarios` |
+| `recomendaciones` | `backend/modules/recomendaciones/` | `recomendaciones`, `…/{id}`, `…/hitos`, `…/dictamenes` | `core`, `usuarios` |
 | `evidencias` | `backend/modules/evidencias/` | `…/{id}/evidencias`, `evidencias/{id}`, `…/archivo`, `…/integridad` | `core`, modelos y casos de uso de `recomendaciones` |
-| `notificaciones` | `backend/modules/notificaciones/` | `notificaciones`, `…/preferencias`, `…/configuracion`, `evaluaciones-plazos` | `core`, `usuarios`, `recomendaciones` |
+| `notificaciones` | `backend/modules/notificaciones/` | `notificaciones`, `…/preferencias`, `…/configuracion` (la evaluación de plazos es el comando `evaluar_plazos`) | `core`, `usuarios`, `recomendaciones` |
 | `reportes` | `backend/modules/reportes/` | `dashboard/kpis`, `reportes/tablero`, `reportes/matriz-cge`, `auditoria` | `core`, `recomendaciones`, `usuarios` |
 
 Observación: el caso de uso de carga de evidencias reside en `recomendaciones/application/upload_evidencia.py` y la vista en `evidencias/presentation/views.py`; la frontera entre ambos módulos es, por tanto, de presentación y no de modelo.

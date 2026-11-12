@@ -1,5 +1,5 @@
 @startuml secuencia_autenticacion
-' SITRA-CGE UNL — POST /api/v1/auth/login-sso y uso posterior del JWT.
+' SITRA-CGE UNL — POST /api/v1/sesiones y uso posterior del JWT.
 ' Derivado de usuarios/presentation/views.py::LoginSsoView, usuarios/application/login_sso.py,
 ' usuarios/infrastructure/sso_adapter.py y core/auth/authentication.py.
 autonumber
@@ -11,7 +11,7 @@ participant "SSO UNL\n(introspección)" as IdP
 database "Base de datos" as DB
 
 U -> SPA : Ingresa credencial institucional
-SPA -> L : POST /api/v1/auth/login-sso {credential}
+SPA -> L : POST /api/v1/sesiones {credential}
 L -> S : authenticate(token=credential)
 alt DJANGO_DEBUG=true y token de desarrollo
   S -> S : identidad fija (uai / ejecutor / dti / rectorado)

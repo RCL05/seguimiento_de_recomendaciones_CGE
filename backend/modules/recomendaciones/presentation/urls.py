@@ -1,6 +1,7 @@
 from django.urls import path
 
 from backend.modules.recomendaciones.presentation.views import (
+    DictamenDetailView,
     DictamenView,
     PlanAccionView,
     RecomendacionDetailView,
@@ -15,13 +16,18 @@ urlpatterns = [
         name="recomendacion-detalle",
     ),
     path(
-        "recomendaciones/<uuid:recommendation_id>/plan-accion",
+        "recomendaciones/<uuid:recommendation_id>/hitos",
         PlanAccionView.as_view(),
-        name="plan-accion",
+        name="hitos",
     ),
     path(
         "recomendaciones/<uuid:recommendation_id>/dictamenes",
         DictamenView.as_view(),
         name="dictamenes",
+    ),
+    path(
+        "recomendaciones/<uuid:recommendation_id>/dictamenes/<uuid:dictamen_id>",
+        DictamenDetailView.as_view(),
+        name="dictamen-detalle",
     ),
 ]

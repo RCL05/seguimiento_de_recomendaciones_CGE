@@ -10,7 +10,7 @@
 | 401 "Los permisos del token ya no coinciden…" | La DTI cambió el rol o la unidad del usuario | Iniciar sesión de nuevo |
 | El token de desarrollo no funciona | `DJANGO_DEBUG=false` | Es el comportamiento esperado; usar SSO real o `DEBUG=true` en local |
 | 404 al consultar una recomendación existente como ejecutor | Pertenece a otra unidad (protección BOLA) | Usar un ejecutor de la unidad responsable |
-| 400 "Debe registrar primero el Plan de acción…" al cargar evidencia | Estado `PENDIENTE` | Registrar al menos un hito |
+| 409 "Debe registrar primero el Plan de acción…" al cargar evidencia | Estado `PENDIENTE` | Registrar al menos un hito |
 | 409 al emitir dictamen | La recomendación no está `EN_VALIDACION` o ya se dictaminó | Verificar el estado |
 | 413 al cargar PDF | Supera `MAX_PDF_SIZE_BYTES` (30 MB) | Reducir el archivo |
 | No llegan correos en desarrollo | Sin `EMAIL_HOST`, el backend de correo es la consola | Revisar la salida del servidor o configurar SMTP |

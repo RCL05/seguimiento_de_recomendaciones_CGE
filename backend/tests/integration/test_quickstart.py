@@ -71,7 +71,7 @@ class QuickstartSmokeTests(TestCase):
 
     def _start_execution(self, recommendation_id):
         plan = self._post(
-            f"/api/v1/recomendaciones/{recommendation_id}/plan-accion",
+            f"/api/v1/recomendaciones/{recommendation_id}/hitos",
             {"descripcion_hito": "Documentar controles", "fecha_compromiso": "2027-01-30"},
             "EJECUTOR",
             "ejecutor-a",

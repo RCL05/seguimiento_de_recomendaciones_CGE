@@ -53,7 +53,7 @@ def test_login_sso_devuelve_jwt_con_claims_de_identidad(monkeypatch):
         lambda _adapter, *, token: sso_identity if token == "active-test-credential" else {},
     )
     valid = client.post(
-        "/api/v1/auth/login-sso",
+        "/api/v1/sesiones",
         data=json.dumps({"credential": "active-test-credential"}),
         content_type="application/json",
     )
@@ -68,7 +68,7 @@ def test_login_sso_devuelve_jwt_con_claims_de_identidad(monkeypatch):
     assert data["expires_in"] == SsoAdapter.token_ttl_seconds
 
     invalid = client.post(
-        "/api/v1/auth/login-sso",
+        "/api/v1/sesiones",
         data=json.dumps({"credential": "credencial-invalida"}),
         content_type="application/json",
     )
@@ -87,7 +87,7 @@ def test_peticion_sin_token_responde_401_authentication_required():
 def test_rectorado_inicia_sesion_y_consulta_tablero():
     client = Client()
     login = client.post(
-        "/api/v1/auth/login-sso",
+        "/api/v1/sesiones",
         data=json.dumps({"credential": "rectorado-sso-token"}),
         content_type="application/json",
     )
@@ -158,7 +158,7 @@ def test_report_and_plan_routes_are_available():
 
     plan = _post(
         client,
-        f"/api/v1/recomendaciones/{recommendation_id}/plan-accion",
+        f"/api/v1/recomendaciones/{recommendation_id}/hitos",
         {"descripcion_hito": "Presentar plan", "fecha_compromiso": "2026-11-01"},
         role="EJECUTOR",
         user="ejecutor-http",
@@ -201,11 +201,11 @@ def test_evidence_requires_plan_then_moves_to_review_and_locks_plan(tmp_path):
             HTTP_X_FILENAME="evidencia.pdf",
             **executor_headers,
         )
-        assert pending_upload.status_code == 400
+        assert pending_upload.status_code == 409
         assert "Plan de accion" in pending_upload.json()["errors"]["detail"]
 
         plan = client.post(
-            f"/api/v1/recomendaciones/{recommendation_id}/plan-accion",
+            f"/api/v1/recomendaciones/{recommendation_id}/hitos",
             data=json.dumps({
                 "descripcion_hito": "Aplicar control",
                 "fecha_compromiso": "2026-11-30",
@@ -231,7 +231,7 @@ def test_evidence_requires_plan_then_moves_to_review_and_locks_plan(tmp_path):
     assert detail.json()["data"]["state"] == "EN_VALIDACION"
 
     locked_plan = client.post(
-        f"/api/v1/recomendaciones/{recommendation_id}/plan-accion",
+        f"/api/v1/recomendaciones/{recommendation_id}/hitos",
         data=json.dumps({
             "descripcion_hito": "Otro hito",
             "fecha_compromiso": "2026-12-01",

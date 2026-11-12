@@ -2,7 +2,7 @@
 
 | Archivo | Contenido |
 |---|---|
-| `SITRA-CGE.postman_collection.json` | 42 solicitudes en 5 carpetas, con pruebas automáticas |
+| `SITRA-CGE.postman_collection.json` | 46 solicitudes en 5 carpetas, con pruebas automáticas |
 | `SITRA-CGE-local.postman_environment.json` | Entorno `SITRA-CGE local`: URL base y credenciales de desarrollo |
 
 ## Uso
@@ -27,9 +27,9 @@ colección. Cada ejecución usa un número de informe distinto, así que puede r
 |---|---|
 | 00 Salud y sesión | Salud del servicio, inicio de sesión de cuatro roles y credencial inválida (401 con `WWW-Authenticate`) |
 | 01 Administración DTI | Unidades, usuarios y configuración de notificaciones |
-| 02 Flujo de cumplimiento | Informe → recomendación → hito → evidencia → dictamen → reapertura → reasignación → auditoría |
+| 02 Flujo de cumplimiento | Informe → recomendación → hito → evidencia → dictamen (y su consulta por `Location`) → reapertura → reasignación → auditoría |
 | 03 Reportes y notificaciones | Tablero, KPIs por rol, matriz CGE en CSV y bandeja |
-| 04 Errores HTTP | 400, 401, 403, 404, 405 y 409 |
+| 04 Errores HTTP | 400 (incluida una referencia inexistente), 401, 403, 404, 405 y 409 (incluida evidencia sin plan) |
 
 ## Límite de inicio de sesión
 

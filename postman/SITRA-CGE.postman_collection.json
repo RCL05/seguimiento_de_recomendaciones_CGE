@@ -93,7 +93,15 @@
       "value": ""
     },
     {
+      "key": "dictamen_id",
+      "value": ""
+    },
+    {
       "key": "unidad_destino",
+      "value": ""
+    },
+    {
+      "key": "recomendacion_sin_plan_id",
       "value": ""
     }
   ],
@@ -143,15 +151,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/login-sso",
+              "raw": "{{baseUrl}}/api/v1/sesiones",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "v1",
-                "auth",
-                "login-sso"
+                "sesiones"
               ]
             },
             "description": "Credencial de desarrollo del rol UAI. Solo funciona con DJANGO_DEBUG=true.",
@@ -193,15 +200,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/login-sso",
+              "raw": "{{baseUrl}}/api/v1/sesiones",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "v1",
-                "auth",
-                "login-sso"
+                "sesiones"
               ]
             },
             "description": "Credencial de desarrollo del rol Ejecutor (DEP-A). Solo funciona con DJANGO_DEBUG=true.",
@@ -243,15 +249,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/login-sso",
+              "raw": "{{baseUrl}}/api/v1/sesiones",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "v1",
-                "auth",
-                "login-sso"
+                "sesiones"
               ]
             },
             "description": "Credencial de desarrollo del rol DTI. Solo funciona con DJANGO_DEBUG=true.",
@@ -293,15 +298,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/login-sso",
+              "raw": "{{baseUrl}}/api/v1/sesiones",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "v1",
-                "auth",
-                "login-sso"
+                "sesiones"
               ]
             },
             "description": "Credencial de desarrollo del rol Rectorado. Solo funciona con DJANGO_DEBUG=true.",
@@ -343,15 +347,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/login-sso",
+              "raw": "{{baseUrl}}/api/v1/sesiones",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "v1",
-                "auth",
-                "login-sso"
+                "sesiones"
               ]
             },
             "description": "",
@@ -899,7 +902,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/plan-accion",
+              "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/hitos",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -908,7 +911,7 @@
                 "v1",
                 "recomendaciones",
                 "{{recomendacion_id}}",
-                "plan-accion"
+                "hitos"
               ]
             },
             "description": "",
@@ -947,7 +950,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/plan-accion",
+              "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/hitos",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -956,7 +959,7 @@
                 "v1",
                 "recomendaciones",
                 "{{recomendacion_id}}",
-                "plan-accion"
+                "hitos"
               ]
             },
             "description": ""
@@ -1225,6 +1228,49 @@
                   "{",
                   "  pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
                   "  pm.test(\"Vuelve a EN_PROCESO\", () => pm.expect(pm.response.json().data.recomendacion.state).to.eql(\"EN_PROCESO\"));",
+                  "  pm.test(\"Location identifica el dictamen\", () => pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/dictamenes/\" + pm.response.json().data.id));",
+                  "  pm.collectionVariables.set(\"dictamen_id\", pm.response.json().data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar dictamen",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ejecutor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_id}}/dictamenes/{{dictamen_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "recomendaciones",
+                "{{recomendacion_id}}",
+                "dictamenes",
+                "{{dictamen_id}}"
+              ]
+            },
+            "description": "Recurso que identifica la cabecera Location del POST de dictámenes."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "{",
+                  "  pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "  pm.test(\"Es el rechazo registrado\", () => pm.expect(pm.response.json().data.resultado).to.eql(\"RECHAZADO\"));",
                   "}"
                 ]
               }
@@ -1916,6 +1962,163 @@
                   "{",
                   "  pm.test(\"Responde 400\", () => pm.response.to.have.status(400));",
                   "  pm.test(\"Detalla los campos\", () => pm.expect(pm.response.json().errors).to.have.property(\"fields\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "400 informe inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_uai}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/recomendaciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "recomendaciones"
+              ]
+            },
+            "description": "Una referencia inexistente es un dato de entrada inválido, no un conflicto.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"report_id\": \"00000000-0000-0000-0000-000000000000\",\n  \"number\": \"R-X\",\n  \"description\": \"Sin informe.\",\n  \"unit_id\": \"DEP-A\",\n  \"legal_days\": 30,\n  \"due_date\": \"{{fecha_vencimiento}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "{",
+                  "  pm.test(\"Responde 400\", () => pm.response.to.have.status(400));",
+                  "  pm.test(\"Señala el campo report_id\", () => pm.expect(pm.response.json().errors.fields).to.have.property(\"report_id\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preparar: recomendación sin plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_uai}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/recomendaciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "recomendaciones"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"report_id\": \"{{informe_id}}\",\n  \"number\": \"R-SINPLAN-{{sufijo}}\",\n  \"description\": \"Aún sin hitos.\",\n  \"unit_id\": \"DEP-A\",\n  \"legal_days\": 30,\n  \"due_date\": \"{{fecha_vencimiento}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "{",
+                  "  pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "  pm.collectionVariables.set(\"recomendacion_sin_plan_id\", pm.response.json().data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "409 evidencia sin plan de acción",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ejecutor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/pdf"
+              },
+              {
+                "key": "X-Filename",
+                "value": "prematura.pdf"
+              },
+              {
+                "key": "X-Evidence-Type",
+                "value": "FINAL"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/recomendaciones/{{recomendacion_sin_plan_id}}/evidencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "recomendaciones",
+                "{{recomendacion_sin_plan_id}}",
+                "evidencias"
+              ]
+            },
+            "description": "Pendiente sin plan no admite evidencias, igual que cualquier otro estado distinto de En Proceso.",
+            "body": {
+              "mode": "raw",
+              "raw": "%PDF-1.7\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "{",
+                  "  pm.test(\"Responde 409\", () => pm.response.to.have.status(409));",
                   "}"
                 ]
               }

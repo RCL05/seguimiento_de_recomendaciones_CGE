@@ -90,8 +90,8 @@ debe configurarse la validación OIDC real.
 - Las preferencias personales (`GET/PUT /api/v1/notificaciones/preferencias`)
   solo las edita el propio usuario o `DTI`.
 - La evaluación periódica se ejecuta con `python manage.py evaluar_plazos`
-  (alertas de vencimiento + registro de mora, ambos idempotentes). El endpoint
-  manual `POST /api/v1/evaluaciones-plazos` queda restringido a `DTI`.
+  (alertas de vencimiento + registro de mora, ambos idempotentes). No se expone
+  como endpoint de la API.
 - `docker-compose.yml` incluye el servicio `scheduler`, que repite el comando
   cada `SCHEDULER_INTERVAL_SECONDS` (3600 por defecto). Sin Docker, use cron:
 

@@ -10,7 +10,7 @@ Proveer a la UNL una plataforma que registre las recomendaciones de la CGE con r
 | OE-2 | Permitir a las unidades planificar hitos y cargar evidencias PDF verificables | RF-007, RF-008 | Implementado y probado |
 | OE-3 | Garantizar que solo la UAI declare el cumplimiento, con evidencia validada | RF-009, RF-010, RF-023 | Implementado y probado |
 | OE-4 | Alertar vencimientos próximos y registrar vencimientos sin alterar el estado | RF-011, RF-012, RF-021 | Implementado; reintento SMTP acotado (máx. 3 intentos) |
-| OE-5 | Ofrecer al Rectorado un tablero de riesgo y unidades en mora | RF-013 | Implementado; rendimiento no medido (H-19) |
+| OE-5 | Ofrecer al Rectorado un tablero de riesgo y unidades en mora | RF-013 | Implementado; rendimiento medido con pruebas automatizadas |
 | OE-6 | Exportar la matriz de cumplimiento y consultar la auditoría | RF-014, RF-017, RF-018 | Implementado; conformidad normativa por validar (H-09) |
 | OE-7 | Administrar identidad, roles, unidades y notificaciones | RF-001, RF-002, RF-004 | Implementado; SSO productivo por definir |
 
@@ -44,4 +44,3 @@ Proveer a la UNL una plataforma que registre las recomendaciones de la CGE con r
 | Sin escaneo antimalware de PDF | H-03 |
 | Almacenamiento de archivos solo local (sin S3) | H-04 |
 | Sin proxy TLS ni automatización completa de despliegue | H-22 |
-| Rendimiento (RNF-005/006) sin medición real | H-19 |

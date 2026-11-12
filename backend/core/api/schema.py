@@ -109,5 +109,5 @@ class JWTBearerScheme(OpenApiAuthenticationExtension):
             "type": "http",
             "scheme": "bearer",
             "bearerFormat": "JWT",
-            "description": "JWT emitido por POST /api/v1/auth/login-sso (expira en 1 hora).",
+            "description": "JWT emitido por POST /api/v1/sesiones (expira en 1 hora).",
         }

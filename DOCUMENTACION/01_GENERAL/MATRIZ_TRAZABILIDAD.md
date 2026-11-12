@@ -1,6 +1,6 @@
 ## Cómo leer la matriz
 
-Cada fila sigue la cadena **Requisito → Funcionalidad → Componente → Implementación → Prueba → Evidencia**. Solo se registran relaciones comprobadas leyendo el código y los nombres de las pruebas; la columna *Evidencia* indica el resultado de la ejecución del 2026-11-11 (`pytest`: 145 pruebas aprobadas). Cuando falta un eslabón, se indica explícitamente.
+Cada fila sigue la cadena **Requisito → Funcionalidad → Componente → Implementación → Prueba → Evidencia**. Solo se registran relaciones comprobadas leyendo el código y los nombres de las pruebas; la columna *Evidencia* indica el resultado de la ejecución del 2026-11-11 (`pytest`: 231 pruebas aprobadas). Cuando falta un eslabón, se indica explícitamente.
 
 Rutas abreviadas: `rec/` = `backend/modules/recomendaciones/`, `evi/` = `backend/modules/evidencias/`, `not/` = `backend/modules/notificaciones/`, `rep/` = `backend/modules/reportes/`, `usu/` = `backend/modules/usuarios/`, `inf/` = `backend/modules/informes_cge/`, `t/` = `backend/tests/`.
 
@@ -34,7 +34,7 @@ Rutas abreviadas: `rec/` = `backend/modules/recomendaciones/`, `evi/` = `backend
 | RF-024 | Archivos protegidos | `evidencias`, `informes_cge` | `evi/application/get_evidence_file.py`, `InformeDocumentoView` | `t/security/test_archivos_y_reapertura.py::test_media_no_se_publica_ni_con_debug`, `test_documento_del_informe_requiere_token_y_rol` | Aprobadas |
 | RNF-001 | Integridad SHA-256 | `evidencias` | `verify_integrity.py` | `t/integration/evidencias/test_integrity_flow.py` | Aprobadas |
 | RNF-002 | Bitácora inmutable | `core/audit` | `ImmutableAuditLogQuerySet`, `AuditLog.save/delete` | `t/security/test_audit_immutability.py` | Aprobadas |
-| RNF-005/006 | Rendimiento | `reportes` | — | `t/integration/reportes/test_report_performance.py` (solo constantes) | Eslabón faltante (H-19) |
+| RNF-005/006 | Rendimiento | `reportes` | `get_kpis.py`, `export_matriz.py` | `t/integration/reportes/test_report_performance.py` (umbral de tiempo y ausencia de N+1) | Aprobadas |
 | RNF-008 | Privacidad en logs | `core/security` | `log_safety.py` | `t/security/test_secret_and_log_safety.py` | Aprobadas |
 | RNF-011 | Navegación por rol | frontend | `frontend/src/routes.tsx`, `App.tsx` | `frontend/src/App.test.tsx`, E2E `recommendation-flow.spec.ts` (no ejecutada) | Vitest aprobado; E2E sin evidencia |
 

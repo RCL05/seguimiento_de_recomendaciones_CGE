@@ -49,7 +49,7 @@ Las pruebas cubren deliberadamente ambos tipos. Ejemplos:
 ## Limitaciones de la estrategia
 
 - **Sin medición de cobertura**: no hay `pytest-cov` ni configuración de cobertura en Vitest. No se informa porcentaje.
-- **Rendimiento sin medir**: `test_objetivos_performance_definidos` solo afirma constantes (H-19).
+- **Rendimiento medido**: `test_report_performance.py` verifica los umbrales de tiempo (tablero < 3 s, matriz < 5 s con todas las filas) y la ausencia de crecimiento N+1 en las consultas.
 - **E2E fuera de CI** (H-18) y sin pruebas contra el backend real.
 - **Concurrencia en SQLite**: SQLite no implementa bloqueo de fila; la prueba no demuestra el comportamiento en PostgreSQL.
 - **Accesibilidad** (RNF-012) y **usabilidad** (SC-009) sin pruebas.
