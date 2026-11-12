@@ -2,43 +2,46 @@
 
 | Dato | Valor |
 |---|---|
-| Repositorio | `RCL05/seguimiento_de_recomendaciones_CGE` |
-| Propietario | `RCL05` (cuenta con permisos de administración necesaria para activar Pages) |
-| URL pública esperada | **https://rcl05.github.io/seguimiento_de_recomendaciones_CGE/** |
+| Repositorio de las fuentes | `RCL05/seguimiento_de_recomendaciones_CGE` (rama `main`, carpetas `docs/` y `DOCUMENTACION/`) |
+| Repositorio de publicación | `BrTrl3/sitra-cge-docs` (público) |
+| URL pública | **https://brtrl3.github.io/sitra-cge-docs/** |
 | Proyecto Quarto | `docs/` (`docs/_quarto.yml`) |
 | Salida | `docs/_site/` (no versionada) |
-| Workflow | `.github/workflows/publish-quarto.yml` |
-| Fuente de Pages | **GitHub Actions** (no "Deploy from a branch") |
+| Workflow de publicación | `.github/workflows/publicar.yml` en `BrTrl3/sitra-cge-docs` |
+| Workflow de verificación | `.github/workflows/publish-quarto.yml` en este repositorio |
+| Fuente de Pages | **GitHub Actions** |
 
-Las rutas del sitio son relativas y `site-url` está fijado en `_quarto.yml`, por lo que funciona bajo el subdirectorio `/seguimiento_de_recomendaciones_CGE/`.
+Se publica desde un repositorio aparte porque activar Pages y guardar secretos en el
+repositorio del proyecto requiere permisos de administración. El repositorio de
+publicación no necesita tokens: el proyecto es público y su workflow lo descarga.
 
-## Cómo funciona el workflow
+## Cómo funcionan los workflows
 
-| Evento | Qué hace |
-|---|---|
-| `push` a `main` que toque `docs/**`, `DOCUMENTACION/**` o el workflow | Construye y **publica** |
-| `pull_request` con esos cambios | Solo **construye** (verifica que compila); no publica |
-| `workflow_dispatch` | Construye y publica manualmente |
+| Workflow | Evento | Qué hace |
+|---|---|---|
+| `publish-quarto.yml` (proyecto) | `push` a `main` o `develop`, o `pull_request`, que toque `docs/**`, `DOCUMENTACION/**` o el workflow | Solo **construye** el portal para verificar que compila |
+| `publicar.yml` (`sitra-cge-docs`) | Todos los días a las 06:00 (Ecuador), a mano o con un `push` a su `main` | Descarga `main` del proyecto, construye y **publica** |
 
-Pasos del job `build`: `actions/checkout@v4` → `quarto-dev/quarto-actions/setup@v2` (Quarto 1.11.9) → `quarto render docs` (ejecuta antes `assets/scripts/sync-diagrams.ts`, que copia las fuentes BPMN/DSL/PUML) → `actions/configure-pages@v5` → `actions/upload-pages-artifact@v3` con `docs/_site`.
-Job `deploy`: `actions/deploy-pages@v4` en el entorno `github-pages`.
+Pasos de `publicar.yml`: `actions/checkout@v4` del proyecto → `quarto-dev/quarto-actions/setup@v2`
+(Quarto 1.11.9) → `quarto render docs` (ejecuta antes `assets/scripts/sync-diagrams.ts`, que copia
+las fuentes BPMN/DSL/PUML) → `actions/configure-pages@v5` → `actions/upload-pages-artifact@v3`
+con `docs/_site` → `actions/deploy-pages@v4` en el entorno `github-pages`.
 
-Permisos: el workflow solo tiene `contents: read`; el job de despliegue añade `pages: write` e `id-token: write`, los mínimos exigidos por `deploy-pages`. El grupo de concurrencia `pages` evita publicaciones simultáneas.
+Permisos: el workflow solo tiene `contents: read`; el job de despliegue añade `pages: write` e
+`id-token: write`, los mínimos exigidos por `deploy-pages`.
 
-## Guía para el propietario del repositorio
+## Publicar los cambios
 
-1. **Integrar los cambios en `main`.** El entorno `github-pages` solo permite desplegar desde la rama por defecto. Abra un pull request de `feature/sdd-spec-kit-structure` hacia `develop`/`main` según GitFlow (ADR-0009). El PR ejecutará la construcción de prueba.
-2. **Ingresar a GitHub** con la cuenta `RCL05` (o una con rol *Admin* en el repositorio).
-3. **Abrir el repositorio** `https://github.com/RCL05/seguimiento_de_recomendaciones_CGE`.
-4. **Entrar a *Settings*** (pestaña superior derecha del repositorio).
-5. **Abrir *Pages*** en el menú lateral, sección *Code and automation*.
-6. **Configurar la fuente**: en *Build and deployment → Source* elegir **GitHub Actions**.
-7. **Revisar permisos**: en *Settings → Actions → General* confirmar que las Actions están permitidas. En *Settings → Environments → github-pages* comprobar que la regla de ramas admite `main`. No es necesario cambiar *Workflow permissions*: el workflow declara sus propios permisos.
-8. **Ejecutar el workflow**: hacer *merge* a `main` (se dispara solo) o ir a *Actions → "Publicar documentación (Quarto → GitHub Pages)" → Run workflow*.
-9. **Comprobar la publicación**: en *Actions* ambos jobs deben terminar en verde; el job *Publicar en GitHub Pages* muestra la URL.
-10. **Obtener el enlace público**: en *Settings → Pages* aparece "Your site is live at https://rcl05.github.io/seguimiento_de_recomendaciones_CGE/". Opcional: añadirlo en *About → Website* del repositorio.
+1. Editar las fuentes en `DOCUMENTACION/` o `docs/` e integrarlas en `main` del proyecto.
+2. Esperar la publicación diaria, o publicarla de inmediato:
 
-Si el repositorio es privado, GitHub Pages requiere un plan que lo permita (GitHub Pro, Team o Enterprise); en repositorios públicos es gratuito.
+   ```bash
+   gh workflow run publicar.yml -R BrTrl3/sitra-cge-docs
+   ```
+
+   También desde *Actions → Publicar documentación → Run workflow* en `BrTrl3/sitra-cge-docs`.
+   El campo *ref* permite publicar otra rama del proyecto, por ejemplo `develop`.
+3. Comprobar en *Actions* que ambos jobs terminan en verde y abrir https://brtrl3.github.io/sitra-cge-docs/.
 
 ## Construcción local
 
@@ -57,7 +60,7 @@ quarto preview docs       # vista previa con recarga automática
 | Editar un diagrama BPMN | Abrir `DOCUMENTACION/02_PROCESOS/DIAGRAMAS/*.bpmn` en bpmn.io o Camunda Modeler; el portal lo muestra tal cual |
 | Editar C4 / UML | `DOCUMENTACION/03_ARQUITECTURA/DIAGRAMAS/workspace.dsl` y `*.puml`; actualizar también la vista Mermaid del capítulo |
 | Añadir una referencia | `DOCUMENTACION/10_REFERENCIAS/references.bib` y citar con `[@clave]` |
-| Republicar | Hacer *merge* a `main`; o *Run workflow* |
-| Cambiar la versión de Quarto | Parámetro `version` del paso *Instalar Quarto* |
+| Republicar | Hacer *merge* a `main` y ejecutar `gh workflow run publicar.yml -R BrTrl3/sitra-cge-docs` |
+| Cambiar la versión de Quarto | Parámetro `version` del paso *Instalar Quarto*, en los dos workflows |
 
 Los `.md` históricos de `docs/` (ADR, manuales) no forman parte del render (lista `project.render`) y siguen disponibles en el servidor Quart (`python docs_server/app.py`).

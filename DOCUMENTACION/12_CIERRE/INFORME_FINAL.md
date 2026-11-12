@@ -94,9 +94,9 @@ Cada página del portal contiene solo metadatos, el objetivo y un `{{< include >
 | F-18 | Operación | `09_OPERACION/*` | Código | Completo | — |
 | F-19 | Referencias y declaración de IA | `10_REFERENCIAS/*` | 22 referencias | Completo | Uso de IA del equipo por declarar |
 | F-20 | Portal Quarto | `docs/_quarto.yml`, `docs/**/*.qmd` | Render 0 errores, 0 enlaces rotos | Completo | — |
-| F-21 | Workflow de publicación | `.github/workflows/publish-quarto.yml` | Revisión | Preparado | No ejecutado en GitHub |
+| F-21 | Workflow de publicación | `publicar.yml` en `BrTrl3/sitra-cge-docs`; verificación en `.github/workflows/publish-quarto.yml` | Ejecución en GitHub Actions | Completo | — |
 | F-22 | Guía de publicación y mantenimiento | `11_PUBLICACION_GITHUB_PAGES.md` | — | Completo | — |
-| F-23 | Publicación real | https://rcl05.github.io/seguimiento_de_recomendaciones_CGE/ | — | **Pendiente** | Requiere acción del propietario |
+| F-23 | Publicación real | https://brtrl3.github.io/sitra-cge-docs/ | Sitio responde 200 | Completo | Se actualiza a diario o a mano |
 | F-24 | Capturas de pantalla de la aplicación | — | — | No realizado | Fuera de lo verificado; ver limitaciones |
 | F-25 | Manual de usuario | `docs/manual-usuario.md` (existente) | — | Sin cambios | Fuera del alcance técnico de este encargo |
 
@@ -136,4 +136,4 @@ Output created: _site/index.html
 1. Revisar el portal localmente: `quarto preview docs`.
 2. Confirmar los cambios (archivos nuevos en `DOCUMENTACION/`, `docs/`, `.github/workflows/publish-quarto.yml`; modificados `.gitignore` y `.claude/launch.json`).
 3. Abrir un pull request hacia `develop`/`main`; el workflow construirá el portal como verificación.
-4. Tras el *merge* a `main`, seguir la guía de *Publicación en GitHub Pages* y entregar la URL **https://rcl05.github.io/seguimiento_de_recomendaciones_CGE/**.
+4. Tras el *merge* a `main`, ejecutar `gh workflow run publicar.yml -R BrTrl3/sitra-cge-docs` y entregar la URL **https://brtrl3.github.io/sitra-cge-docs/**.

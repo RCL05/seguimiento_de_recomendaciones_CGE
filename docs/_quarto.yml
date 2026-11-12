@@ -28,7 +28,7 @@ lang: es
 website:
   title: "SITRA-CGE UNL"
   description: "Documentación técnica del Sistema de seguimiento de recomendaciones de la Contraloría General del Estado para la Universidad Nacional de Loja."
-  site-url: "https://rcl05.github.io/seguimiento_de_recomendaciones_CGE/"
+  site-url: "https://brtrl3.github.io/sitra-cge-docs/"
   repo-url: "https://github.com/RCL05/seguimiento_de_recomendaciones_CGE"
   repo-subdir: docs
   repo-actions: [source, issue]
