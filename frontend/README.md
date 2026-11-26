@@ -79,3 +79,43 @@ directa al backend; el proxy por sí solo no comprueba esa política.
 
 El [informe del integrante 1](../docs/semanas/semana-06/ape6-arquitectura-frontend-derick.md)
 incluye el contrato revisado, los límites de la intervención y las preguntas 1 y 4.
+
+## Feature de la APE 6: Consulta de recomendaciones
+
+### Trazabilidad
+
+| Eslabón | Elemento |
+|---|---|
+| Feature | F-006 · Consulta del estado de cumplimiento (`feature-map.md`) |
+| Historia y criterio | HU-02 · CA-02.2: filtrado por estado, unidad y plazo |
+| Requisitos | RF-019: el ejecutor solo ve su unidad · RNF-003 · RNF-004 |
+| Operación OpenAPI | `listarRecomendaciones` · `GET /api/v1/recomendaciones` · seguridad `bearerAuth` |
+| Modelos | `RecommendationQuery`, `PaginatedResult<Recommendation>` en `src/models/domain.types.ts` |
+| Servicio | `recommendationsService.listPage(filters)` en `src/services/recommendations.service.ts` |
+| Componente y ruta | [componente de consulta y su ruta] |
+| Evidencias | `docs/evidencias/` (casos PI-01 a PI-09) |
+
+La correspondencia parámetro por parámetro con el contrato, los estados de la interfaz
+y los casos de prueba de integración están en
+[`DOCUMENTACION/04_IMPLEMENTACION/FRONTEND_CONSUMO_API.md`](../DOCUMENTACION/04_IMPLEMENTACION/FRONTEND_CONSUMO_API.md).
+
+### Estados de la interfaz
+
+| Estado | Respuesta de la API | Qué ve la persona usuaria |
+|---|---|---|
+| Carga | Solicitud en curso | "Consultando recomendaciones…" |
+| Éxito | 200 con resultados | Tabla con paginación |
+| Vacío | 200 con `data: []` | "No hay recomendaciones que coincidan con los filtros" |
+| Validación | Datos incoherentes antes de enviar, o 400 `VALIDATION_ERROR` | Mensaje para corregir el filtro |
+| Sesión vencida | 401 | Vuelta al inicio de sesión |
+| No autorizado | 403 | "Su rol no tiene permiso para consultar recomendaciones" |
+| Servidor no disponible | 5xx o sin conexión | Mensaje sin detalle técnico y **Reintentar** |
+
+### Contribuciones
+
+| Integrante | Parte | Evidencia |
+|---|---|---|
+| [Integrante 1] | Configuración, URL base, cliente HTTP y CORS | PR #24 |
+| [Integrante 2] | Modelos y servicio según OpenAPI | PR #23 |
+| [Integrante 3] | Componente, validaciones y ruta | [PR] |
+| [Integrante 4] | Gestión de estados, pruebas, evidencias y documentación | PR #25 |
