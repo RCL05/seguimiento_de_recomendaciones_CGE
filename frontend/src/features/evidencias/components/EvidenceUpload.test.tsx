@@ -18,7 +18,10 @@ const uploadedEvidence = {
   size_bytes: 1200,
   sha256: "a".repeat(64),
   uploaded_at: "2026-10-26T10:00:00Z",
+  uploaded_by: "user-1",
   validated: false,
+  type: "FINAL" as const,
+  status: "VIGENTE" as const,
 };
 
 describe("EvidenceUpload", () => {

@@ -163,3 +163,26 @@ def test_evaluaciones_plazos_ya_no_se_expone_en_la_api():
     dti = authenticated_headers("DTI", "dti-acd3")
     response = Client().post("/api/v1/evaluaciones-plazos", **dti)
     assert response.status_code == 404
+
+
+# --- Descargas de archivos: Accept del tipo que se entrega ---------------------
+
+
+def test_descargas_aceptan_el_tipo_de_archivo_que_entregan(recomendacion_en_validacion, uai):  # noqa: F811
+    _, evidencia, _ = recomendacion_en_validacion
+
+    pdf = Client().get(f"/api/v1/evidencias/{evidencia['id']}/archivo", HTTP_ACCEPT="application/pdf", **uai)
+    csv = Client().get("/api/v1/reportes/matriz-cge", HTTP_ACCEPT="text/csv", **uai)
+
+    assert pdf.status_code == 200
+    assert pdf["Content-Type"].startswith("application/pdf")
+    assert csv.status_code == 200
+    assert csv["Content-Type"].startswith("text/csv")
+
+
+def test_error_en_una_descarga_sigue_en_json_aunque_se_pida_pdf(uai):  # noqa: F811
+    response = Client().get(f"/api/v1/evidencias/{uuid4()}/archivo", HTTP_ACCEPT="application/pdf", **uai)
+
+    assert response.status_code == 404
+    assert response["Content-Type"].startswith("application/json")
+    assert response.json()["errors"]["code"] == "RESOURCE_NOT_FOUND"

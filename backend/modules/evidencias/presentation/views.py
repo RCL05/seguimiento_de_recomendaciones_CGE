@@ -8,7 +8,7 @@ from django.urls import reverse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 
-from backend.core.api.base import ApiView, ok
+from backend.core.api.base import ApiView, FileDownloadView, ok
 from backend.core.api.schema import envelope, errors
 from backend.core.auth.permissions import IsAuthenticatedActor, require_roles
 from backend.core.shared.domain_types import PayloadTooLarge, Role, ValidationError
@@ -115,7 +115,7 @@ class EvidenciaDetailView(ApiView):
         return ok(request, EvidenciaSerializer(evidence).data, "Evidencia anulada")
 
 
-class EvidenciaArchivoView(ApiView):
+class EvidenciaArchivoView(FileDownloadView):
     @extend_schema(
         tags=["Evidencias"],
         operation_id="descargarEvidencia",

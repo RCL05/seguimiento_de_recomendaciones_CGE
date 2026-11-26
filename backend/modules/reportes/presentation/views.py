@@ -6,7 +6,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers
 
-from backend.core.api.base import ApiView, ok
+from backend.core.api.base import ApiView, FileDownloadView, ok
 from backend.core.api.schema import envelope, errors
 from backend.core.audit.repository import query_audit_log
 from backend.core.auth.permissions import IsAuthenticatedActor, require_roles
@@ -54,7 +54,7 @@ class TableroView(ApiView):
         return ok(request, TableroSerializer(data).data, "Resumen ejecutivo consultado")
 
 
-class MatrizCgeView(ApiView):
+class MatrizCgeView(FileDownloadView):
     @extend_schema(
         tags=["Reportes"],
         operation_id="exportarMatrizCge",

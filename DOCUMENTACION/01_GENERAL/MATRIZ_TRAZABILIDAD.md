@@ -1,6 +1,6 @@
 ## Cómo leer la matriz
 
-Cada fila sigue la cadena **Requisito → Funcionalidad → Componente → Implementación → Prueba → Evidencia**. Solo se registran relaciones comprobadas leyendo el código y los nombres de las pruebas; la columna *Evidencia* indica el resultado de la ejecución del 2026-11-11 (`pytest`: 231 pruebas aprobadas). Cuando falta un eslabón, se indica explícitamente.
+Cada fila sigue la cadena **Requisito → Funcionalidad → Componente → Implementación → Prueba → Evidencia**. Solo se registran relaciones comprobadas leyendo el código y los nombres de las pruebas; la columna *Evidencia* indica el resultado de la ejecución del 2026-11-11 (`pytest`: 233 pruebas aprobadas). Cuando falta un eslabón, se indica explícitamente.
 
 Rutas abreviadas: `rec/` = `backend/modules/recomendaciones/`, `evi/` = `backend/modules/evidencias/`, `not/` = `backend/modules/notificaciones/`, `rep/` = `backend/modules/reportes/`, `usu/` = `backend/modules/usuarios/`, `inf/` = `backend/modules/informes_cge/`, `t/` = `backend/tests/`.
 

@@ -24,7 +24,7 @@ toc: true
 <strong>5</strong> roles con segregación de funciones
 :::
 ::: {.metric}
-<strong>243</strong> pruebas automatizadas aprobadas (231 backend · 12 frontend)
+<strong>245</strong> pruebas automatizadas aprobadas (233 backend · 12 frontend)
 :::
 :::
 
