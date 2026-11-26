@@ -93,6 +93,7 @@ website:
           - 04-implementacion/estructura.qmd
           - 04-implementacion/componentes.qmd
           - 04-implementacion/modelo-datos.qmd
+          - 04-implementacion/frontend-consumo-api.qmd
       - section: "5. API e integraciones"
         contents:
           - 05-api/api-general.qmd

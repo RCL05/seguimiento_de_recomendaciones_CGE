@@ -1,0 +1,12 @@
+---
+title: "Consumo de la API desde el frontend"
+description: "Relacionar la feature, la operación OpenAPI, el servicio y el componente frontend que la consumen."
+---
+
+::: {.callout-note appearance="simple" icon=false}
+**Objetivo de esta página.** Relacionar la feature, la operación OpenAPI, el servicio y el componente frontend que la consumen.
+
+Fuente única: [`DOCUMENTACION/04_IMPLEMENTACION/FRONTEND_CONSUMO_API.md`](https://github.com/RCL05/seguimiento_de_recomendaciones_CGE/blob/main/DOCUMENTACION/04_IMPLEMENTACION/FRONTEND_CONSUMO_API.md).
+:::
+
+{{< include ../../DOCUMENTACION/04_IMPLEMENTACION/FRONTEND_CONSUMO_API.md >}}
