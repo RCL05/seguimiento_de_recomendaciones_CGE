@@ -165,7 +165,7 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+const API_BASE = (import.meta.env.VITE_API_BASE ?? "").trim().replace(/\/+$/, "");
 const SESSION_KEY = "sitra.session";
 
 type LoginResponse = {
