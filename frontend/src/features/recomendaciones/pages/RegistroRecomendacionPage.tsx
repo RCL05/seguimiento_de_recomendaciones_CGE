@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
-import { api, ApiError, Recommendation, Report, Unit } from "../../../api/client";
+import { api, ApiError, Priority, Recommendation, Report, Unit } from "../../../api/client";
 import { FormStepper } from "../../../components/FormStepper";
 import { Toast } from "../../../components/Toast";
 import { formatDate, STATE_OPTIONS } from "../../../components/format";
@@ -8,6 +8,10 @@ import { EmptyState, Notice, PageHeader, RecommendationBadges } from "../../../c
 import { useToast } from "../../../hooks/useToast";
 
 const MAX_REPORT_PDF_BYTES = 30 * 1024 * 1024;
+
+function isPriority(value: string): value is Priority {
+  return value === "ALTA" || value === "MEDIA" || value === "BAJA";
+}
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -90,6 +94,12 @@ export function RegistroRecomendacionPage() {
         setCreatedReport(report);
       }
 
+      const priority = String(form.get("prioridad"));
+      if (!isPriority(priority)) {
+        showToast("Seleccione una prioridad válida.", "error");
+        return;
+      }
+
       const recommendation = await api.createRecommendation({
         report_id: report.id,
         number: String(form.get("numero_recomendacion")),
@@ -97,7 +107,7 @@ export function RegistroRecomendacionPage() {
         unit_id: String(form.get("unidad")),
         legal_days: Number(form.get("plazo_legal_dias")),
         due_date: String(form.get("fecha_vencimiento")),
-        priority: String(form.get("prioridad")),
+        priority,
       });
       await refreshRecommendations();
       showToast(`Recomendación ${recommendation.number} registrada y asignada a ${recommendation.unit_id}.`);
