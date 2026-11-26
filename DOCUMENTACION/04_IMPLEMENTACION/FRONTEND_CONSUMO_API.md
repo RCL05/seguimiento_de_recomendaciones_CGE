@@ -1,81 +1,90 @@
 # Consumo de la API desde el frontend
 
-Este documento registra cómo el frontend consume la API para la feature **Consulta de recomendaciones**: qué operación del contrato usa, qué servicio la llama, qué componente la presenta y qué pruebas lo verifican.
+Este documento registra cómo el frontend consume la API para la feature **Consulta de recomendaciones** (APE-006): qué operación del contrato usa, qué servicio la llama, qué componente la presenta, qué estados muestra y cómo se verifica.
 
 ## Trazabilidad
 
-| Eslabón | Elemento | Fuente |
-|---|---|---|
-| Feature | F-006 · Consulta del estado de cumplimiento | `feature-map.md` §6 |
-| Historia y criterio | HU-02 (consulta del estado) · CA-02.2 (filtrado por estado, unidad y plazo) | `feature-map.md`, F-006 |
-| Requisitos | RF-019 (el ejecutor solo ve su unidad) · RNF-003 (autorización por rol y por objeto) · RNF-004 (contrato de respuesta) | `specs/001-seguimiento-recomendaciones/spec.md` |
-| Operación OpenAPI | `listarRecomendaciones` · `GET /api/v1/recomendaciones` | `backend/contracts/openapi.yaml` |
-| Implementación backend | `RecomendacionListCreateView.get` → `ListRecomendaciones.execute` | `backend/modules/recomendaciones/` |
-| Servicio frontend | `listarRecomendaciones(filtros, signal)` | `frontend/src/features/recomendaciones/services/recomendacionesService.ts` |
-| Componente | `ConsultaRecomendacionesPage` | `frontend/src/features/recomendaciones/pages/ConsultaRecomendacionesPage.tsx` |
-| Ruta de la interfaz | `/recomendaciones/consulta` · roles UAI, Ejecutor, Rectorado y Auditor CGE | `frontend/src/routes.tsx` |
-| Pruebas | `recomendacionesService.test.ts` (4) · `ConsultaRecomendacionesPage.test.tsx` (9) | `frontend/src/features/recomendaciones/` |
+| Eslabón | Elemento | Fuente | Responsable |
+|---|---|---|---|
+| Feature | F-006 · Consulta del estado de cumplimiento | `feature-map.md` §6 | — |
+| Historia y criterio | HU-02 (consulta del estado) · CA-02.2 (filtrado por estado, unidad y plazo) | `feature-map.md`, F-006 | — |
+| Requisitos | RF-019 (el ejecutor solo ve su unidad) · RNF-003 (autorización por rol y por objeto) · RNF-004 (contrato de respuesta) | `specs/001-seguimiento-recomendaciones/spec.md` | — |
+| Operación OpenAPI | `listarRecomendaciones` · `GET /api/v1/recomendaciones` · seguridad `bearerAuth` | `backend/contracts/openapi.yaml` | — |
+| Implementación backend | `RecomendacionListCreateView.get` → `ListRecomendaciones.execute` | `backend/modules/recomendaciones/` | — |
+| Configuración | URL base (`VITE_API_BASE`), proxy de Vite y CORS | `frontend/.env.example`, `frontend/vite.config.ts` | Integrante 1 |
+| Modelos | `RecommendationQuery`, `Recommendation`, `PaginatedResult<T>` | `frontend/src/models/domain.types.ts` | Integrante 2 |
+| Cliente HTTP | `requestResult`, `serializeQuery`, `ApiError` | `frontend/src/services/apiClient.ts` | Integrante 2 |
+| Servicio | `recommendationsService.listPage(filters)` | `frontend/src/services/recommendations.service.ts` | Integrante 2 |
+| Componente y ruta | [Componente de consulta y su ruta] | [`frontend/src/features/…`] | Integrante 3 |
+| Estados, pruebas y evidencias | Estados de la interfaz, casos PI-01 a PI-09 | Este documento, `frontend/docs/evidencias/` | Integrante 4 |
 
-Los roles de la ruta son los mismos que `ListRecomendaciones.ALLOWED_ROLES` en el backend. El DTI no ve la opción en el menú; si llamara a la API directamente, recibiría 403.
+Los roles que pueden consultar son los de `ListRecomendaciones.ALLOWED_ROLES` en el backend: UAI, Ejecutor, Rectorado y Auditor CGE. El DTI recibe 403.
 
 ## Correspondencia con el contrato
 
-| Contrato (`listarRecomendaciones`) | Servicio frontend |
+| Contrato (`listarRecomendaciones`) | Frontend |
 |---|---|
-| `GET /api/v1/recomendaciones` | `requestEnvelope("/api/v1/recomendaciones?…", { method: "GET" })` |
-| Seguridad `bearerAuth` | Cabecera `Authorization: Bearer <JWT>`, agregada por `api/client.ts` |
-| `page` (entero ≥ 1, por defecto 1) | `filtros.page` |
-| `page_size` (1 a 100, por defecto 25) | `filtros.page_size`; la interfaz ofrece 10, 25, 50 y 100 |
-| `state` (enum de 5 estados) | `filtros.state`, tipado con `ESTADOS` |
-| `priority` (`ALTA`, `MEDIA`, `BAJA`) | `filtros.priority`, tipado con `PRIORIDADES` |
-| `unit_id`, `due_date`, `due_before`, `due_after` | Mismos nombres; fechas en formato `YYYY-MM-DD` |
-| `vencida` (booleano) | `filtros.vencida`: `true`, `false` u omitido |
-| 200 `RecomendacionesEnvelope` | `{ items: data, pagination: meta.pagination }` |
-| 400 `VALIDATION_ERROR` con `errors.fields` | `ApiError` con `status`, `code` y `fields` |
-| 401 `AUTHENTICATION_REQUIRED` | `ApiError` 401; se borra la sesión y la aplicación vuelve al login |
+| `GET /api/v1/recomendaciones` | `recommendationsService.listPage(filters)` → `requestResult("/api/v1/recomendaciones" + serializeQuery(filters))` |
+| Seguridad `bearerAuth` | `apiClient.ts` agrega `Authorization: Bearer <JWT>` desde la sesión |
+| `page` (entero ≥ 1, por defecto 1) | `RecommendationQuery.page` |
+| `page_size` (1 a 100, por defecto 25) | `RecommendationQuery.page_size` |
+| `state` (`PENDIENTE`, `EN_PROCESO`, `EN_VALIDACION`, `REABIERTA`, `CUMPLIDA`) | `RecommendationQuery.state` |
+| `priority` (`ALTA`, `MEDIA`, `BAJA`) | `RecommendationQuery.priority` |
+| `unit_id`, `due_date`, `due_before`, `due_after` | Mismos nombres en `RecommendationQuery`; fechas en formato `YYYY-MM-DD` |
+| `vencida` (booleano) | `RecommendationQuery.vencida` |
+| 200 `RecomendacionesEnvelope`: `data` y `meta.pagination` | `PaginatedResult<Recommendation>`: `{ items, pagination }` |
+| 400 `VALIDATION_ERROR` | `ApiError` con `status` 400 y `code` |
+| 401 `AUTHENTICATION_REQUIRED` | `ApiError` 401; el cliente borra la sesión y emite `sitra:session-expired` |
 | 403 `PERMISSION_DENIED` | `ApiError` 403 |
-
-Los filtros vacíos no se envían. Por ejemplo, con estado "Reabierta" y 10 resultados por página la URL es `/api/v1/recomendaciones?page=1&page_size=10&state=REABIERTA`.
-
-El servicio solo traduce entre la interfaz y la API: no guarda estado ni decide qué mostrar. El componente decide la presentación según el resultado del servicio.
 
 ## Estados de la interfaz
 
-| Estado | Cuándo ocurre | Qué ve la persona usuaria |
+Cada estado corresponde a una respuesta documentada en el contrato:
+
+| Estado | Cuándo ocurre | Qué debe ver la persona usuaria |
 |---|---|---|
-| Carga | Mientras la solicitud está en curso | "Consultando recomendaciones…" y la sección marcada con `aria-busy` |
-| Éxito | 200 con resultados | Tabla con número, descripción, unidad, vencimiento y estado; total y página actual |
-| Vacío | 200 sin resultados | "No hay recomendaciones que coincidan con los filtros" |
-| Validación en la interfaz | "Vence desde" posterior a "Vence hasta" | Mensaje junto a los filtros; no se llama a la API |
-| Validación del backend | 400 | "Revise los filtros" y los errores por campo de `errors.fields` |
+| Carga | Mientras la solicitud está en curso | "Consultando recomendaciones…" |
+| Éxito | 200 con resultados | Tabla con número, descripción, unidad, vencimiento y estado; total y página |
+| Vacío | 200 con `data: []` | "No hay recomendaciones que coincidan con los filtros" |
+| Validación en la interfaz | Datos incoherentes antes de enviar, por ejemplo "Vence desde" posterior a "Vence hasta" | Mensaje junto al filtro; no se llama a la API |
+| Validación del backend | 400 `VALIDATION_ERROR` | "Revise los filtros" y el detalle de `errors.detail` |
 | Sesión vencida | 401 | Vuelta a la pantalla de inicio de sesión |
-| No autorizado | 403 | "Acceso no autorizado" |
-| Servidor no disponible | 5xx o sin conexión | Mensaje sin detalle técnico y botón **Reintentar** |
+| No autorizado | 403 | "Su rol no tiene permiso para consultar recomendaciones" |
+| Servidor no disponible | 5xx o sin conexión | Mensaje sin detalle técnico y opción de **Reintentar** |
 
-Cada cambio de filtros cancela la consulta anterior con `AbortController`. Así, la tabla siempre corresponde a los filtros que se ven en pantalla.
+**Criterios:**
 
-La validación de fechas en la interfaz solo evita una llamada inútil. El backend vuelve a validar todos los parámetros (`ListRecomendaciones.execute`), porque la API también puede llamarse sin el frontend.
+- Hay un único estado activo a la vez. Por eso el estado se modela como un solo valor y no como varios booleanos que podrían contradecirse.
+- No se ofrece reintentar ante un 400 ni un 401, porque repetir la misma solicitud da el mismo resultado: hay que corregir el filtro o volver a iniciar sesión.
+- El 5xx no muestra el mensaje técnico: al usuario no le sirve una traza ni un "Error HTTP 500".
+- La lista vacía no es un error: es un 200 válido sin resultados.
 
-## Comunicación con el backend y CORS
+La validación en la interfaz solo evita una llamada inútil. El backend vuelve a validar todos los parámetros (`ListRecomendaciones.execute`), porque la API también puede llamarse sin el frontend.
 
-En desarrollo, Vite reenvía `/api` y `/health` al backend (`vite.config.ts`, variable `VITE_BACKEND_PROXY_TARGET`, por defecto `http://127.0.0.1:8000`). Para el navegador, frontend y API comparten el mismo origen, así que no interviene CORS.
+## Dependencias detectadas al integrar
 
-Si el frontend se publica en otro origen, se define `VITE_API_BASE` con la URL de la API y ese origen debe agregarse a `DJANGO_CORS_ALLOWED_ORIGINS` en el backend. CORS está limitado a `/api/*` y `/health/*`, y expone las cabeceras `Location` y `Content-Disposition`.
+| Punto | Efecto | Responsable sugerido |
+|---|---|---|
+| `serializeQuery` solo omite los valores `undefined`; una cadena vacía se envía | Si el componente pasa `unit_id: ""` o `priority: ""`, el backend responde 400 ("Los filtros unit_id y priority no pueden estar vacíos"). El componente debe convertir los filtros vacíos en `undefined` | Integrante 3 |
+| `ApiError` no conserva `errors.fields` | Un 400 solo puede mostrar el mensaje general, no el error de cada campo | Integrante 2 |
+| `PaginatedResult.pagination` puede ser `null` | El componente debe tolerarlo, aunque esta operación siempre envía `meta.pagination` | Integrante 3 |
 
-## Ejecución
+## Pruebas de integración
 
-```powershell
-$env:DJANGO_DEBUG="true"; .venv\Scripts\python.exe backend\manage.py runserver
-```
+Con el backend en modo desarrollo (`DJANGO_DEBUG=true`) y el frontend en `http://localhost:5173`:
 
-```powershell
-npm --prefix frontend run dev
-```
+| ID | Caso | Resultado esperado |
+|---|---|---|
+| PI-01 | Operación en Swagger (`/api/docs/`) con un token de `POST /sesiones` | 200 con `data` y `meta.pagination` |
+| PI-02 | Consulta desde la interfaz como UAI | Tabla; en DevTools, `GET /api/v1/recomendaciones?…` con 200 y `Authorization: Bearer …` |
+| PI-03 | Carga con la red limitada (DevTools → "Slow 3G") | Estado de carga visible |
+| PI-04 | Filtro por estado | URL con `state=REABIERTA` y sin filtros vacíos |
+| PI-05 | Filtros sin resultados | Estado vacío |
+| PI-06 | Validación: fechas invertidas en la interfaz; `page_size=500` en Swagger | Mensaje sin solicitud en Network; 400 `VALIDATION_ERROR` |
+| PI-07 | Sesión vencida: borrar `sitra.session` en DevTools → Application | 401 y vuelta al login |
+| PI-08 | Backend detenido | Servidor no disponible y **Reintentar** |
+| PI-09 | Consulta como Ejecutor | Solo recomendaciones de su unidad (DEP-A) |
 
-Abrir `http://127.0.0.1:5173`, entrar con un rol de prueba (UAI, Ejecutor o Rectorado) y elegir **Consulta de recomendaciones**.
+Las capturas se guardan en `frontend/docs/evidencias/` con el ID del caso en el nombre (por ejemplo, `PI-02-exito.png`).
 
-Pruebas del frontend:
-
-```powershell
-npm --prefix frontend test
-```
+En desarrollo, sin `DJANGO_SECRET_KEY`, el backend genera una clave nueva en cada arranque y los tokens anteriores dejan de valer. Para PI-08 conviene arrancarlo con una clave fija de desarrollo; si no, al reintentar la aplicación vuelve al login.
