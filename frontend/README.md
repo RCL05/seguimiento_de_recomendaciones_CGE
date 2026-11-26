@@ -1,46 +1,86 @@
-# SITRA-CGE · Frontend web
+# Frontend React - SITRA-CGE UNL
 
-Interfaz web de SITRA-CGE UNL, hecha en React 19, TypeScript y Vite 6. Consume la API REST del backend (`/api/v1`) según el contrato `backend/contracts/openapi.yaml`.
+Aplicación existente en React, TypeScript y Vite. La configuración de la APE 6
+reutiliza sus rutas, pantallas y cliente `src/api/client.ts`.
 
-## Ejecución
+## Desarrollo local
 
-1. Levantar el backend en modo desarrollo. Las credenciales de prueba solo funcionan con `DJANGO_DEBUG=true`:
+Se recomienda Node.js 22, la versión utilizada por Docker Compose y CI.
+Desde `frontend/`:
 
-   ```powershell
-   $env:DJANGO_DEBUG="true"; .venv\Scripts\python.exe backend\manage.py runserver
-   ```
-
-2. Instalar dependencias e iniciar el frontend:
-
-   ```powershell
-   npm --prefix frontend install
-   ```
-
-   ```powershell
-   npm --prefix frontend run dev
-   ```
-
-3. Abrir http://127.0.0.1:5173 y entrar con un rol de prueba (UAI, Ejecutor, Rectorado o DTI).
-
-### Comunicación con la API y CORS
-
-En desarrollo, Vite reenvía `/api` y `/health` al backend (`vite.config.ts`; destino en `VITE_BACKEND_PROXY_TARGET`, por defecto `http://127.0.0.1:8000`). Para el navegador, frontend y API tienen el mismo origen, así que no interviene CORS.
-
-Si el frontend se publica en otro origen, se define `VITE_API_BASE` con la URL de la API y ese origen se agrega a `DJANGO_CORS_ALLOWED_ORIGINS` en el backend.
-
-## Estructura
-
-```
-src/
-├── api/client.ts          Cliente HTTP: token Bearer, envoltura universal y ApiError
-├── components/            Componentes de interfaz compartidos
-├── features/<feature>/
-│   ├── services/          Acceso a datos: una función por operación del contrato
-│   └── pages/             Componentes de pantalla y sus pruebas
-└── routes.tsx             Rutas y roles que pueden verlas
+```powershell
+npm ci
+Copy-Item .env.example .env.local
+npm run dev
 ```
 
-## Feature de la APE-006: Consulta de recomendaciones
+En bash, usar `cp .env.example .env.local` para copiar la plantilla.
+Si `.env.local` ya existe, conservarlo y editar sus valores. El backend debe estar
+activo en otra terminal; consultar la guía de ejecución del [repositorio](../README.md).
+
+Vite utiliza el puerto `5173` y falla si está ocupado, para evitar cambiar a un
+origen que Django no tenga permitido. Reiniciar Vite después de cambiar variables.
+
+| Variable                    | Valor local             | Uso                                                                    |
+| --------------------------- | ----------------------- | ---------------------------------------------------------------------- |
+| `VITE_API_BASE`             | Vacío                   | Base de las solicitudes del navegador; las rutas ya incluyen `/api/v1` |
+| `VITE_BACKEND_PROXY_TARGET` | `http://127.0.0.1:8000` | Destino de `/api` y `/health` en el servidor de desarrollo             |
+
+`vite.config.ts` carga `.env`, `.env.local` y los archivos del modo mediante
+`loadEnv`. Las variables del proceso tienen prioridad: por eso Compose conserva
+su destino `http://backend:8000` aunque exista una configuración local.
+
+## Formas de comunicación
+
+### Proxy de desarrollo
+
+```dotenv
+VITE_API_BASE=
+VITE_BACKEND_PROXY_TARGET=http://127.0.0.1:8000
+```
+
+El navegador solicita `http://localhost:5173/api/v1/...` y Vite reenvía al backend.
+La comunicación del navegador es con su mismo origen. En Compose, el destino
+interno es `http://backend:8000`; ese nombre no se utiliza como URL pública.
+
+### Acceso directo a la API
+
+```dotenv
+VITE_API_BASE=http://localhost:8000
+```
+
+El navegador accede a otro origen. Django debe permitir el origen exacto del
+frontend en `DJANGO_CORS_ALLOWED_ORIGINS`, por ejemplo
+`http://localhost:5173,http://127.0.0.1:5173`. Protocolo, host y puerto forman
+parte del origen; CORS no sustituye la autenticación Bearer.
+
+La base no debe incluir `/api/v1`: el cliente ya agrega esa ruta. Los espacios y
+barras finales se eliminan al leer la configuración. Las variables `VITE_*` son
+públicas y no deben contener secretos.
+
+### Build
+
+`VITE_API_BASE` se incorpora al compilar; cambiar una variable del servidor después
+no modifica un build existente. Una base vacía requiere que el servidor publicado
+redirija `/api` al backend. `server.proxy` de Vite solo configura el desarrollo.
+
+## Verificación
+
+```powershell
+npm run lint
+npm test
+npm run build
+```
+
+Con ambos servicios activos, comprobar `http://localhost:5173/health/` y revisar
+en DevTools la solicitud de la feature elegida, su método, autenticación,
+respuesta JSON y estado HTTP. Para verificar CORS, usar también una solicitud
+directa al backend; el proxy por sí solo no comprueba esa política.
+
+El [informe del integrante 1](../docs/semanas/semana-06/ape6-arquitectura-frontend-derick.md)
+incluye el contrato revisado, los límites de la intervención y las preguntas 1 y 4.
+
+## Feature de la APE 6: Consulta de recomendaciones
 
 ### Trazabilidad
 
@@ -48,14 +88,16 @@ src/
 |---|---|
 | Feature | F-006 · Consulta del estado de cumplimiento (`feature-map.md`) |
 | Historia y criterio | HU-02 · CA-02.2: filtrado por estado, unidad y plazo |
-| Requisitos | RF-019: el ejecutor solo ve su unidad · RNF-003: autorización por rol y por objeto · RNF-004: contrato de respuesta |
+| Requisitos | RF-019: el ejecutor solo ve su unidad · RNF-003 · RNF-004 |
 | Operación OpenAPI | `listarRecomendaciones` · `GET /api/v1/recomendaciones` · seguridad `bearerAuth` |
-| Servicio | `src/features/recomendaciones/services/recomendacionesService.ts` → `listarRecomendaciones(filtros, signal)` |
-| Componente | `src/features/recomendaciones/pages/ConsultaRecomendacionesPage.tsx` |
-| Ruta | `/recomendaciones/consulta` · roles UAI, Ejecutor, Rectorado y Auditor CGE |
-| Pruebas | `recomendacionesService.test.ts` (4) · `ConsultaRecomendacionesPage.test.tsx` (9) |
+| Modelos | `RecommendationQuery`, `PaginatedResult<Recommendation>` en `src/models/domain.types.ts` |
+| Servicio | `recommendationsService.listPage(filters)` en `src/services/recommendations.service.ts` |
+| Componente y ruta | [componente de consulta y su ruta] |
+| Evidencias | `docs/evidencias/` (casos PI-01 a PI-09) |
 
-La correspondencia parámetro por parámetro entre el contrato y el servicio está en [`DOCUMENTACION/04_IMPLEMENTACION/FRONTEND_CONSUMO_API.md`](../DOCUMENTACION/04_IMPLEMENTACION/FRONTEND_CONSUMO_API.md).
+La correspondencia parámetro por parámetro con el contrato, los estados de la interfaz
+y los casos de prueba de integración están en
+[`DOCUMENTACION/04_IMPLEMENTACION/FRONTEND_CONSUMO_API.md`](../DOCUMENTACION/04_IMPLEMENTACION/FRONTEND_CONSUMO_API.md).
 
 ### Estados de la interfaz
 
@@ -64,41 +106,16 @@ La correspondencia parámetro por parámetro entre el contrato y el servicio est
 | Carga | Solicitud en curso | "Consultando recomendaciones…" |
 | Éxito | 200 con resultados | Tabla con paginación |
 | Vacío | 200 con `data: []` | "No hay recomendaciones que coincidan con los filtros" |
-| Validación en la interfaz | No se llama a la API | "Vence desde" posterior a "Vence hasta": mensaje junto a los filtros |
-| Validación del backend | 400 `VALIDATION_ERROR` | "Revise los filtros" y los errores de `errors.fields` |
-| Sesión vencida | 401 `AUTHENTICATION_REQUIRED` | Vuelta al inicio de sesión |
-| No autorizado | 403 `PERMISSION_DENIED` | "Acceso no autorizado" |
-| Servidor no disponible | 5xx o sin conexión | Mensaje sin detalle técnico y botón **Reintentar** |
+| Validación | Datos incoherentes antes de enviar, o 400 `VALIDATION_ERROR` | Mensaje para corregir el filtro |
+| Sesión vencida | 401 | Vuelta al inicio de sesión |
+| No autorizado | 403 | "Su rol no tiene permiso para consultar recomendaciones" |
+| Servidor no disponible | 5xx o sin conexión | Mensaje sin detalle técnico y **Reintentar** |
 
-### Pruebas
-
-```powershell
-npm --prefix frontend test
-```
-
-Las pruebas del componente cubren cada estado de la tabla anterior; las del servicio comprueban la URL, la cabecera `Authorization`, la paginación y el manejo de 400 y 401.
-
-### Evidencias de integración
-
-Las capturas están en [`docs/evidencias/`](docs/evidencias/) y siguen los casos PI-01 a PI-09:
-
-| ID | Caso | Resultado esperado |
-|---|---|---|
-| PI-01 | Operación en Swagger (`/api/docs/`) | 200 con `data` y `meta.pagination` |
-| PI-02 | Consulta desde la interfaz (UAI) | Tabla y solicitud `GET …/recomendaciones?page=1&page_size=25` en DevTools |
-| PI-03 | Carga con la red limitada | "Consultando recomendaciones…" |
-| PI-04 | Filtro por estado | URL con `state=REABIERTA` y sin filtros vacíos |
-| PI-05 | Sin resultados | Mensaje de lista vacía |
-| PI-06 | Validación | Fechas invertidas en la interfaz; `page_size=500` en Swagger responde 400 |
-| PI-07 | Sesión vencida | 401 y vuelta al inicio de sesión |
-| PI-08 | Backend detenido | "El servidor no está disponible" y **Reintentar** |
-| PI-09 | Ejecutor | Solo recomendaciones de su unidad (DEP-A) |
-
-## Contribuciones (APE-006)
+### Contribuciones
 
 | Integrante | Parte | Evidencia |
 |---|---|---|
-| [Integrante 1] | Configuración del proyecto, URL base, cliente HTTP y CORS | [commit/PR] |
-| [Integrante 2] | Tipos según OpenAPI y servicio de acceso a datos | [commit/PR] |
-| [Integrante 3] | Componente, validaciones y ruta | [commit/PR] |
-| [Integrante 4] | Gestión de estados, pruebas, evidencias y documentación | [commit/PR] |
+| [Integrante 1] | Configuración, URL base, cliente HTTP y CORS | PR #24 |
+| [Integrante 2] | Modelos y servicio según OpenAPI | PR #23 |
+| [Integrante 3] | Componente, validaciones y ruta | [PR] |
+| [Integrante 4] | Gestión de estados, pruebas, evidencias y documentación | PR #25 |
